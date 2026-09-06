@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap——自动切换 NFL、NBA、March Madness、MLB 直播",
+	"extDescription": "监控 31 个联赛的所有直播比赛，自动将您的标签页切换到最精彩的一场，最快每 6 秒判定一次。",
 	"app": {
 		"welcomeToast": "欢迎使用 ArenaSwap！",
 		"settingsSavedToast": "设置已保存",
@@ -143,6 +145,11 @@
 		"proTips": "达人技巧",
 		"switchNotifications": "切换通知",
 		"demoMode": "演示模式",
+		"demoSeason": "假装现在是",
+		"demoSeasonReal": "真实日期",
+		"demoSeasonThanksgiving": "感恩节当周",
+		"demoSeasonDecember": "十二月",
+		"demoSeasonExplainer": "仅影响节日装饰，方便您在非节日期间查看。",
 		"standbySection": "Standby Stream",
 		"enableStandby": "启用 Standby Stream",
 		"standbyBelow": "低于以下值时待机",
@@ -154,6 +161,12 @@
 		"temperatureUnit": "温度单位",
 		"temperatureUnitF": "°F",
 		"temperatureUnitC": "°C",
+		"temperatureUnitRomer": "°Rø",
+		"holidayDecorations": "节日装饰",
+		"holidayDecorationsExplainer": "比赛现场下雪时飘雪，感恩节当周飘落叶，整个十二月挂彩灯。",
+		"holidaySnow": "雪",
+		"holidayLights": "彩灯",
+		"holidayLeaves": "落叶",
 		"signalsSection": "PowerScore 信号",
 		"signalsExplainer": "已禁用的信号不计入评分。分数将重新归一化以保持在范围内。",
 		"signalLastActive": "至少需要保留一个信号处于启用状态",
@@ -171,6 +184,9 @@
 		"groupSwitchingDesc": "ArenaSwap 有多积极把您带到更精彩的比赛。",
 		"groupScoring": "评分",
 		"groupScoringDesc": "哪些信号构成 PowerScore，以及什么能加分。",
+		"groupFavorites": "收藏球队",
+		"groupFavoritesDesc": "您关注的球队，以及收藏能加多少分。",
+		"followedTeams": "您关注的球队",
 		"groupLeagues": "联赛",
 		"groupLeaguesDesc": "追踪哪些联赛，以及它们的显示顺序。",
 		"groupDisplay": "显示",
@@ -191,6 +207,7 @@
 		"keywordsLeadChanges": "交替领先, 来回, 领先, 信号",
 		"keywordsComeback": "追分, 落后, 反超, 信号",
 		"keywordsFavoriteBonus": "收藏, 关注, 我的球队, 加成, 分数",
+		"keywordsFavoriteTeams": "星标, 收藏, 关注, 俱乐部, 选择, 我的球队",
 		"keywordsPostseasonBoost": "季后赛, 淘汰赛, 锦标赛, 对阵表, 加成, 分数",
 		"keywordsLeagues": "运动, 项目, 追踪, nba, nfl, nhl, mlb, 足球",
 		"keywordsLeagueOrder": "排序, 顺序, 重新排列, 拖动, 次序",
@@ -200,6 +217,7 @@
 		"keywordsNotifications": "通知, 提醒, 横幅, 弹窗",
 		"keywordsBetting": "赔率, 博彩, 让分, 盘口, 投注",
 		"keywordsTemperature": "摄氏, 华氏, 度, 天气, 单位",
+		"keywordsHoliday": "圣诞, 雪, 彩灯, 落叶, 季节, 天气, 感恩节",
 		"keywordsStandby": "备用, 后备, 空闲, 替补, 冷场",
 		"keywordsStandbyThreshold": "分数, 阈值, 下限, 低于, 冷场",
 		"keywordsStandbyTab": "标签页, 窗口, 页面, 目标",
@@ -212,7 +230,9 @@
 		"sectionActiveLiveTabs": "活跃标签页",
 		"sectionOtherLiveGames": "直播比赛",
 		"sectionUpNext": "即将开赛",
-		"showMoreUpcoming": "再显示 {count} 场",
+		"upcomingDayNavLabel": "按日期查看即将开始的比赛",
+		"upcomingPreviousDay": "前一天",
+		"upcomingNextDay": "后一天",
 		"enableToggleLabel": "启用自动切换"
 	},
 	"detail": {
@@ -248,7 +268,29 @@
 		"getReadyPuckDrop": "即将争球",
 		"getReadyFirstPitch": "即将开赛",
 		"getReadyGametime": "即将开赛",
-		"pregameTabExplainer": "比赛开始时在标签页中打开。"
+		"pregameTabExplainer": "比赛开始时在标签页中打开。",
+		"probablePitchers": "先发投手",
+		"probableGoalies": "先发守门员",
+		"starterConfirmed": "确认",
+		"pitcherRecordLabel": "胜败",
+		"pitcherEraLabel": "防御率",
+		"starterExpected": "预计",
+		"teamLeaders": "主力球员",
+		"leaderAvg": "打击率",
+		"leaderHomeRuns": "全垒打",
+		"leaderRbis": "打点",
+		"leaderPoints": "得分",
+		"leaderRebounds": "篮板",
+		"leaderAssists": "助攻",
+		"leaderPointsPerGame": "PPG",
+		"leaderReboundsPerGame": "RPG",
+		"leaderAssistsPerGame": "APG",
+		"leaderGoals": "进球",
+		"leaderHockeyAssists": "助攻",
+		"leaderHockeyPoints": "得分",
+		"leaderPassing": "PASS",
+		"leaderRushing": "RUSH",
+		"leaderReceiving": "REC"
 	},
 	"gameCard": {
 		"removeFromFavorites": "从收藏中移除 {team}",
@@ -267,6 +309,10 @@
 		"vs": "vs",
 		"topOfInning": "上半局",
 		"bottomOfInning": "下半局"
+	},
+	"field": {
+		"possession": "{team}持球进攻",
+		"noPossession": "球场位置"
 	},
 	"gameBoost": {
 		"heading": "比赛加速",
@@ -332,6 +378,8 @@
 		"step": "第 $1 步，共 $2 步",
 		"title": "选择您的球队",
 		"explainer": "收藏的球队将获得评分加成，让 ArenaSwap 优先推送这些比赛。",
+		"yourFavorites": "您的收藏",
+		"leagueNotTracked": "{league} · 未追踪",
 		"searchPlaceholder": "搜索球队……",
 		"loading": "加载球队中……",
 		"loadError": "球队加载失败。",
@@ -534,6 +582,28 @@
 		"placeholder": "— 分配标签页 —",
 		"inUse": "（已占用）"
 	},
+	"suggest": {
+		"bannerTitle": "这些标签页看起来像比赛",
+		"bannerCopy": {
+			"1": "您打开的 1 个标签页，与您赛程上的一场比赛相符。",
+			"n": "您打开的 $1 个标签页，与您赛程上的比赛相符。"
+		},
+		"bannerAction": "查看",
+		"bannerDismiss": "忽略建议",
+		"header": "标签页建议",
+		"lede": "取消勾选我们猜错的选项。每张卡片上的下拉菜单仍拥有最终决定权。",
+		"empty": "您打开的内容中，没有一项像您赛程上的比赛。",
+		"rowLabel": "将 {tab} 与 {away} 对阵 {home} 的比赛配对",
+		"apply": {
+			"1": "分配 1 个标签页",
+			"n": "分配 $1 个标签页"
+		},
+		"applyNone": "分配标签页",
+		"toastApplied": {
+			"1": "已分配 1 个标签页。",
+			"n": "已分配 $1 个标签页。"
+		}
+	},
 	"favoriteTeamBonus": {
 		"label": "收藏球队加成",
 		"perTeam": "+$1（每支球队）",
@@ -591,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "切换冷却",
-		"explainer": "设置自动切换之间的最短间隔，防止标签页来回乱跳。"
+		"explainer": "设置自动切换之间的最短间隔，防止标签页来回乱跳。",
+		"off": "关闭"
 	},
 	"switchDelay": {
 		"label": "切换延迟",

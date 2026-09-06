@@ -9,8 +9,12 @@ import DetailStickyBar from './detailStickyBar';
 import GameDetailChart from './gameDetailChart';
 import GameBoostInput from './gameBoostInput';
 import GameInfoPanel from './gameInfoPanel';
+import HolidayDrift from './holidayDrift';
+import HolidayFall from './holidayFall';
+import HolidayLights from './holidayLights';
 import PowerScoreBreakdown from './powerScoreBreakdown';
 import PregameSetup from './pregameSetup';
+import PregameStats from './pregameStats';
 import ProTip from './proTip';
 import { resolveStatusText } from './gameSituation';
 import {
@@ -21,6 +25,8 @@ import {
 } from './gameDetailChartOptions';
 import { resolveTeamColorPair } from '@arenaswap/ui/src/components/colorUtils';
 import useSummaryData from './useSummaryData';
+import { resolveDecorations, type holidayDecorationPrefs } from '../../../utils/holidayDecorations';
+import { favoriteScoreFlashColors, scorelineOf, type gameScoreline } from '../../../utils/favoriteScoreFlash';
 import type { BettingDisplayPrefs, WeatherDisplayPrefs } from './gameCardTypes';
 
 interface gameDetailViewProps {
@@ -32,6 +38,9 @@ interface gameDetailViewProps {
 	gameBoosts: Record<string, number>;
 	bettingPrefs: BettingDisplayPrefs;
 	weatherPrefs: WeatherDisplayPrefs;
+	decorationPrefs: holidayDecorationPrefs;
+	// Demo mode borrows a date so the calendar-gated decorations are reachable in September.
+	decorationDate?: Date;
 	disabledSignals?: readonly SignalName[];
 	// Pre-game only: the setup card and the poster's favourite stars need these. They are
 	// optional so the live screen, and anything mounting it, is unaffected.
@@ -46,6 +55,8 @@ interface gameDetailViewProps {
 }
 
 const noFavorites: ReadonlySet<string> = new Set();
+
+const favoriteFlashMs = 5000;
 
 // The signal palette belongs to the PowerScore breakdown card above this chart, so momentum
 // keeps that card's #2274a5 rather than the dark-surface $secondary. Same signal, one colour.
@@ -70,6 +81,8 @@ const gameDetailView = ({
 	gameBoosts,
 	bettingPrefs,
 	weatherPrefs,
+	decorationPrefs,
+	decorationDate,
 	disabledSignals = [],
 	favoriteTeamIds = noFavorites,
 	openTabs = [],
@@ -106,6 +119,23 @@ const gameDetailView = ({
 	const clockBased = (sportTypeConfigMap[game.sportType] ?? sportTypeConfigMap.basketball).clockBased;
 	const favoriteBonus = activePowerScore?.favoriteBonus ?? 0;
 	const favoriteTeamCount = activePowerScore?.favoriteTeamCount ?? 0;
+	const decorations = resolveDecorations(game, decorationDate ?? new Date(), decorationPrefs);
+
+	const [scoreFlash, setScoreFlash] = useState<string[] | null>(null);
+	const previousScoreline = useRef<gameScoreline | null>(null);
+	const flashTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+	useEffect(() => {
+		const colors = favoriteScoreFlashColors(previousScoreline.current, game, favoriteTeamIds);
+		// Seeded on the first pass so opening the screen mid-game does not read as a goal.
+		previousScoreline.current = scorelineOf(game);
+		if (!colors) return;
+		setScoreFlash(colors);
+		clearTimeout(flashTimer.current);
+		flashTimer.current = setTimeout(() => setScoreFlash(null), favoriteFlashMs);
+	}, [game, favoriteTeamIds]);
+
+	useEffect(() => () => clearTimeout(flashTimer.current), []);
 	const currentBoost = gameBoosts[game.id] ?? 0;
 	// The breakdown mirrors the scorer, which drops every boost while play is frozen. The boost input
 	// keeps showing the stored value, since the setting survives halftime even though it pays nothing.
@@ -177,7 +207,9 @@ const gameDetailView = ({
 
 	return (
 		<div className='popup-container game-detail-shell' ref={shellRef}>
+			{decorations.falling && <HolidayFall kind={decorations.falling} />}
 			<DetailStickyBar game={game} statusText={statusText} compact={heroScrolledAway} onBack={onBack} />
+			{decorations.lights && <HolidayLights flashColors={scoreFlash} />}
 
 			<div ref={heroRef}>
 				{isPreGame ? (
@@ -215,6 +247,7 @@ const gameDetailView = ({
 						onRegistryChange={onRegistryChange}
 						formatTabLabel={formatTabLabel}
 					/>
+					<PregameStats game={game} />
 					<GameInfoPanel game={game} bettingPrefs={bettingPrefs} weatherPrefs={weatherPrefs} />
 				</>
 			) : (
@@ -262,6 +295,8 @@ const gameDetailView = ({
 			{orderedPowerScoreHistory.length > 0 && (
 				<GameDetailChart title={i18n.t('detail.chartComponentsTitle')} option={componentOption} legendItems={componentLegendItems} />
 			)}
+
+			{decorations.falling && <HolidayDrift kind={decorations.falling} depth={decorations.depth} />}
 		</div>
 	);
 };

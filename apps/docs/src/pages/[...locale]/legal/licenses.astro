@@ -1,0 +1,122 @@
+---
+import Shell from '../../../layouts/Shell.astro';
+import LegalNav from '../../../components/LegalNav.astro';
+import LegalTranslationNotice from '../../../components/LegalTranslationNotice.astro';
+import { directDependencies } from '../../../lib/dependencyLicences';
+import { localeRoutes } from '../../../i18n/locales';
+import { useTranslations } from '../../../i18n/ui';
+
+// The dependency table is read from the manifests at build time, so it cannot drift from what is
+// actually installed. See src/lib/dependencyLicences.ts.
+//
+// The ISC text is reproduced verbatim in every language. A licence is only the licence in the words
+// it was granted in, and a translated one grants nothing.
+
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const dependencies = directDependencies();
+
+const fonts = [
+	{ name: 'DM Sans', by: 'Colophon Foundry, Jonny Pinhorn and Indian Type Foundry', licence: 'OFL 1.1' },
+	{ name: 'DM Serif Text', by: 'Colophon Foundry and Jonny Pinhorn', licence: 'OFL 1.1' },
+	{ name: 'Lekton', by: 'ISIA Urbino', licence: 'OFL 1.1' },
+	{ name: 'Geist', by: 'Vercel', licence: 'OFL 1.1' },
+];
+---
+<Shell
+	title={t('meta.licensesTitle')}
+	description={t('meta.licensesDescription')}
+	path='legal/licenses/'
+>
+	<div class='container'>
+		<div class='page-head'>
+			<h1 class='page-title'>{t('legal.licenses.title')}</h1>
+		</div>
+
+		<div class='reading-shell'>
+			<LegalNav current='legal/licenses/' />
+
+			<div class='legal-measure'>
+				<div class='prose'>
+					<LegalTranslationNotice path='legal/licenses/' />
+
+					<h2>{t('legal.licenses.arenaswapHeading')}</h2>
+					<p>{t('legal.licenses.arenaswap1')}</p>
+					<pre><code>{`ISC License
+
+Copyright (c) 2026 Ryan Mullin, Lattice & Company, and contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.`}</code></pre>
+
+					<h2>{t('legal.licenses.softwareHeading')}</h2>
+					<p>{t('legal.licenses.software1')}</p>
+				</div>
+
+				<div class='table-responsive'>
+					<table class='table table-dark table-sm align-middle'>
+						<thead>
+							<tr>
+								<th scope='col'>{t('legal.licenses.colPackage')}</th>
+								<th scope='col'>{t('legal.licenses.colVersion')}</th>
+								<th scope='col'>{t('legal.licenses.colLicense')}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{dependencies.map(dependency => (
+								<tr>
+									<th scope='row' class='fw-normal'>
+										<a
+											href={dependency.url}
+											class='link-light link-underline-opacity-0 link-underline-opacity-100-hover'
+										>{dependency.name}</a>
+									</th>
+									<td>{dependency.version}</td>
+									<td>{dependency.licence}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+
+				<div class='prose'>
+					<h2>{t('legal.licenses.typefacesHeading')}</h2>
+					<p>{t('legal.licenses.typefaces1')}</p>
+				</div>
+
+				<div class='table-responsive'>
+					<table class='table table-dark table-sm align-middle'>
+						<thead>
+							<tr>
+								<th scope='col'>{t('legal.licenses.colFamily')}</th>
+								<th scope='col'>{t('legal.licenses.colBy')}</th>
+								<th scope='col'>{t('legal.licenses.colLicense')}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{fonts.map(font => (
+								<tr>
+									<th scope='row' class='fw-normal'>{font.name}</th>
+									<td>{font.by}</td>
+									<td>{font.licence}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</Shell>

@@ -10,6 +10,13 @@
 // Ten, not twelve: the copy column is about 450px and twelve wrapped to a second row holding three
 // orphans, which reads as a mistake rather than as a grid.
 
+import { leagueConfigs } from '@arenaswap/core/constants';
+import { localePath } from '../../i18n/locales';
+import { currentLocale, useTranslations } from '../../i18n/ui';
+
+const locale = currentLocale(Astro.currentLocale);
+const t = useTranslations(locale);
+
 const espnTeam = (path: string) => `https://a.espncdn.com/i/teamlogos/${path}.png`;
 
 // Philadelphia first, which is where this is built, then Boston, which is the other half of the
@@ -28,8 +35,8 @@ const teams = [
 	{ name: 'Manchester City', abbr: 'MCI', logo: espnTeam('soccer/500/382') },
 ];
 ---
-<a class='team-strip' href={`${import.meta.env.BASE_URL}#leagues`}>
-	<span class='team-strip-label'>Works with every team in 31 leagues. Yours included.</span>
+<a class='team-strip' href={`${localePath(locale)}#leagues`}>
+	<span class='team-strip-label'>{t('home.hero.teamStrip', { leagues: leagueConfigs.length })}</span>
 	<span class='team-strip-logos'>
 		{teams.map(team => (
 			<span class='crest' data-crest-state='pending' role='img' aria-label={team.name} title={team.name}>

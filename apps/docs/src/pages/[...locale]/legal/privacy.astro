@@ -1,0 +1,89 @@
+---
+import Shell from '../../../layouts/Shell.astro';
+import LegalNav from '../../../components/LegalNav.astro';
+import LegalTranslationNotice from '../../../components/LegalTranslationNotice.astro';
+import { localePath, localeRoutes } from '../../../i18n/locales';
+import { tokenize, useTranslations } from '../../../i18n/ui';
+
+// Written against the code rather than from a template. Every claim here is checkable: the
+// permissions and the two hosts are in apps/extension/wxt.config.ts, and the storage calls are in
+// apps/extension/utils/prefsStorage.ts — preferences go to storage.sync with storage.local as the
+// fallback, and everything else is storage.session.
+
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+// The date is a fact about the notice rather than a piece of copy, so it is the same in every
+// language and is written once, in the English bundle, for all of them.
+const updated = t('legal.privacy.updatedDate');
+
+const website2 = tokenize(t('legal.privacy.website2'));
+const questions1 = tokenize(t('legal.privacy.questions1'));
+---
+<Shell
+	title={t('meta.privacyTitle')}
+	description={t('meta.privacyDescription')}
+	path='legal/privacy/'
+>
+	<div class='container'>
+		<div class='page-head'>
+			<h1 class='page-title'>{t('legal.privacy.title')}</h1>
+		</div>
+
+		<div class='reading-shell'>
+			<LegalNav current='legal/privacy/' />
+
+			<div class='prose'>
+				<p class='legal-updated'>{t('legal.privacy.updated', { date: updated })}</p>
+				<LegalTranslationNotice path='legal/privacy/' />
+
+				<h2>{t('legal.privacy.retainsHeading')}</h2>
+				<p>{t('legal.privacy.retains1')}</p>
+				<p>{t('legal.privacy.retains2')}</p>
+				<p>{t('legal.privacy.retains3')}</p>
+
+				<h2>{t('legal.privacy.transmitsHeading')}</h2>
+				<p>{t('legal.privacy.transmits1')}</p>
+				<ul>
+					<li><code>site.api.espn.com</code>, {t('legal.privacy.transmitsHost1')}</li>
+					<li><code>a.espncdn.com</code>, {t('legal.privacy.transmitsHost2')}</li>
+				</ul>
+				<p>{t('legal.privacy.transmits2')}</p>
+
+				<h2>{t('legal.privacy.permissionsHeading')}</h2>
+				<p>{t('legal.privacy.permissions1')}</p>
+				<ul>
+					<li><strong>{t('legal.privacy.permissionTabsName')}</strong> {t('legal.privacy.permissionTabs')}</li>
+					<li><strong>{t('legal.privacy.permissionStorageName')}</strong> {t('legal.privacy.permissionStorage')}</li>
+					<li><strong>{t('legal.privacy.permissionNotificationsName')}</strong> {t('legal.privacy.permissionNotifications')}</li>
+				</ul>
+
+				<h2>{t('legal.privacy.websiteHeading')}</h2>
+				<p>{t('legal.privacy.website1')}</p>
+				<p>
+					{website2.map(part => (
+						typeof part === 'string' ? part
+						: part.slot === 'host' ? <code>a.espncdn.com</code>
+						: <a href={localePath(locale, 'powerscore/')}>{t('legal.privacy.website2Link')}</a>
+					))}
+				</p>
+
+				<h2>{t('legal.privacy.childrenHeading')}</h2>
+				<p>{t('legal.privacy.children1')}</p>
+
+				<h2>{t('legal.privacy.modificationsHeading')}</h2>
+				<p>{t('legal.privacy.modifications1')}</p>
+
+				<h2>{t('legal.privacy.questionsHeading')}</h2>
+				<p>
+					{questions1.map(part => (
+						typeof part === 'string' ? part
+						: <a href='https://github.com/hiteacheryouare/arenaswap/issues'>{t('legal.privacy.questionsLink')}</a>
+					))}
+				</p>
+			</div>
+		</div>
+	</div>
+</Shell>

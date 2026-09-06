@@ -1,26 +1,30 @@
 ---
+import { localePath } from '../i18n/locales';
+import { currentLocale, useTranslations } from '../i18n/ui';
+
 interface Props {
 	// Path without the base, e.g. `legal/privacy/`. Marks the matching link as current.
 	current?: string;
 }
 
 const { current = '' } = Astro.props;
-const base = import.meta.env.BASE_URL;
+const locale = currentLocale(Astro.currentLocale);
+const t = useTranslations(locale);
 
 const pages = [
-	{ path: 'legal/', label: 'Overview' },
-	{ path: 'legal/privacy/', label: 'Privacy' },
-	{ path: 'legal/licenses/', label: 'Licenses' },
-	{ path: 'legal/credits/', label: 'Credits' },
-	{ path: 'legal/terms/', label: 'Disclaimers' },
+	{ path: 'legal/', label: t('legal.nav.overview') },
+	{ path: 'legal/privacy/', label: t('legal.nav.privacy') },
+	{ path: 'legal/licenses/', label: t('legal.nav.licenses') },
+	{ path: 'legal/credits/', label: t('legal.nav.credits') },
+	{ path: 'legal/terms/', label: t('legal.nav.terms') },
 ];
 ---
-<nav class='reading-nav' aria-label='Legal notices'>
-	<h2>Legal notices</h2>
+<nav class='reading-nav' aria-label={t('legal.nav.heading')}>
+	<h2>{t('legal.nav.heading')}</h2>
 	<ul>
 		{pages.map(page => (
 			<li>
-				<a href={`${base}${page.path}`} aria-current={current === page.path ? 'page' : undefined}>
+				<a href={localePath(locale, page.path)} aria-current={current === page.path ? 'page' : undefined}>
 					{page.label}
 				</a>
 			</li>

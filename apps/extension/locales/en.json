@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Auto-Switch Live NFL, NBA, MarchMadness & MLB Games",
+	"extDescription": "Watches every live game across 31 leagues and auto-switches your browser tab to the most exciting one, as fast as every 6 seconds.",
 	"app": {
 		"welcomeToast": "Welcome to ArenaSwap!",
 		"settingsSavedToast": "Settings saved",
@@ -143,6 +145,11 @@
 		"proTips": "Pro tips",
 		"switchNotifications": "Switch notifications",
 		"demoMode": "Demo mode",
+		"demoSeason": "Pretend it is",
+		"demoSeasonReal": "The real date",
+		"demoSeasonThanksgiving": "Thanksgiving week",
+		"demoSeasonDecember": "December",
+		"demoSeasonExplainer": "Only affects the holiday decorations, so you can see them out of season.",
 		"standbySection": "Standby Stream",
 		"enableStandby": "Enable Standby Stream",
 		"standbyBelow": "Standby below",
@@ -154,6 +161,12 @@
 		"temperatureUnit": "Temperature unit",
 		"temperatureUnitF": "°F",
 		"temperatureUnitC": "°C",
+		"temperatureUnitRomer": "°Rø",
+		"holidayDecorations": "Holiday decorations",
+		"holidayDecorationsExplainer": "Snow falls when it snows at the game, leaves the week of Thanksgiving, and lights all December.",
+		"holidaySnow": "Snow",
+		"holidayLights": "Lights",
+		"holidayLeaves": "Leaves",
 		"signalsSection": "PowerScore Signals",
 		"signalsExplainer": "Disabled signals are excluded from scoring. Scores are re-normalized to stay in range.",
 		"signalLastActive": "At least one signal must stay active",
@@ -171,6 +184,9 @@
 		"groupSwitchingDesc": "How eager ArenaSwap is to move you to a better game.",
 		"groupScoring": "Scoring",
 		"groupScoringDesc": "Which signals feed a PowerScore, and what earns bonus points.",
+		"groupFavorites": "Favorite teams",
+		"groupFavoritesDesc": "Teams you follow, and what following them is worth.",
+		"followedTeams": "Teams you follow",
 		"groupLeagues": "Leagues",
 		"groupLeaguesDesc": "Which leagues get tracked, and the order they appear in.",
 		"groupDisplay": "Display",
@@ -191,6 +207,7 @@
 		"keywordsLeadChanges": "back and forth, lead, swap, signal",
 		"keywordsComeback": "rally, trailing, deficit, signal",
 		"keywordsFavoriteBonus": "favourite, starred, my team, bonus, points",
+		"keywordsFavoriteTeams": "star, starred, follow, following, club, franchise, pick, my team, favourite",
 		"keywordsPostseasonBoost": "playoff, playoffs, knockout, tournament, bracket, bonus, points",
 		"keywordsLeagues": "sport, sports, tracked, nba, nfl, nhl, mlb, soccer",
 		"keywordsLeagueOrder": "sort, reorder, rearrange, drag, sequence",
@@ -200,6 +217,7 @@
 		"keywordsNotifications": "alerts, notify, banner, toast, popup",
 		"keywordsBetting": "odds, lines, spread, gambling, wager, moneyline",
 		"keywordsTemperature": "celsius, fahrenheit, degrees, weather, units",
+		"keywordsHoliday": "christmas, snow, lights, leaves, seasonal, festive, weather, thanksgiving",
 		"keywordsStandby": "fallback, filler, idle, backup, quiet",
 		"keywordsStandbyThreshold": "score, cutoff, limit, below, quiet",
 		"keywordsStandbyTab": "tab, window, page, destination",
@@ -212,7 +230,9 @@
 		"sectionActiveLiveTabs": "Active Tabs",
 		"sectionOtherLiveGames": "Live Games",
 		"sectionUpNext": "Up Next",
-		"showMoreUpcoming": "Show {count} more",
+		"upcomingDayNavLabel": "Upcoming games by day",
+		"upcomingPreviousDay": "Previous day",
+		"upcomingNextDay": "Next day",
 		"enableToggleLabel": "Enable auto-switching"
 	},
 	"detail": {
@@ -248,7 +268,29 @@
 		"getReadyPuckDrop": "Get ready for puck drop",
 		"getReadyFirstPitch": "Get ready for first pitch",
 		"getReadyGametime": "Get ready for gametime",
-		"pregameTabExplainer": "Open this game in a tab when it starts."
+		"pregameTabExplainer": "Open this game in a tab when it starts.",
+		"probablePitchers": "Probable pitchers",
+		"probableGoalies": "Probable goalies",
+		"starterConfirmed": "Confirmed",
+		"pitcherRecordLabel": "W-L",
+		"pitcherEraLabel": "ERA",
+		"starterExpected": "Expected",
+		"teamLeaders": "Team leaders",
+		"leaderAvg": "AVG",
+		"leaderHomeRuns": "HR",
+		"leaderRbis": "RBI",
+		"leaderPoints": "PTS",
+		"leaderRebounds": "REB",
+		"leaderAssists": "AST",
+		"leaderPointsPerGame": "PPG",
+		"leaderReboundsPerGame": "RPG",
+		"leaderAssistsPerGame": "APG",
+		"leaderGoals": "G",
+		"leaderHockeyAssists": "A",
+		"leaderHockeyPoints": "PTS",
+		"leaderPassing": "PASS",
+		"leaderRushing": "RUSH",
+		"leaderReceiving": "REC"
 	},
 	"gameCard": {
 		"removeFromFavorites": "Remove {team} from favorites",
@@ -267,6 +309,10 @@
 		"vs": "vs",
 		"topOfInning": "Top of inning",
 		"bottomOfInning": "Bottom of inning"
+	},
+	"field": {
+		"possession": "{team} has the ball",
+		"noPossession": "Field position"
 	},
 	"gameBoost": {
 		"heading": "Game boost",
@@ -332,6 +378,8 @@
 		"step": "Step $1 of $2",
 		"title": "Pick your teams",
 		"explainer": "Favorites get a scoring bonus so ArenaSwap favors those games.",
+		"yourFavorites": "Your favorites",
+		"leagueNotTracked": "{league} · not tracked",
 		"searchPlaceholder": "Search teams…",
 		"loading": "Loading teams…",
 		"loadError": "Couldn't load teams.",
@@ -534,6 +582,28 @@
 		"placeholder": "— Assign a tab —",
 		"inUse": " (in use)"
 	},
+	"suggest": {
+		"bannerTitle": "These tabs look like games",
+		"bannerCopy": {
+			"1": "One tab you have open lines up with a game on your slate.",
+			"n": "$1 tabs you have open line up with games on your slate."
+		},
+		"bannerAction": "Take a look",
+		"bannerDismiss": "Dismiss suggestions",
+		"header": "Suggested tabs",
+		"lede": "Uncheck anything we got wrong. The dropdown on each card still has the final say.",
+		"empty": "Nothing you have open looks like a game on your slate.",
+		"rowLabel": "Pair {tab} with {away} at {home}",
+		"apply": {
+			"1": "Assign 1 tab",
+			"n": "Assign $1 tabs"
+		},
+		"applyNone": "Assign tabs",
+		"toastApplied": {
+			"1": "1 tab assigned.",
+			"n": "$1 tabs assigned."
+		}
+	},
 	"favoriteTeamBonus": {
 		"label": "Favorite team bonus",
 		"perTeam": "+$1 per team",
@@ -591,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Switch cooldown",
-		"explainer": "Sets the minimum time between automatic switches to reduce rapid tab flipping."
+		"explainer": "Sets the minimum time between automatic switches to reduce rapid tab flipping.",
+		"off": "Off"
 	},
 	"switchDelay": {
 		"label": "Switch delay",

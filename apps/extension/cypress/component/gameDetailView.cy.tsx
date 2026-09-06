@@ -1,5 +1,3 @@
-import '../../assets/bootstrap.scss';
-import '../../assets/global.scss';
 import GameDetailView from '../../entrypoints/popup/components/gameDetailView';
 import LiveGameCard from '@arenaswap/ui/src/components/liveGameCard';
 import type { Game, PowerScoreResult, PowerScoreSnapshot, ScoreSnapshot } from '@arenaswap/core/types';
@@ -55,6 +53,7 @@ const mountDetail = (game: Game, overrides: MountOverrides = {}) => {
 			gameBoosts={{}}
 			bettingPrefs={{ bettingEnabled: false }}
 			weatherPrefs={{ temperatureUnit: 'F' }}
+			decorationPrefs={{ holidayDecorationsEnabled: false, holidaySnowEnabled: false, holidayLightsEnabled: false, holidayLeavesEnabled: false }}
 			onSetGameBoost={() => {}}
 			onBack={() => {}}
 		/>,
@@ -377,6 +376,8 @@ describe('gameDetailView hero', () => {
 	it('shows a series without repeating its summary', () => {
 		mountDetail(makeLiveGame({ id: seriesGameId }), { excitementResult: excitement });
 		cy.get('.series-dots-summary').should('contain.text', 'series');
+		// The summary is a label, not tabular data, so it belongs in the sans face rather than Lekton.
+		cy.get('.series-dots-summary').should('have.css', 'font-family').and('contain', 'DM Sans');
 		cy.get('.gd-hero').find('.series-dots-summary').should('have.length', 1);
 	});
 });

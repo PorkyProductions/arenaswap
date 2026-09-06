@@ -1,0 +1,46 @@
+---
+import Shell from '../../../layouts/Shell.astro';
+import LegalNav from '../../../components/LegalNav.astro';
+import { localePath, localeRoutes } from '../../../i18n/locales';
+import { useTranslations } from '../../../i18n/ui';
+
+// A hub rather than one long page: these four get linked individually — to a store reviewer, to an
+// issue, to a licence header — and a URL that lands on the right clause beats a URL plus "scroll
+// down a bit".
+
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const notices = [
+	{ path: 'legal/privacy/', title: t('legal.nav.privacy'), blurb: t('legal.index.privacyBlurb') },
+	{ path: 'legal/licenses/', title: t('legal.nav.licenses'), blurb: t('legal.index.licensesBlurb') },
+	{ path: 'legal/credits/', title: t('legal.nav.credits'), blurb: t('legal.index.creditsBlurb') },
+	{ path: 'legal/terms/', title: t('legal.nav.terms'), blurb: t('legal.index.termsBlurb') },
+];
+---
+<Shell
+	title={t('meta.legalTitle')}
+	description={t('meta.legalDescription')}
+	path='legal/'
+>
+	<div class='container'>
+		<div class='page-head'>
+			<h1 class='page-title'>{t('legal.index.title')}</h1>
+		</div>
+
+		<div class='reading-shell'>
+			<LegalNav current='legal/' />
+
+			<ul class='legal-index'>
+				{notices.map(notice => (
+					<li>
+						<h2><a href={localePath(locale, notice.path)}>{notice.title}</a></h2>
+						<p>{notice.blurb}</p>
+					</li>
+				))}
+			</ul>
+		</div>
+	</div>
+</Shell>

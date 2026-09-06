@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — NFL・NBA・March Madness・MLBのライブ自動切り替え",
+	"extDescription": "31リーグのライブ試合を監視し、最も盛り上がっている試合に自動でタブを切り替えます。最短6秒ごとに判定。",
 	"app": {
 		"welcomeToast": "ArenaSwapへようこそ！",
 		"settingsSavedToast": "設定を保存しました",
@@ -143,6 +145,11 @@
 		"proTips": "プロのヒント",
 		"switchNotifications": "切り替え通知",
 		"demoMode": "デモモード",
+		"demoSeason": "日付をこう見なす",
+		"demoSeasonReal": "実際の日付",
+		"demoSeasonThanksgiving": "感謝祭の週",
+		"demoSeasonDecember": "12月",
+		"demoSeasonExplainer": "ホリデー装飾だけに影響します。季節外でも確認できます。",
 		"standbySection": "Standby Stream",
 		"enableStandby": "Standby Streamを有効にする",
 		"standbyBelow": "スタンバイ閾値",
@@ -154,6 +161,12 @@
 		"temperatureUnit": "温度単位",
 		"temperatureUnitF": "°F",
 		"temperatureUnitC": "°C",
+		"temperatureUnitRomer": "°Rø",
+		"holidayDecorations": "ホリデー装飾",
+		"holidayDecorationsExplainer": "会場で雪が降れば雪、感謝祭の週には落ち葉、12月中はライトが表示されます。",
+		"holidaySnow": "雪",
+		"holidayLights": "ライト",
+		"holidayLeaves": "落ち葉",
 		"signalsSection": "PowerScoreシグナル",
 		"signalsExplainer": "無効なシグナルはスコアリングから除外されます。スコアは範囲内に収まるよう再正規化されます。",
 		"signalLastActive": "少なくとも1つのシグナルは有効にしてください",
@@ -171,6 +184,9 @@
 		"groupSwitchingDesc": "ArenaSwapがどれだけ積極的に良い試合へ移すか。",
 		"groupScoring": "スコアリング",
 		"groupScoringDesc": "PowerScoreを構成するシグナルと、ボーナス点の対象。",
+		"groupFavorites": "お気に入りチーム",
+		"groupFavoritesDesc": "お気に入りチームと、それがもたらす加点。",
+		"followedTeams": "お気に入りチーム一覧",
 		"groupLeagues": "リーグ",
 		"groupLeaguesDesc": "追跡するリーグと、その表示順。",
 		"groupDisplay": "表示",
@@ -191,6 +207,7 @@
 		"keywordsLeadChanges": "逆転, シーソー, リード, シグナル",
 		"keywordsComeback": "追い上げ, ビハインド, 巻き返し, シグナル",
 		"keywordsFavoriteBonus": "お気に入り, 推し, マイチーム, ボーナス, ポイント",
+		"keywordsFavoriteTeams": "スター, フォロー, クラブ, 球団, 選択, マイチーム, お気に入り",
 		"keywordsPostseasonBoost": "プレーオフ, ポストシーズン, トーナメント, 決勝, ボーナス, ポイント",
 		"keywordsLeagues": "スポーツ, 競技, 追跡, nba, nfl, nhl, mlb, サッカー",
 		"keywordsLeagueOrder": "並び替え, 順序, 並べ替え, ドラッグ, 順番",
@@ -200,6 +217,7 @@
 		"keywordsNotifications": "通知, アラート, お知らせ, バナー, ポップアップ",
 		"keywordsBetting": "オッズ, ベッティング, スプレッド, 賭け",
 		"keywordsTemperature": "摂氏, 華氏, 度, 天気, 単位",
+		"keywordsHoliday": "クリスマス, 雪, ライト, 落ち葉, 季節, 天気, 感謝祭",
 		"keywordsStandby": "待機, フォールバック, 予備, 代替, 静か",
 		"keywordsStandbyThreshold": "スコア, しきい値, 下限, 以下, 静か",
 		"keywordsStandbyTab": "タブ, ウィンドウ, ページ, 移動先",
@@ -212,7 +230,9 @@
 		"sectionActiveLiveTabs": "アクティブタブ",
 		"sectionOtherLiveGames": "ライブ試合",
 		"sectionUpNext": "次の試合",
-		"showMoreUpcoming": "さらに{count}件表示",
+		"upcomingDayNavLabel": "日付ごとの今後の試合",
+		"upcomingPreviousDay": "前の日",
+		"upcomingNextDay": "次の日",
 		"enableToggleLabel": "自動切り替えを有効にする"
 	},
 	"detail": {
@@ -248,7 +268,29 @@
 		"getReadyPuckDrop": "まもなくフェイスオフ",
 		"getReadyFirstPitch": "まもなくプレイボール",
 		"getReadyGametime": "まもなく試合開始",
-		"pregameTabExplainer": "試合開始時にこの試合をタブで開きます。"
+		"pregameTabExplainer": "試合開始時にこの試合をタブで開きます。",
+		"probablePitchers": "先発投手",
+		"probableGoalies": "先発ゴーリー",
+		"starterConfirmed": "確定",
+		"pitcherRecordLabel": "勝敗",
+		"pitcherEraLabel": "防御率",
+		"starterExpected": "予想",
+		"teamLeaders": "主要選手",
+		"leaderAvg": "AVG",
+		"leaderHomeRuns": "HR",
+		"leaderRbis": "RBI",
+		"leaderPoints": "PTS",
+		"leaderRebounds": "REB",
+		"leaderAssists": "AST",
+		"leaderPointsPerGame": "PPG",
+		"leaderReboundsPerGame": "RPG",
+		"leaderAssistsPerGame": "APG",
+		"leaderGoals": "G",
+		"leaderHockeyAssists": "A",
+		"leaderHockeyPoints": "PTS",
+		"leaderPassing": "PASS",
+		"leaderRushing": "RUSH",
+		"leaderReceiving": "REC"
 	},
 	"gameCard": {
 		"removeFromFavorites": "{team}をお気に入りから削除",
@@ -267,6 +309,10 @@
 		"vs": "vs",
 		"topOfInning": "イニングの表",
 		"bottomOfInning": "イニングの裏"
+	},
+	"field": {
+		"possession": "{team}がボールを保持",
+		"noPossession": "フィールドポジション"
 	},
 	"gameBoost": {
 		"heading": "ゲームブースト",
@@ -332,6 +378,8 @@
 		"step": "ステップ $1 / $2",
 		"title": "チームを選ぶ",
 		"explainer": "お気に入りにはボーナスが付くため、ArenaSwapはその試合を優先します。",
+		"yourFavorites": "マイお気に入り",
+		"leagueNotTracked": "{league} · 未追跡",
 		"searchPlaceholder": "チームを検索…",
 		"loading": "チームを読み込み中…",
 		"loadError": "チームを読み込めませんでした。",
@@ -534,6 +582,28 @@
 		"placeholder": "— タブを割り当て —",
 		"inUse": "（使用中）"
 	},
+	"suggest": {
+		"bannerTitle": "これらのタブ、試合っぽいです",
+		"bannerCopy": {
+			"1": "開いているタブ1件が、今日の試合と一致しています。",
+			"n": "開いているタブ$1件が、今日の試合と一致しています。"
+		},
+		"bannerAction": "見てみる",
+		"bannerDismiss": "おすすめを閉じる",
+		"header": "おすすめタブ",
+		"lede": "違っているものはチェックを外してください。各カードのドロップダウンが最終的な決定権を持っています。",
+		"empty": "開いているタブの中に、今日の試合っぽいものはありません。",
+		"rowLabel": "{tab}を{away} vs {home}の試合に組み合わせる",
+		"apply": {
+			"1": "タブ1件を割り当て",
+			"n": "タブ$1件を割り当て"
+		},
+		"applyNone": "タブを割り当て",
+		"toastApplied": {
+			"1": "タブ1件を割り当てました。",
+			"n": "タブ$1件を割り当てました。"
+		}
+	},
 	"favoriteTeamBonus": {
 		"label": "お気に入りチームボーナス",
 		"perTeam": "チームごとに+$1",
@@ -591,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "切り替えクールダウン",
-		"explainer": "タブの高速連続切り替えを抑制するための自動切り替え間の最短時間を設定します。"
+		"explainer": "タブの高速連続切り替えを抑制するための自動切り替え間の最短時間を設定します。",
+		"off": "オフ"
 	},
 	"switchDelay": {
 		"label": "切り替え遅延",

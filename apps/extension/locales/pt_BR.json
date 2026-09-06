@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Troca automática de NFL, NBA, March Madness e MLB ao vivo",
+	"extDescription": "Observa todo jogo ao vivo em 31 ligas e troca sua aba automaticamente para o mais emocionante, a cada 6 segundos.",
 	"app": {
 		"welcomeToast": "Bem-vindo ao ArenaSwap!",
 		"settingsSavedToast": "Configurações salvas",
@@ -143,6 +145,11 @@
 		"proTips": "Dicas",
 		"switchNotifications": "Notificações de troca",
 		"demoMode": "Modo demonstração",
+		"demoSeason": "Fingir que é",
+		"demoSeasonReal": "A data real",
+		"demoSeasonThanksgiving": "Semana de Ação de Graças",
+		"demoSeasonDecember": "Dezembro",
+		"demoSeasonExplainer": "Afeta só a decoração de fim de ano, para você vê-la fora de época.",
 		"standbySection": "Standby Stream",
 		"enableStandby": "Ativar Standby Stream",
 		"standbyBelow": "Em espera abaixo de",
@@ -154,6 +161,12 @@
 		"temperatureUnit": "Unidade de temperatura",
 		"temperatureUnitF": "°F",
 		"temperatureUnitC": "°C",
+		"temperatureUnitRomer": "°Rø",
+		"holidayDecorations": "Decoração de fim de ano",
+		"holidayDecorationsExplainer": "Neve quando neva no jogo, folhas na semana de Ação de Graças e luzes durante todo dezembro.",
+		"holidaySnow": "Neve",
+		"holidayLights": "Luzes",
+		"holidayLeaves": "Folhas",
 		"signalsSection": "Sinais do PowerScore",
 		"signalsExplainer": "Sinais desativados são excluídos da pontuação. As pontuações são renormalizadas para manter o intervalo.",
 		"signalLastActive": "Pelo menos um sinal deve permanecer ativo",
@@ -171,6 +184,9 @@
 		"groupSwitchingDesc": "O quanto o ArenaSwap corre para te levar a um jogo melhor.",
 		"groupScoring": "Pontuação",
 		"groupScoringDesc": "Quais sinais alimentam o PowerScore e o que rende pontos extras.",
+		"groupFavorites": "Times favoritos",
+		"groupFavoritesDesc": "Quais times você segue e quanto rende ter um favorito.",
+		"followedTeams": "Times que você segue",
 		"groupLeagues": "Ligas",
 		"groupLeaguesDesc": "Quais ligas são monitoradas e em que ordem aparecem.",
 		"groupDisplay": "Exibição",
@@ -191,6 +207,7 @@
 		"keywordsLeadChanges": "troca de lideranca, vai e volta, vantagem, sinal",
 		"keywordsComeback": "virada, atras, reacao, sinal",
 		"keywordsFavoriteBonus": "favorito, meu time, marcado, bonus, pontos",
+		"keywordsFavoriteTeams": "estrela, seguir, marcado, clube, franquia, escolher, meu time, favorito",
 		"keywordsPostseasonBoost": "playoff, playoffs, mata mata, torneio, chave, bonus, pontos",
 		"keywordsLeagues": "esporte, esportes, monitoradas, nba, nfl, nhl, mlb, futebol",
 		"keywordsLeagueOrder": "ordenar, ordem, reorganizar, arrastar, sequencia",
@@ -200,6 +217,7 @@
 		"keywordsNotifications": "alertas, notificar, avisar, banner, popup",
 		"keywordsBetting": "odds, apostas, linha, spread, palpite, moneyline",
 		"keywordsTemperature": "celsius, fahrenheit, graus, clima, unidades",
+		"keywordsHoliday": "natal, neve, luzes, folhas, temporada, festivo, clima, acao de gracas",
 		"keywordsStandby": "reserva, backup, ocioso, alternativa, parado",
 		"keywordsStandbyThreshold": "pontuacao, corte, limite, abaixo, parado",
 		"keywordsStandbyTab": "aba, janela, pagina, destino",
@@ -212,7 +230,9 @@
 		"sectionActiveLiveTabs": "Abas ativas",
 		"sectionOtherLiveGames": "Jogos ao vivo",
 		"sectionUpNext": "A seguir",
-		"showMoreUpcoming": "Ver mais {count}",
+		"upcomingDayNavLabel": "Próximos jogos por dia",
+		"upcomingPreviousDay": "Dia anterior",
+		"upcomingNextDay": "Próximo dia",
 		"enableToggleLabel": "Ativar troca automática"
 	},
 	"detail": {
@@ -248,7 +268,29 @@
 		"getReadyPuckDrop": "Prepare-se para o face-off",
 		"getReadyFirstPitch": "Prepare-se para o primeiro arremesso",
 		"getReadyGametime": "Prepare-se para o jogo",
-		"pregameTabExplainer": "Abrir este jogo em uma aba quando começar."
+		"pregameTabExplainer": "Abrir este jogo em uma aba quando começar.",
+		"probablePitchers": "Arremessadores prováveis",
+		"probableGoalies": "Goleiros prováveis",
+		"starterConfirmed": "Confirmado",
+		"pitcherRecordLabel": "W-L",
+		"pitcherEraLabel": "ERA",
+		"starterExpected": "Esperado",
+		"teamLeaders": "Líderes do time",
+		"leaderAvg": "AVG",
+		"leaderHomeRuns": "HR",
+		"leaderRbis": "RBI",
+		"leaderPoints": "PTS",
+		"leaderRebounds": "REB",
+		"leaderAssists": "AST",
+		"leaderPointsPerGame": "PPG",
+		"leaderReboundsPerGame": "RPG",
+		"leaderAssistsPerGame": "APG",
+		"leaderGoals": "G",
+		"leaderHockeyAssists": "A",
+		"leaderHockeyPoints": "PTS",
+		"leaderPassing": "PASS",
+		"leaderRushing": "RUSH",
+		"leaderReceiving": "REC"
 	},
 	"gameCard": {
 		"removeFromFavorites": "Remover {team} dos favoritos",
@@ -267,6 +309,10 @@
 		"vs": "vs",
 		"topOfInning": "Início da entrada",
 		"bottomOfInning": "Fim da entrada"
+	},
+	"field": {
+		"possession": "{team} está com a bola",
+		"noPossession": "Posição em campo"
 	},
 	"gameBoost": {
 		"heading": "Impulso do jogo",
@@ -332,6 +378,8 @@
 		"step": "Etapa $1 de $2",
 		"title": "Escolha seus times",
 		"explainer": "Os favoritos recebem um bônus para que ArenaSwap priorize esses jogos.",
+		"yourFavorites": "Seus favoritos",
+		"leagueNotTracked": "{league} · não monitorada",
 		"searchPlaceholder": "Buscar times…",
 		"loading": "Carregando times…",
 		"loadError": "Não foi possível carregar os times.",
@@ -534,6 +582,28 @@
 		"placeholder": "— Atribuir uma aba —",
 		"inUse": " (em uso)"
 	},
+	"suggest": {
+		"bannerTitle": "Essas abas parecem jogos",
+		"bannerCopy": {
+			"1": "1 aba que você tem aberta bate com um jogo da sua grade.",
+			"n": "$1 abas que você tem abertas batem com jogos da sua grade."
+		},
+		"bannerAction": "Dar uma olhada",
+		"bannerDismiss": "Dispensar sugestões",
+		"header": "Abas sugeridas",
+		"lede": "Desmarque o que a gente errou. O menu suspenso de cada card ainda tem a palavra final.",
+		"empty": "Nada do que você tem aberto parece um jogo da sua grade.",
+		"rowLabel": "Vincular {tab} com {away} em {home}",
+		"apply": {
+			"1": "Atribuir 1 aba",
+			"n": "Atribuir $1 abas"
+		},
+		"applyNone": "Atribuir abas",
+		"toastApplied": {
+			"1": "1 aba atribuída.",
+			"n": "$1 abas atribuídas."
+		}
+	},
 	"favoriteTeamBonus": {
 		"label": "Bônus de time favorito",
 		"perTeam": "+$1 por time",
@@ -591,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Cooldown entre trocas",
-		"explainer": "Define o tempo mínimo entre trocas automáticas para evitar troca rápida de abas."
+		"explainer": "Define o tempo mínimo entre trocas automáticas para evitar troca rápida de abas.",
+		"off": "Desativado"
 	},
 	"switchDelay": {
 		"label": "Atraso de troca",

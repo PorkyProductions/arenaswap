@@ -1,0 +1,65 @@
+---
+import Shell from '../../../layouts/Shell.astro';
+import LegalNav from '../../../components/LegalNav.astro';
+import LegalTranslationNotice from '../../../components/LegalTranslationNotice.astro';
+import { localePath, localeRoutes } from '../../../i18n/locales';
+import { tokenize, useTranslations } from '../../../i18n/ui';
+
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const estimate = tokenize(t('legal.terms.estimate1'));
+const warranty = tokenize(t('legal.terms.warranty1'));
+---
+<Shell
+	title={t('meta.termsTitle')}
+	description={t('meta.termsDescription')}
+	path='legal/terms/'
+>
+	<div class='container'>
+		<div class='page-head'>
+			<h1 class='page-title'>{t('legal.terms.title')}</h1>
+		</div>
+
+		<div class='reading-shell'>
+			<LegalNav current='legal/terms/' />
+
+			<div class='prose'>
+				<LegalTranslationNotice path='legal/terms/' />
+
+				<h2>{t('legal.terms.affiliationHeading')}</h2>
+				<p>{t('legal.terms.affiliation1')}</p>
+
+				<h2>{t('legal.terms.notStreamingHeading')}</h2>
+				<p>{t('legal.terms.notStreaming1')}</p>
+
+				<h2>{t('legal.terms.thirdPartyHeading')}</h2>
+				<p>{t('legal.terms.thirdParty1')}</p>
+
+				<h2>{t('legal.terms.estimateHeading')}</h2>
+				<p>
+					{estimate.map(part => (
+						typeof part === 'string' ? part
+						: <a href={localePath(locale, 'faq/')}>{t('legal.terms.estimateLink')}</a>
+					))}
+				</p>
+
+				<h2>{t('legal.terms.warrantyHeading')}</h2>
+				<p>
+					{warranty.map(part => (
+						typeof part === 'string' ? part
+						: <a href={localePath(locale, 'legal/licenses/')}>{t('legal.terms.warrantyLink')}</a>
+					))}
+				</p>
+
+				<h2>{t('legal.terms.availabilityHeading')}</h2>
+				<p>{t('legal.terms.availability1')}</p>
+
+				<h2>{t('legal.terms.noAdviceHeading')}</h2>
+				<p>{t('legal.terms.noAdvice1')}</p>
+			</div>
+		</div>
+	</div>
+</Shell>

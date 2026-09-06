@@ -2,6 +2,7 @@ import { leagueConfigMap } from './constants';
 import type { Game } from './types';
 
 const espnCdn = 'https://a.espncdn.com/i/teamlogos';
+const espnShots = 'https://a.espncdn.com/i/headshots';
 
 interface SimState {
 	streak: 'home' | 'away' | null;
@@ -29,16 +30,24 @@ const lateGameComebackChance = 0.4;
 // random pair of strings; the last entry starts the next possession over. '1st & 10' repeats
 // three times, so the position in this table is tracked in SimState rather than looked up by
 // down — looking it up always matched index 0 and the card jumped backwards across midfield.
+// `yardLine` is the same absolute coordinate ESPN sends: 0 is Philadelphia's own goal line and 100
+// is Dallas's, so the Eagles holding the ball at home means the drive counts upward. Every line to
+// gain below lands on PHI 35 and then DAL 38, which is what makes the yellow line hold still across
+// a set of downs instead of following the ball.
 const footballDrivePatterns = [
-	{ downDistance: '1st & 10', fieldPosition: 'PHI 25' },
-	{ downDistance: '2nd & 8', fieldPosition: 'PHI 27' },
-	{ downDistance: '3rd & 5', fieldPosition: 'PHI 30' },
-	{ downDistance: '4th & 2', fieldPosition: 'PHI 33' },
-	{ downDistance: '1st & 10', fieldPosition: 'DAL 48' },
-	{ downDistance: '2nd & 4', fieldPosition: 'DAL 42' },
-	{ downDistance: '3rd & Goal', fieldPosition: 'DAL 5' },
-	{ downDistance: '1st & 10', fieldPosition: 'PHI 25' },
+	{ downDistance: '1st & 10', fieldPosition: 'PHI 25', down: 1, distance: 10, yardLine: 25 },
+	{ downDistance: '2nd & 8', fieldPosition: 'PHI 27', down: 2, distance: 8, yardLine: 27 },
+	{ downDistance: '3rd & 5', fieldPosition: 'PHI 30', down: 3, distance: 5, yardLine: 30 },
+	{ downDistance: '4th & 2', fieldPosition: 'PHI 33', down: 4, distance: 2, yardLine: 33 },
+	{ downDistance: '1st & 10', fieldPosition: 'DAL 48', down: 1, distance: 10, yardLine: 52 },
+	{ downDistance: '2nd & 4', fieldPosition: 'DAL 42', down: 2, distance: 4, yardLine: 58 },
+	{ downDistance: '3rd & Goal', fieldPosition: 'DAL 5', down: 3, distance: 5, yardLine: 95 },
+	{ downDistance: '1st & 10', fieldPosition: 'PHI 25', down: 1, distance: 10, yardLine: 25 },
 ] as const;
+
+// The drive starts on the Eagles' own 25 and the pattern wraps back to it, so the bar grows across
+// the whole table and resets with the possession.
+const footballDriveStartYardLine = 25;
 
 // Per-tick scoring probabilities are tuned to realistic per-game totals at the 15s tick rate, so
 // each sport's demo cadence matches reality. The continuous pulse for low-scoring sports comes
@@ -92,6 +101,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '111', name: 'Northeastern Huskies', abbreviation: 'NU', score: 45, logo: `${espnCdn}/ncaa/500/111.png`, color: '#CC0000' },
 				awayTeam: { id: '104', name: 'Boston University Terriers', abbreviation: 'BU', score: 42, logo: `${espnCdn}/ncaa/500/104.png`, color: '#CC0000' },
 				venueName: 'Matthews Arena',
+				venueLocation: 'Boston, MA',
 				period: 4, clockSeconds: 162, status: 'in',
 				broadcasts: ['TNT', 'truTV'],
 				odds: {
@@ -107,6 +117,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '20', name: 'Philadelphia 76ers', abbreviation: 'PHI', score: 68, logo: `${espnCdn}/nba/500/phi.png`, color: '#006BB6' },
 				awayTeam: { id: '4', name: 'Chicago Bulls', abbreviation: 'CHI', score: 65, logo: `${espnCdn}/nba/500/chi.png`, color: '#CE1141' },
 				venueName: 'Xfinity Mobile Arena',
+				venueLocation: 'Philadelphia, PA',
 				period: 3, clockSeconds: 284, status: 'in',
 				broadcasts: ['ESPN', 'NBCSN'],
 				odds: {
@@ -122,6 +133,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '15', name: 'Philadelphia Flyers', abbreviation: 'PHI', score: 2, logo: `${espnCdn}/nhl/500/phi.png`, color: '#F74902' },
 				awayTeam: { id: '16', name: 'Pittsburgh Penguins', abbreviation: 'PIT', score: 1, logo: `${espnCdn}/nhl/500/pit.png`, color: '#CFC493' },
 				venueName: 'Xfinity Mobile Arena',
+				venueLocation: 'Philadelphia, PA',
 				period: 3, clockSeconds: 412, status: 'in',
 				broadcasts: ['NHL Net'],
 				odds: {
@@ -137,11 +149,13 @@ export class MockGameSimulator {
 				homeTeam: { id: '22', name: 'Philadelphia Phillies', abbreviation: 'PHI', score: 3, logo: `${espnCdn}/mlb/500/phi.png`, color: '#E81828' },
 				awayTeam: { id: '21', name: 'New York Mets', abbreviation: 'NYM', score: 2, logo: `${espnCdn}/mlb/500/nym.png`, color: '#002D72' },
 				venueName: 'Citizens Bank Park',
+				venueLocation: 'Philadelphia, Pennsylvania',
 				period: 8, clockSeconds: 0, status: 'in',
 				topOfInning: false,
 				baseRunners: { first: true, second: false, third: true },
 				bso: { balls: 1, strikes: 0, outs: 1 },
 				broadcasts: ['MLB.TV'],
+				weather: { temperatureF: 61, conditionLabel: 'Clear' },
 			},
 			{
 				id: 'mock-5',
@@ -150,10 +164,20 @@ export class MockGameSimulator {
 				homeTeam: { id: '21', name: 'Philadelphia Eagles', abbreviation: 'PHI', score: 17, logo: `${espnCdn}/nfl/500/phi.png`, color: '#004C54' },
 				awayTeam: { id: '6', name: 'Dallas Cowboys', abbreviation: 'DAL', score: 14, logo: `${espnCdn}/nfl/500/dal.png`, color: '#003594' },
 				venueName: 'Lincoln Financial Field',
+				venueLocation: 'Philadelphia, PA',
 				period: 4, clockSeconds: 480, status: 'in',
 				downDistance: '1st & 10',
 				fieldPosition: 'PHI 25',
+				down: 1,
+				distance: 10,
+				yardLine: 25,
+				possessionTeamId: '21',
+				driveStartYardLine: footballDriveStartYardLine,
 				broadcasts: ['NBC', 'Peacock'],
+				// Two of the outdoor demo games snow and two do not, across four different sports.
+				// Snow is gated on the weather reading alone, and the weather belongs to a game
+				// rather than to the popup — neither of which is visible from a single fixture.
+				weather: { temperatureF: 26, conditionLabel: 'Snow' },
 			},
 			{
 				id: 'mock-6',
@@ -162,9 +186,11 @@ export class MockGameSimulator {
 				homeTeam: { id: '218', name: 'Temple Owls', abbreviation: 'TEM', score: 0, logo: `${espnCdn}/ncaa/500/218.png`, color: '#9D2235' },
 				awayTeam: { id: '213', name: 'Penn State Nittany Lions', abbreviation: 'PSU', score: 0, logo: `${espnCdn}/ncaa/500/213.png`, color: '#041E42' },
 				venueName: 'Lincoln Financial Field',
+				venueLocation: 'Philadelphia, PA',
 				period: 1, clockSeconds: 900, status: 'pre',
 				startTime: new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString(),
 				broadcasts: ['ESPN'],
+				weather: { temperatureF: 44, conditionLabel: 'Partly Cloudy' },
 				odds: {
 					details: 'PSU -6.5',
 					overUnder: 48.5,
@@ -178,8 +204,10 @@ export class MockGameSimulator {
 				homeTeam: { id: '190', name: 'Philadelphia Union', abbreviation: 'PHI', score: 2, logo: `${espnCdn}/soccer/500/10739.png`, color: '#051c2c' },
 				awayTeam: { id: '183', name: 'New York Red Bull', abbreviation: 'NYR', score: 1, logo: `${espnCdn}/soccer/500/190.png`, color: '#b91f31' },
 				venueName: 'Subaru Park',
+				venueLocation: 'Chester, PA',
 				period: 2, clockSeconds: 742, status: 'in',
 				broadcasts: ['Apple TV'],
+				weather: { temperatureF: 31, conditionLabel: 'Light Snow' },
 			},
 			{
 				id: 'mock-10',
@@ -188,6 +216,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '111', name: 'Northeastern Huskies', abbreviation: 'NU', score: 5, logo: `${espnCdn}/ncaa/500/111.png`, color: '#CC0000' },
 				awayTeam: { id: 'ncaamh-57', name: 'Boston College Eagles', abbreviation: 'BC', score: 0, logo: `${espnCdn}/ncaa/500/103.png`, color: '#b91f31' },
 				venueName: 'TD Garden',
+				venueLocation: 'Boston, MA',
 				period: 1, clockSeconds: 1200, status: 'pre',
 				startTime: new Date(Date.now() + 18 * 60 * 60 * 1000).toISOString(),
 				broadcasts: ['ESPNU'],
@@ -204,6 +233,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '111', name: 'Northeastern Huskies', abbreviation: 'NU', score: 55, logo: `${espnCdn}/ncaa/500/111.png`, color: '#CC0000' },
 				awayTeam: { id: '222', name: 'Villanova Wildcats', abbreviation: 'VIL', score: 52, logo: `${espnCdn}/ncaa/500/222.png`, color: '#003366' },
 				venueName: 'Cabot Center',
+				venueLocation: 'Boston, MA',
 				period: 3, clockSeconds: 420, status: 'in',
 				broadcasts: ['ESPN2'],
 				odds: {
@@ -219,6 +249,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '364', name: 'Liverpool FC', abbreviation: 'LIV', score: 1, logo: `${espnCdn}/soccer/500/364.png`, color: '#C8102E' },
 				awayTeam: { id: '359', name: 'Arsenal', abbreviation: 'ARS', score: 1, logo: `${espnCdn}/soccer/500/359.png`, color: '#EF0107' },
 				venueName: 'Anfield',
+				venueLocation: 'Liverpool, England',
 				period: 2, clockSeconds: 1980, status: 'in',
 				broadcasts: ['Peacock'],
 			},
@@ -229,6 +260,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '564', name: 'United States', abbreviation: 'USA', score: 1, logo: `${espnCdn}/countries/500/usa.png`, color: '#002868' },
 				awayTeam: { id: '239', name: 'Mexico', abbreviation: 'MEX', score: 1, logo: `${espnCdn}/countries/500/mex.png`, color: '#006847' },
 				venueName: 'Lincoln Financial Field',
+				venueLocation: 'Philadelphia, PA',
 				period: 2, clockSeconds: 2400, status: 'in',
 				broadcasts: ['Fox'],
 			},
@@ -239,6 +271,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '3', name: 'New York Rangers', abbreviation: 'NYR', score: 2, logo: `${espnCdn}/nhl/500/nyr.png`, color: '#0038A8' },
 				awayTeam: { id: '1', name: 'Boston Bruins', abbreviation: 'BOS', score: 2, logo: `${espnCdn}/nhl/500/bos.png`, color: '#FFB81C' },
 				venueName: 'Madison Square Garden',
+				venueLocation: 'New York, NY',
 				period: 4, clockSeconds: 214, status: 'in',
 				broadcasts: ['TNT'],
 				odds: { details: 'NYR -115', overUnder: 5.5 },
@@ -250,6 +283,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '5', name: 'Cleveland Cavaliers', abbreviation: 'CLE', score: 108, logo: `${espnCdn}/nba/500/cle.png`, color: '#860038' },
 				awayTeam: { id: '13', name: 'Milwaukee Bucks', abbreviation: 'MIL', score: 107, logo: `${espnCdn}/nba/500/mil.png`, color: '#00471B' },
 				venueName: 'Rocket Arena',
+				venueLocation: 'Cleveland, OH',
 				period: 4, clockSeconds: 38, status: 'in',
 				broadcasts: ['ESPN'],
 				odds: { details: 'CLE -1.5', overUnder: 224.5 },
@@ -261,6 +295,7 @@ export class MockGameSimulator {
 				homeTeam: { id: '28', name: 'Houston Astros', abbreviation: 'HOU', score: 4, logo: `${espnCdn}/mlb/500/hou.png`, color: '#EB6E1F' },
 				awayTeam: { id: '10', name: 'Los Angeles Dodgers', abbreviation: 'LAD', score: 4, logo: `${espnCdn}/mlb/500/lad.png`, color: '#005A9C' },
 				venueName: 'Daikin Park',
+				venueLocation: 'Houston, Texas',
 				period: 10, clockSeconds: 0, status: 'in',
 				topOfInning: true,
 				baseRunners: { first: false, second: true, third: false },
@@ -274,11 +309,76 @@ export class MockGameSimulator {
 				homeTeam: { id: '111', name: 'Northeastern Huskies', abbreviation: 'NU', score: 3, logo: `${espnCdn}/ncaa/500/111.png`, color: '#CC0000' },
 				awayTeam: { id: '103', name: 'Boston College Eagles', abbreviation: 'BC', score: 2, logo: `${espnCdn}/ncaa/500/103.png`, color: '#98002E' },
 				venueName: 'Friedman Diamond',
+				venueLocation: 'Brookline, MA',
 				period: 5, clockSeconds: 0, status: 'in',
 				topOfInning: true,
 				baseRunners: { first: false, second: true, third: false },
 				bso: { balls: 1, strikes: 0, outs: 0 },
 				broadcasts: ['ESPNU'],
+			},
+			// The two sports ESPN names a starter for. Records, starters and leaders are all shaped
+			// the way the live scoreboard sends them, including the goalie's absent stat line.
+			{
+				id: 'mock-18',
+				league: 'mlb',
+				sportType: 'baseball',
+				homeTeam: {
+					id: '19', name: 'New York Mets', abbreviation: 'NYM', score: 0, logo: `${espnCdn}/mlb/500/nym.png`, color: '#002D72',
+					record: '76-58',
+					probableStarter: { name: 'D. Peterson', winLoss: '7-7', era: '5.17', headshot: `${espnShots}/mlb/players/full/40921.png` },
+					leaders: [
+						{ category: 'avg', fallbackLabel: 'BA', player: 'F. Lindor', value: '.276' },
+						{ category: 'homeruns', fallbackLabel: 'HR', player: 'J. Soto', value: '33', headshot: `${espnShots}/mlb/players/full/36969.png` },
+						{ category: 'rbis', fallbackLabel: 'RBI', player: 'P. Alonso', value: '83' },
+					],
+				},
+				awayTeam: {
+					id: '16', name: 'Detroit Tigers', abbreviation: 'DET', score: 0, logo: `${espnCdn}/mlb/500/det.png`, color: '#0C2340',
+					record: '70-64',
+					probableStarter: { name: 'T. Skubal', winLoss: '13-4', era: '2.21', headshot: `${espnShots}/mlb/players/full/39909.png` },
+					leaders: [
+						{ category: 'avg', fallbackLabel: 'BA', player: 'R. Greene', value: '.265' },
+						{ category: 'homeruns', fallbackLabel: 'HR', player: 'K. Carpenter', value: '28' },
+						{ category: 'rbis', fallbackLabel: 'RBI', player: 'S. Torkelson', value: '100' },
+					],
+				},
+				venueName: 'Citi Field',
+				venueLocation: 'Queens, New York',
+				period: 1, clockSeconds: 0, status: 'pre',
+				startTime: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
+				broadcasts: ['SNY'],
+				odds: { details: 'NYM -1.5', overUnder: 8.5 },
+			},
+			{
+				id: 'mock-19',
+				league: 'nhl',
+				sportType: 'hockey',
+				homeTeam: {
+					id: '1', name: 'Boston Bruins', abbreviation: 'BOS', score: 0, logo: `${espnCdn}/nhl/500/bos.png`, color: '#FFB81C',
+					record: '24-16-4',
+					// Goalies arrive with an empty record string, so there is no line to render.
+					probableStarter: { name: 'J. Swayman', status: 'confirmed', headshot: `${espnShots}/nhl/players/full/4736758.png` },
+					leaders: [
+						{ category: 'goals', fallbackLabel: 'Goals', player: 'D. Pastrnak', value: '31', headshot: `${espnShots}/nhl/players/full/3891.png` },
+						{ category: 'assists', fallbackLabel: 'Assists', player: 'C. Geekie', value: '38' },
+						{ category: 'points', fallbackLabel: 'Points', player: 'D. Pastrnak', value: '69' },
+					],
+				},
+				awayTeam: {
+					id: '2', name: 'Montreal Canadiens', abbreviation: 'MTL', score: 0, logo: `${espnCdn}/nhl/500/mtl.png`, color: '#AF1E2D',
+					record: '22-18-5',
+					probableStarter: { name: 'S. Montembeault', status: 'expected' },
+					leaders: [
+						{ category: 'goals', fallbackLabel: 'Goals', player: 'C. Caufield', value: '27' },
+						{ category: 'assists', fallbackLabel: 'Assists', player: 'N. Suzuki', value: '41' },
+						{ category: 'points', fallbackLabel: 'Points', player: 'N. Suzuki', value: '63' },
+					],
+				},
+				venueName: 'TD Garden',
+				venueLocation: 'Boston, MA',
+				period: 1, clockSeconds: 1200, status: 'pre',
+				startTime: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
+				broadcasts: ['NESN'],
 			},
 		];
 
@@ -366,6 +466,11 @@ export class MockGameSimulator {
 				const next = footballDrivePatterns[simState.driveIndex]!;
 				game.downDistance = next.downDistance;
 				if (game.fieldPosition !== undefined) game.fieldPosition = next.fieldPosition;
+				game.down = next.down;
+				game.distance = next.distance;
+				game.yardLine = next.yardLine;
+				game.isGoalToGo = /goal/i.test(next.downDistance);
+				game.isRedZone = next.yardLine >= 80;
 			}
 		}
 
@@ -436,6 +541,7 @@ export class MockGameSimulator {
 			if (game.bso) game.bso = { balls: 0, strikes: 0, outs: 0 };
 			if (game.downDistance !== undefined) game.downDistance = '1st & 10';
 			if (game.fieldPosition !== undefined) game.fieldPosition = 'PHI 25';
+			if (game.yardLine !== undefined) game.yardLine = footballDriveStartYardLine;
 			simState.driveIndex = 0;
 			simState.streak = null;
 			simState.streakTicks = 0;

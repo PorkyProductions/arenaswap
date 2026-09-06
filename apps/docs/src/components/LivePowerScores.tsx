@@ -127,7 +127,20 @@ const formatPeriod = (game: Game): string => {
 	return `P${period}`;
 };
 
-const LivePowerScores = () => {
+interface Strings {
+	loading: string;
+	loadingCopy: string;
+	error: string;
+	emptyTitle: string;
+	emptyCopy: string;
+	scoreBadge: string;
+	live: string;
+}
+
+// `card.reason` is not in here. It is composed by the `powerscore` package from the game state, and
+// translating it means translating the package, which is a change to something published on npm on
+// its own rather than to this page.
+const LivePowerScores = ({ strings }: { strings: Strings }) => {
 	const [cards, setCards] = useState<LiveScoreCard[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -176,11 +189,11 @@ const LivePowerScores = () => {
 			setCards(nextCards.toSorted((a, b) => b.score - a.score));
 			setError(null);
 		} catch {
-			setError('Unable to load live game data right now.');
+			setError(strings.error);
 		} finally {
 			setLoading(false);
 		}
-	}, []);
+	}, [strings.error]);
 
 	useEffect(() => {
 		void refresh();
@@ -194,8 +207,8 @@ const LivePowerScores = () => {
 		return (
 			<div className='feature-card'>
 				<div className='d-flex align-items-center gap-3'>
-					<div className='spinner-border text-[var(--color-primary)]' role='status' aria-label='Loading live power scores'></div>
-					<span className='section-sub mb-0'>Pulling live games and computing PowerScore now.</span>
+					<div className='spinner-border text-[var(--color-primary)]' role='status' aria-label={strings.loading}></div>
+					<span className='section-sub mb-0'>{strings.loadingCopy}</span>
 				</div>
 			</div>
 		);
@@ -212,10 +225,8 @@ const LivePowerScores = () => {
 	if (cards.length === 0) {
 		return (
 			<div className='feature-card'>
-				<span className='fw-semibold mb-3 d-block'>No live games right now</span>
-				<p className='mb-0 section-sub'>
-					When games go live, this section will auto-refresh and show real-time PowerScores across all supported leagues.
-				</p>
+				<span className='fw-semibold mb-3 d-block'>{strings.emptyTitle}</span>
+				<p className='mb-0 section-sub'>{strings.emptyCopy}</p>
 			</div>
 		);
 	}
@@ -229,7 +240,7 @@ const LivePowerScores = () => {
 							{leagueConfigMap[card.game.league].label.toUpperCase()}
 						</span>
 						<span className='badge rounded-pill text-bg-dark px-3 py-2 text-[0.78rem]'>
-							PowerScore {card.score} / 100
+							{strings.scoreBadge.split('{score}').join(String(card.score))}
 						</span>
 					</div>
 					<div className='d-flex align-items-center justify-content-between gap-2'>
@@ -239,7 +250,7 @@ const LivePowerScores = () => {
 						</div>
 						<div className='text-center text-[0.78rem] text-[var(--color-muted)]'>
 							<div>{formatPeriod(card.game)}</div>
-							<div>{card.game.sportType === 'baseball' ? 'Live' : formatClock(card.game.clockSeconds)}</div>
+							<div>{card.game.sportType === 'baseball' ? strings.live : formatClock(card.game.clockSeconds)}</div>
 						</div>
 						<div className='d-flex align-items-center gap-2'>
 							<span className='text-[var(--color-muted)]'>{card.game.homeTeam.score}</span>

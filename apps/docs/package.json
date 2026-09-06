@@ -5,8 +5,10 @@
 	"scripts": {
 		"dev": "ASTRO_DEV_BACKGROUND=1 astro dev",
 		"build": "astro build",
-		"typecheck": "astro sync && tsc --noEmit -p tsconfig.typecheck.json",
+		"typecheck": "astro sync && tsc --noEmit -p tsconfig.typecheck.json && tsc --noEmit -p cypress",
 		"preview": "astro preview",
+		"test:e2e": "cypress run --e2e",
+		"cypress:open": "cypress open --e2e",
 		"lint": "oxlint ."
 	},
 	"dependencies": {
@@ -28,6 +30,7 @@
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/react": "^19.2.18",
 		"@types/react-dom": "^19.2.4",
+		"cypress": "^15.21.0",
 		"tailwindcss": "^4.0.0"
 	}
 }

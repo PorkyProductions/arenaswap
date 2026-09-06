@@ -1,0 +1,442 @@
+{
+	"meta": {
+		"homeTitle": "ArenaSwap — Huwag nang palampasin ang moment.",
+		"homeDescription": "Binabantayan ng ArenaSwap ang bawat live game sa {leagues} liga at awtomatikong lumilipat ang iyong browser tab papunta sa pinaka-exciting na laro. Libre, walang account, walang tracking.",
+		"faqTitle": "FAQ — ArenaSwap",
+		"faqDescription": "Kung paano lumilipat ng tab ang ArenaSwap, kung anong mga liga at streaming service ang gumagana dito, ano ang sinusukat ng PowerScore, at kung ano ang ginagawa nito sa iyong data.",
+		"powerscoreTitle": "PowerScore package — ArenaSwap",
+		"powerscoreDescription": "Ginagawang 0 hanggang 100 excitement score ng PowerScore ang anumang live na laro. I-install ito mula sa npm, basahin kung paano gumagana ang limang signal, at panoorin itong mag-score sa mga laro ngayong gabi, live.",
+		"legalTitle": "Legal Notices — ArenaSwap",
+		"legalDescription": "Ang privacy notice ng ArenaSwap, mga lisensya, credit ng footage, at mga disclaimer.",
+		"privacyTitle": "Privacy — ArenaSwap",
+		"privacyDescription": "Ang privacy notice ng ArenaSwap: ang mga preference na iniingatan ng extension, ang impormasyong ipinapadala nito, ang mga browser permission na hinihiling nito, at kung paano tinatrato ang website na ito.",
+		"termsTitle": "Mga Disclaimer — ArenaSwap",
+		"termsDescription": "Hindi affiliated ang ArenaSwap sa ESPN o sa anumang bansag na liga, ibinibigay ang software nito nang walang warranty, at umaasa sa data na hindi nito kontrolado.",
+		"creditsTitle": "Credits — ArenaSwap",
+		"creditsDescription": "Credit para sa footage ng laro na lumalabas sa homepage ng ArenaSwap, kasama ang pagmamay-ari ng mga score, marka ng liga, at crest ng team na ipinapakita.",
+		"licensesTitle": "Mga Lisensya — ArenaSwap",
+		"licensesDescription": "Ipinapamahagi ang ArenaSwap sa ilalim ng ISC License. Nakalista dito ang open-source software at typeface na kinadedepende nito, kasama ang lisensyang taglay ng bawat isa.",
+		"notFoundTitle": "404 — ArenaSwap",
+		"notFoundDescription": "Wala sa schedule ang page na ito. Bumalik sa ArenaSwap.",
+		"releaseFeedTitle": "Mga release note ng ArenaSwap"
+	},
+	"nav": {
+		"home": "Home",
+		"powerscore": "PowerScore",
+		"docs": "Docs",
+		"releases": "Mga Release",
+		"faq": "FAQ",
+		"legal": "Legal",
+		"openMenu": "Buksan ang menu",
+		"language": "Wika",
+		"chooseLanguage": "Pumili ng wika",
+		"englishOnly": "Available lang ang page na ito sa English.",
+		"untranslatedHeading": "Hindi pa isinalin ang page na ito.",
+		"untranslatedBody": "Nakasulat sa English ang dokumentasyon at ang mga release note. Available sa wika mo ang lahat ng iba pa sa site na ito."
+	},
+	"install": {
+		"addTo": "Idagdag sa {browser}",
+		"alsoFor": "Available din para sa {firefox} at {edge}"
+	},
+	"footer": {
+		"tagline": "Ginawa ng mga sports fan, para sa mga sports fan.",
+		"product": "Produkto",
+		"documentation": "Dokumentasyon",
+		"powerscorePackage": "PowerScore package",
+		"releaseNotes": "Mga Release Note",
+		"legal": "Legal",
+		"privacy": "Privacy",
+		"licenses": "Mga Lisensya",
+		"credits": "Credits",
+		"disclaimers": "Mga Disclaimer",
+		"install": "I-install",
+		"chromeWebStore": "Chrome Web Store",
+		"firefoxAddons": "Firefox Add-ons",
+		"edgeAddons": "Edge Add-ons",
+		"iscLicense": "ISC License",
+		"disclaimer": "Hindi affiliated sa o sinusuportahan ng ESPN, NFL, NBA, NHL, MLB, MLS, o anumang iba pang liga na tine-track ng extension na ito.",
+		"legalNotices": "Legal Notices",
+		"madeWith": "Ginawa nang may ❤️ sa Philadelphia & Boston ni {name}"
+	},
+	"sport": {
+		"basketball": "Basketball",
+		"football": "Football",
+		"hockey": "Hockey",
+		"baseball": "Baseball",
+		"softball": "Softball",
+		"soccer": "Soccer"
+	},
+	"home": {
+		"hero": {
+			"titleLine1": "Huwag nang palampasin",
+			"titleLine2": "ang moment.",
+			"lede": "Binabantayan ng ArenaSwap ang bawat live game sa {leagues} liga at awtomatikong lumilipat ang browser tab mo papunta sa pinaka-exciting na laro, kahit tuwing 6 segundo lang.",
+			"teamStrip": "Gumagana ito sa bawat team sa {leagues} liga. Kasama na ang sa'yo.",
+			"captionSwitched": "Nilipat ka ng ArenaSwap mula sa {from} papunta sa {to}.",
+			"captionWatching": "Pinapanood mo ngayon ang {game}, ang pinakamagandang laro sa board.",
+			"replay": "I-play ang demo",
+			"tabLabel": "Tab {number}: {host}"
+		},
+		"tabs": {
+			"titleLine1": "I-set once lang.",
+			"titleLine2": "Panoorin ang lahat.",
+			"copy": "Buksan ang mga stream mo, i-assign sa mga laro, at umalis ka na lang. Simula doon, ang ArenaSwap na ang bahala sa bawat paglipat.",
+			"steps": [
+				{
+					"title": "Buksan ang mga stream mo.",
+					"copy": "I-pull up ang mga laro mo sa magkakahiwalay na browser tab. Anumang streaming service na tumatakbo sa browser ay gagana sa ArenaSwap."
+				},
+				{
+					"title": "I-assign ang bawat tab.",
+					"copy": "Buksan ang extension, hanapin ang bawat laro sa listahan, at ikonekta ito sa tamang tab gamit ang iisang dropdown."
+				},
+				{
+					"title": "Ang best na laro ang maghahanap sa'yo.",
+					"copy": "Nagbibigay ng score ang ArenaSwap sa bawat live na laro at awtomatikong lumilipat sa pinaka-exciting. Ikaw, manood ka na lang."
+				}
+			]
+		},
+		"charts": {
+			"title": "Makita kung bakit. Tuwing may laro.",
+			"copy": "Limang signal ang bumubuo sa bawat score. Buksan ang kahit anong laro at nandoon ang breakdown, kasama ang trend ng PowerScore, ang score history, at ang margin chart."
+		},
+		"leagues": {
+			"titleLine1": "Kung live,",
+			"titleLine2": "kasali ito.",
+			"copy": "{sports} sports. Bawat level ng laro. Sabay-sabay itong bina-bantayan ng ArenaSwap. Patayin ang mga hindi mo pinapanood at titigil na itong sundan ang mga iyon.",
+			"numerals": [
+				"Wala",
+				"Isa",
+				"Dalawa",
+				"Tatlo",
+				"Apat",
+				"Lima",
+				"Anim",
+				"Pito",
+				"Walo",
+				"Siyam",
+				"Sampu"
+			]
+		},
+		"settings": {
+			"title": "Naka-tune sa'yo.",
+			"copy": "Sobrang taas ng sensitivity? Bagalan mo. Mahal mo ang team mo pero gusto mo rin makita ang best na laro? Magdagdag ng bonus. Aalis sandali para bumili ng inumin? Standby Stream ang bahalang mag-hold ng something sa screen. Gumagana ang ArenaSwap kung paano mo kailangan.",
+			"items": [
+				{
+					"name": "Sensitivity (1–{levels})",
+					"copy": "Kung gaano kalaki ang dapat na agwat sa score bago lumipat ang ArenaSwap."
+				},
+				{
+					"name": "Cooldown ng Paglipat",
+					"copy": "Minimum na oras sa pagitan ng mga paglipat. Pinipigilan ang mabilis na tab-flipping."
+				},
+				{
+					"name": "Delay ng Paglipat",
+					"copy": "Naghihintay bago lumipat, para sa mga pagkakataong huli ang stream mo sa data."
+				},
+				{
+					"name": "Bonus ng Paboritong Team",
+					"copy": "Extra points sa anumang laro na kasali ang mga team mo."
+				},
+				{
+					"name": "Standby Stream",
+					"copy": "Kapag tahimik na ang lahat ng live na laro, ipapark ka ng ArenaSwap sa fallback tab na pinili mo."
+				},
+				{
+					"name": "Boost ng Laro",
+					"copy": "Itaas nang manual ang PowerScore ng anumang laro para mas matagal itong manatili sa screen."
+				}
+			],
+			"levelOf": "Level {level} ng {levels}"
+		}
+	},
+	"faq": {
+		"title": "Mga Tanong.",
+		"lede": "Kung may kulang dito, {link}",
+		"ledeLink": "mag-open ng issue",
+		"items": [
+			{
+				"q": "Anong mga liga ang suportado ng ArenaSwap?",
+				"a": "{leagues} liga sa anim na sports. Basketball: NBA, WNBA, NCAA Basketball, NCAA Women's Basketball, at parehong Olympic tournament. Football: NFL, NCAA Football, at ang UFL. Hockey: NHL, NCAA Men's Hockey, at parehong Olympic tournament. Baseball at softball: MLB, NCAA Baseball, NCAA Softball, ang World Baseball Classic, at Olympic Baseball. Soccer: Premier League, La Liga, Bundesliga, Serie A, Liga MX, MLS, NWSL, Champions League, Europa League, parehong FIFA World Cup, at parehong Olympic tournament."
+			},
+			{
+				"q": "Paano gumagana ang paglipat ng tab?",
+				"a": "Ini-assign mo ang bawat bukas na stream mo sa isang laro. Nagbibigay ng score ang ArenaSwap sa bawat live na laro gamit ang PowerScore, at kapag may isang laro na malayo nang naunahan ang laro na kinakausapin mo, lilipat ang tab mo papunta doon, aalisin ang mute nito, at ma-mute ang iba pa. Ang sensitivity ang nagtatakda kung gaano kalaki ang dapat na abante, at pinipigilan ng cooldown na paulit-ulit kang lumipat sa pagitan ng dalawang laro."
+			},
+			{
+				"q": "Kailangan ba ng account o subscription?",
+				"a": "Hindi. Libre ang ArenaSwap, walang account, at walang kinokolekta. Tumatakbo ito nang buo sa browser mo at nagbabasa ng public na score mula sa ESPN. Wala sa pinapanood mo ang ipinapadala kahit saan."
+			},
+			{
+				"q": "Gagana ba ito sa streaming service ko?",
+				"a": "Anumang stream na tumatakbo sa browser tab ay gagana, dahil ang ArenaSwap ay lumilipat at nagmu-mute ng mga tab sa halip na mag-integrate sa isang service. Kasama dito ang ESPN+, Peacock, Paramount+, YouTube TV, Hulu Live, Fubo, at ang mga libreng stream ng liga. Hindi ito makakatulong sa native app o set-top box."
+			},
+			{
+				"q": "Paano gumagana ang PowerScore?",
+				"a": "Ang PowerScore ay isang rating na 0 hanggang 100 na binuo mula sa limang signal: kung gaano kasingit ang laro, gaano na kalalim, momentum mula sa kamakailang scoring, mga pagpalit ng lead, at gaano kalaki ang kasalukuyang comeback. May sariling konsepto ang bawat sports kung ano ang \"close\", kaya ang laro sa hockey na isang goal lang ang lamang ay tinatrato pareho sa laro sa basketball na isang punto lang ang lamang. Ang mga team mo at ang postseason ay nagdaragdag ng puntos; ang laro na tumahimik na ay nawawalan nito, at ang laro na naka-delay o naka-intermission ay zero ang score."
+			},
+			{
+				"q": "Pwede ko bang pigilan itong lumipat sa ibang laro?",
+				"a": "Oo. I-unassign ang tab at hahayaan na lang ito ng ArenaSwap, o i-off ang auto-switching gamit ang toggle sa header ng popup. Ang pagbaba ng sensitivity o pagtaas ng cooldown ay gagawing mas bihira ang paglipat nang hindi ito ganap na ini-off.'"
+			},
+			{
+				"q": "Ano ang mangyayari kapag boring ang lahat ng laro?",
+				"a": "I-on ang Standby Stream at pumili ng tab. Kapag walang tine-track mong laro ang nakaabot sa threshold, ipapark ka ng ArenaSwap doon sa halip na iwanan ka sa kung anong laro ang pinaka-hindi-masama."
+			},
+			{
+				"q": "Available ba ang source code?",
+				"a": "Oo, nasa GitHub, kasama ang PowerScore algorithm, na hiwalay na na-publish sa npm para makapag-score ka ng mga laro kahit walang extension."
+			}
+		]
+	},
+	"notFound": {
+		"title": "Wala ito sa schedule.",
+		"sub": "Ang page na hinahanap mo ay na-trade, nag-retire na, o hindi talaga nag-suit up kahit kailan.",
+		"requested": "Hiniling",
+		"backHome": "Bumalik sa Home",
+		"readReleases": "Basahin ang mga release note"
+	},
+	"legal": {
+		"nav": {
+			"heading": "Legal Notices",
+			"overview": "Overview",
+			"privacy": "Privacy",
+			"licenses": "Mga Lisensya",
+			"credits": "Credits",
+			"terms": "Mga Disclaimer"
+		},
+		"index": {
+			"title": "Legal Notices.",
+			"privacyBlurb": "Ang mga preference na iniingatan ng ArenaSwap, ang impormasyong ipinapadala nito at kanino, at ang mga permission na hinihiling nito sa browser mo.",
+			"licensesBlurb": "Ang lisensya kung saan ipinapamahagi ang ArenaSwap, kasama ang open-source software at mga typeface na kinadedepende nito.",
+			"creditsBlurb": "Credit para sa footage na lumalabas sa website na ito, at ang pagmamay-ari ng mga score, marka, at crest na ipinapakita nito.",
+			"termsBlurb": "Mga disclaimer tungkol sa affiliation at warranty, at ang mga limitasyon ng ibinibigay ng ArenaSwap."
+		},
+		"convenienceNotice": "Ibinigay ang translation na ito para sa convenience lang. Ang {link} ang bersyong sumasakop.",
+		"convenienceNoticeLink": "English text",
+		"privacy": {
+			"title": "Privacy.",
+			"updated": "Huling na-update noong {date}",
+			"updatedDate": "Agosto 19, 2026",
+			"retainsHeading": "Impormasyong iniingatan ng extension",
+			"retains1": "Iniingatan ng extension ang mga preference na itinakda mo. Kabilang dito ang mga liga na sinusundan mo, ang mga team na minarkahan mong paborito, ang iyong mga setting sa sensitivity, cooldown, at switch delay, ang iyong Standby Stream threshold, at kung paano binubuo ang score. Iniingatan ng browser mo ang mga preference na ito gaya ng pag-iingat nito sa iyong mga bookmark, kaya maaari nitong gawing available ang mga ito sa iyo sa kahit anong ibang computer kung saan naka-sign in ka sa parehong browser profile.",
+			"retains2": "Ang lahat ng iba pang impormasyon ay pag-aari ng browsing session kung saan ito nabuo at itinatapon kapag natapos ang session na iyon. Kabilang dito ang mga tab na ini-assign mo sa partikular na mga laro, ang tab na itinalaga mo bilang iyong Standby Stream, anumang manual na pagbabago na inilapat mo sa isang laro, at ang kamakailang score history kung saan hinuhugot ang mga chart.",
+			"retains3": "Hindi iniingatan ng extension ang pangalan mo, address mo, isang account, contact detail, o anumang iba pang detalye na maaaring gamitin para makilala ka. Wala sa mga ito ang hinihiling sa iyo kahit kailan.",
+			"transmitsHeading": "Impormasyong ipinapadala ng extension",
+			"transmits1": "Nakikipag-communicate ang extension sa dalawang host, parehong pinapatakbo ng ESPN, at wala itong kakayahang maabot ang iba pa:",
+			"transmitsHost1": "para sa mga score, schedule, game clock, odds, at win probability.",
+			"transmitsHost2": "para sa mga crest ng team at marka ng liga.",
+			"transmits2": "Ito ay mga ordinaryong request para sa impormasyong bukas na inilalathala ng ESPN. Dahil dito, natatanggap ng ESPN ang network address mo at isang record ng mga league scoreboard na hiniling, katulad lang ng mangyayari kung bisitahin mo mismo ang website nito. Walang idinaragdag ang extension sa mga request na ito na identifier, account, o anumang personal na impormasyon. Kapag na-disable mo ang isang liga sa Settings, titigil na ang extension sa paghiling ng liga na iyon.",
+			"permissionsHeading": "Mga Browser Permission",
+			"permissions1": "Humihiling ang extension ng tatlong permission sa browser mo, at ang bawat isa ay ginagamit lang para sa nakasaad na layunin:",
+			"permissionTabsName": "Tabs.",
+			"permissionTabs": "Para ipakita ang mga tab na bukas mo, para ma-assign mo ang mga ito ng laro, at para lumipat, mag-mute, at mag-unmute ng mga tab na iyon. Ang permission na ito ay naglilipat lang ng listahan ng mga tab at wala nang iba. Walang bahagi ng extension ang tumatakbo sa loob ng mga page na binibisita mo.",
+			"permissionStorageName": "Storage.",
+			"permissionStorage": "Para iingatan ang mga preference na nakasaad sa itaas.",
+			"permissionNotificationsName": "Mga Notification.",
+			"permissionNotifications": "Para ipaalam sa iyo na may naganap na paglipat. Ang browser mo ang gumagawa at nagpapakita ng bawat notification, at walang umaalis sa computer mo sa proseso.",
+			"websiteHeading": "Ang Website na Ito",
+			"website1": "Ang website na ito ay walang cookies, walang analytics, at walang anumang uri ng tracking, at hindi hihingi ng pahintulot mo dahil walang dapat payagan. Ito ay naka-host sa GitHub Pages, at nirerecord ng GitHub ang mga request sa mga server nito bilang bahagi ng karaniwang pagbibigay ng hosting. Ang mga typeface ay ipinapadala mula sa website na ito at hindi mula sa ibang third party.",
+			"website2": "Dalawang feature ng website na ito ang nakikipag-communicate sa ESPN mula sa browser mo. Ang mga demonstration screen ay humihiling ng crest ng team mula sa {host}, at ang {link} ay nagbibigay ng score sa mga laro na kasalukuyang nagaganap kaya humihiling ito ng live scoreboard hangga't bukas mo itong iniiwan.",
+			"website2Link": "PowerScore page",
+			"childrenHeading": "Mga Bata",
+			"children1": "Walang kinokolekta ang extension na personal na impormasyon mula sa kahit sinong tao anuman ang edad, kasama na ang mga bata na wala pang labintatlong taong gulang.",
+			"modificationsHeading": "Mga Pagbabago sa Notice na Ito",
+			"modifications1": "Maaaring baguhin ang notice na ito paminsan-minsan. Magiging epektibo ang isang binagong bersyon sa oras ng paglathala nito, at ang petsang nakasaad sa itaas ay nagtatala kung kailan huling binago ang notice na ito. Ang patuloy mong paggamit ng extension pagkatapos ng paglathala ay nangangahulugan ng pagtanggap mo sa binagong notice.",
+			"questionsHeading": "Mga Tanong",
+			"questions1": "Ang mga tanong tungkol sa notice na ito ay maaaring i-direct sa {link} ng proyekto.",
+			"questionsLink": "issue tracker sa GitHub"
+		},
+		"terms": {
+			"title": "Mga Disclaimer.",
+			"affiliationHeading": "Walang Affiliation",
+			"affiliation1": "Hindi affiliated ang ArenaSwap sa, hindi sponsor, hindi sinusuportahan, o kung hindi man ay konektado sa ESPN, sa NFL, sa NBA, sa WNBA, sa NHL, sa MLB, sa MLS, sa NWSL, sa NCAA, sa UFL, sa FIFA, sa UEFA, sa International Olympic Committee, o sa anumang iba pang liga, klub, broadcaster, o streaming service. Ang mga pangalan ng liga at team, marka, at crest ay pag-aari ng kani-kanilang may-ari at lumalabas dito para lamang sa layuning tukuyin ang mga laro.",
+			"notStreamingHeading": "Hindi Isang Streaming Service",
+			"notStreaming1": "Hindi nagho-host, nagre-rebroadcast, nag-de-decrypt, nag-a-unlock, o kung hindi man ay nagbibigay ng access sa anumang laro ang ArenaSwap. Lumilipat ito sa pagitan ng mga browser tab na binuksan mo mismo, sa mga serbisyo na may karapatan ka nang panoorin. Kung may karapatan ka bang panoorin ang isang partikular na laro ay usapin sa pagitan mo at ng partido na nagbebenta nito sa iyo.",
+			"thirdPartyHeading": "Data na Nakuha mula sa Third Party",
+			"thirdParty1": "Ang mga score, game clock, schedule, odds, at win probability ay nakukuha mula sa ESPN. Wala ang ArenaSwap ng kontrol sa data na iyon, hindi nito magagarantiya na ito ay tama, kumpleto, updated, o available, at wala itong impluwensya kung kailan ito nagbabago. Maaaring maantala, magkamali, o mawala ang ganitong data, at karaniwang huli ang stream sa data feed. Wala sa ipinapakita ng extension ang dapat ituring na opisyal na score, at walang dapat ipusta batay dito.",
+			"estimateHeading": "Isang Pagtantiya ang PowerScore",
+			"estimate1": "Tinatantiya ng PowerScore mula sa publicly available na mga bilang kung gaano ka-engganyo ang isang laro sa kasalukuyan. Hindi ito isang prediksyon, probabilidad, betting model, o pahayag ng katotohanan, at paminsan-minsan ay ililihis ka nito mula sa laro na gusto mo talagang panoorin. Para diyan ang {link}.",
+			"estimateLink": "mga setting ng sensitivity, cooldown, at paboritong team",
+			"warrantyHeading": "Walang Warranty",
+			"warranty1": "Ibinibigay ang software na \"as is\", nang walang warranty ng anumang uri, express man o implied, kasama na nang walang limitasyon ang mga implied warranty ng merchantability at fitness para sa isang partikular na layunin. Walang taong kasangkot sa ArenaSwap ang mananagot sa anumang pinsala na dulot ng paggamit nito. Ang buong teksto ay makikita sa {link}.",
+			"warrantyLink": "licenses page",
+			"availabilityHeading": "Availability",
+			"availability1": "Ibinibigay ang ArenaSwap nang libre, walang pondo, at inaalagaan sa libreng oras ng mga awtor nito. Binabago ng mga browser ang mga patakaran na namamahala sa mga extension, ang mga serbisyo kung saan ito nagbabasa ay nagbabago nang walang paunang abiso, at wala rito ang may kasamang service level agreement. Maaaring baguhin o alisin ang anumang feature sa susunod na bersyon.",
+			"noAdviceHeading": "Wala Ditong Legal Advice",
+			"noAdvice1": "Inilalarawan ng mga page na ito ang pag-uugali ng isang browser extension. Hindi ito bumubuo ng advice, at walang nililikhang kontrata bukod sa ISC License kung saan ipinapamahagi ang software."
+		},
+		"credits": {
+			"title": "Credits.",
+			"footageHeading": "Footage",
+			"sourceLink": "Source",
+			"publicDomain": "Public Domain",
+			"scoresHeading": "Mga Score",
+			"scores1": "Ang mga live na score, schedule, kulay ng team, crest, at win probability ay nakukuha mula sa ESPN. Hindi affiliated ang ArenaSwap sa ESPN ni sinusuportahan ito ng ESPN, at walang liga na nabanggit sa website na ito ang affiliated sa ArenaSwap o sumusuporta dito.",
+			"marksHeading": "Mga Marka",
+			"marks1": "Ang mga marka ng liga at team ay pag-aari ng kani-kanilang liga at klub. Lumalabas ito dito para lamang sa layuning tukuyin ang mga laro."
+		},
+		"licenses": {
+			"title": "Mga Lisensya.",
+			"arenaswapHeading": "ArenaSwap",
+			"arenaswap1": "Ang ISC License, na nakasaad nang buo sa ibaba, ang namamahala sa extension, sa website na ito, sa mga shared interface component, at sa client kung saan nakukuha ang mga score.",
+			"softwareHeading": "Software",
+			"software1": "Ang ArenaSwap ay itinayo gamit ang software na nakalista sa ibaba, kung saan ang bawat isa ay nasasakupan pa rin ng lisensyang nakasaad dito. Sundan ang anumang entry para sa buong teksto ng lisensya nito.",
+			"colPackage": "Package",
+			"colVersion": "Version",
+			"colLicense": "License",
+			"typefacesHeading": "Mga Typeface",
+			"typefaces1": "Ang mga typeface sa ibaba ay ipinapadala mula sa website na ito at nasasakupan pa rin ng lisensyang nakasaad sa bawat isa.",
+			"colFamily": "Family",
+			"colBy": "Ni"
+		}
+	},
+	"powerscore": {
+		"heroName": "PowerScore.",
+		"heroTaglinePrefix": "Ang score sa likod ng bawat ",
+		"heroTaglineSuffix": " score.",
+		"heroRestingToken": "score",
+		"heroRestingSuffix": ".",
+		"heroSub": "Ginagawang excitement score na 0 hanggang 100 ng PowerScore ang anumang live na laro, na nag-a-update habang umuusad ang laro. Ito ang parehong engine na ginagamit ng ArenaSwap para piliin kung ano ang panonoorin mo susunod, at nag-i-install ito nang mag-isa.",
+		"viewOnNpm": "Tingnan sa npm",
+		"sourceOnGithub": "Source sa GitHub",
+		"installHeading": "I-install gamit ang isang command",
+		"copy": "Kopyahin",
+		"copied": "Nakopya",
+		"signalsHeading": "Ano ang bumubuo sa numero",
+		"signalsSub": "Limang signal ang nagsasama-sama papunta sa isang score na 0 hanggang {max}. Sinadyang mas mataas sa {max} ang kabuuan ng kani-kanilang ceiling, at may cap ang total, kaya ang isang close na laro ay aakyat nang mataas at ang isang blowout ay mananatiling mababa. Ang mas mataas na score ay nangangahulugang mas maraming drama sa ngayon.",
+		"signalMax": "{max} max",
+		"signals": [
+			{
+				"name": "Closeness",
+				"copy": "Gaano kasingit ang laro? Ang mga tied game ang may pinakamataas na score, at mas nagkakabuluhan ang closeness habang tumatagal ang laro."
+			},
+			{
+				"name": "Late Game",
+				"copy": "Tumataas ang tension sa huling period ng isang close na laro, at ang isang tie papunta sa overtime ay mas mataas pa ang score."
+			},
+			{
+				"name": "Momentum",
+				"copy": "Ang isang unanswered run ay nagpapaangat ng score, tapos unti-unti itong bumababa sa susunod na ilang minuto."
+			},
+			{
+				"name": "Lead Changes",
+				"copy": "Ang isang laro na palit-palit ang lead ay mananalo sa isang laro na hindi kailanman nagbabago."
+			},
+			{
+				"name": "Comeback",
+				"copy": "Ang isang team na nasa likod na bumabawi ay nagpapataas ng score."
+			}
+		],
+		"liveHeading": "Live na PowerScore",
+		"liveLoading": "Nilo-load ang live na PowerScore",
+		"liveError": "Hindi ma-load ang live game data sa ngayon.",
+		"liveNow": "Live",
+		"machineHeading": "Panoorin itong gumana.",
+		"machineSub": "Nagbibigay ng score ang ArenaSwap sa bawat live na laro habang nangyayari ito — tapos ilalagay ang tab mo sa pinakamaganda. Ganito ito ka-magmukha.",
+		"machineWatch": "Panoorin",
+		"machineWatchCopy": "Lahat ng live na laro sa bawat liga na sinusundan mo, sabay-sabay.",
+		"machineScore": "I-score",
+		"machineScoreCopy": "Sinusukat ng PowerScore, live, kung gaano ka-exciting ang bawat laro.",
+		"machineSwitch": "Lumipat",
+		"machineSwitchCopy": "Awtomatikong tumatalon ang tab mo papunta sa pinakamagandang laro.",
+		"liveLoadingCopy": "Kinukuha ang mga live na laro at kinakalkula ang PowerScore ngayon.",
+		"liveEmptyTitle": "Walang live na laro sa ngayon",
+		"liveEmptyCopy": "Kapag naging live na ang mga laro, awtomatikong mag-re-refresh ang section na ito at magpapakita ng real-time na PowerScore mula sa lahat ng suportadong liga.",
+		"liveScoreBadge": "PowerScore {score} / 100",
+		"machineAlt": "Ang ArenaSwap habang nanonood at nagbibigay ng score sa bawat live na laro",
+		"machineNowWatching": "Pinapanood ngayon",
+		"machineNowOn": "sa {service}",
+		"machineCaptions": [
+			"Binabantayan nito ang bawat live na laro sa mga liga mo",
+			"At binibigyan ng score ang bawat isa kung gaano ito ka-exciting, live",
+			"Buksan ang isang laro para makita mismo kung bakit",
+			"Tapos ang tab mo ay dadapo sa pinakamaganda"
+		],
+		"machineSignals": [
+			"Closeness",
+			"Late-Game Pressure",
+			"Momentum",
+			"Lead Changes",
+			"Comeback"
+		]
+	},
+	"ui": {
+		"gameCard": {
+			"live": "LIVE",
+			"powerScore": "PowerScore",
+			"watchLabel": "Panoorin:",
+			"oddsProvidedBy": "Odds mula sa:",
+			"favorited": "Paborito na",
+			"addToFavoritesShort": "Idagdag sa paborito",
+			"addToFavorites": "Idagdag ang {team} sa paborito",
+			"removeFromFavorites": "Alisin ang {team} sa paborito",
+			"openDetails": "Buksan ang detalye ng {away} vs {home}",
+			"delay": "DELAY",
+			"delayFallback": "Delay",
+			"vs": "vs",
+			"topOfInning": "Top of inning",
+			"bottomOfInning": "Bottom of inning",
+			"shootout": "PENS {away}–{home}",
+			"downDistanceAt": "{downDistance} sa {fieldPosition}"
+		},
+		"field": {
+			"possession": "Nasa {team} ang bola",
+			"noPossession": "Posisyon sa field"
+		},
+		"main": {
+			"tourButton": "Tour",
+			"settingsButton": "Mga Setting",
+			"sectionActiveLiveTabs": "Mga Aktibong Tab",
+			"sectionOtherLiveGames": "Mga Live na Laro",
+			"sectionUpNext": "Susunod",
+			"enableToggleLabel": "I-enable ang awtomatikong paglipat",
+			"onStandbyStream": "Naka-Standby Stream, naghihintay ng aksyon"
+		},
+		"tabAssign": {
+			"placeholder": "— Mag-assign ng tab —"
+		},
+		"detail": {
+			"chartPowerScoreTitle": "Pag-usad ng PowerScore",
+			"chartScoreTitle": "Pag-usad ng Score ng Laro",
+			"chartWinProbTitle": "Posibilidad ng Panalo",
+			"chartComponentsTitle": "Pag-usad ng mga Bahagi ng PowerScore"
+		},
+		"setup": {
+			"groupSwitching": "Paglipat",
+			"groupSwitchingDesc": "Kung gaano kasabik ang ArenaSwap na ilipat ka sa mas magandang laro.",
+			"groupScoring": "Scoring",
+			"groupScoringDesc": "Kung aling mga signal ang bumubuo sa PowerScore, at ano ang nagbibigay ng bonus points.",
+			"groupLeagues": "Mga Liga",
+			"groupLeaguesDesc": "Kung aling mga liga ang tine-track, at ang pagkakasunod-sunod nila.",
+			"groupDisplay": "Display",
+			"groupDisplayDesc": "Kung ano ang lumalabas sa main screen.",
+			"groupStandby": "Standby Stream",
+			"groupStandbyDesc": "Kung saan ka ipa-park kapag tahimik na ang lahat ng laro.",
+			"groupDemo": "Demo Mode",
+			"groupDemoDesc": "Mga scripted na laro, para mapanood mo kung paano nangyayari ang paglipat kahit kailan mo gusto.",
+			"switchNotifications": "Mga Abiso sa Paglipat"
+		},
+		"sensitivity": {
+			"label": "Sensitivity ng Paglipat"
+		},
+		"cooldown": {
+			"label": "Cooldown ng Paglipat"
+		},
+		"switchDelay": {
+			"label": "Delay ng Paglipat",
+			"off": "Off"
+		},
+		"favoriteTeamBonus": {
+			"label": "Bonus ng Paboritong Team"
+		},
+		"postseasonBoost": {
+			"label": "Boost sa Postseason"
+		},
+		"bso": {
+			"balls": "B",
+			"strikes": "S",
+			"outs": "O"
+		}
+	}
+}

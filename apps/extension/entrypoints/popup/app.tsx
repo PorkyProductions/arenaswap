@@ -15,7 +15,19 @@ import { i18n } from '#i18n';
 import { TranslationContext } from '@arenaswap/ui/src/components/i18nContext';
 import useFavoriteScoreConfetti from './useFavoriteScoreConfetti';
 import useToast from './useToast';
+import SuggestView from './components/suggestView';
+import {
+	applyTabSuggestions,
+	dismissSuggestions,
+	normalizeDismissedSuggestions,
+	suggestTabAssignments,
+	tabSuggestionDismissalsKey,
+	type SuggestionTab,
+	type TabSuggestion,
+} from '../../utils/tabSuggestions';
 import { hasStoredUserPreferences, loadStoredUserPreferences, persistStoredUserPreferences } from '../../utils/prefsStorage';
+import { nextTemperatureUnit } from '../../utils/temperatureUnitCycle';
+import { isDemoSeason, resolveDecorationDate, type demoSeason } from '../../utils/holidayDecorations';
 import type { ReviewPromptState } from '../../utils/reviewPrompt';
 import {
 	getReviewPromptUrl,
@@ -40,16 +52,22 @@ const isScoreUpdateMessage = (value: unknown): value is { type: 'SCORES_UPDATED'
 export default () => {
 	const [view, setView] = useState<popupView>('main');
 	const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+	// Held here rather than inside MainView: the view shell is keyed on `view`, so anything the main
+	// view owns itself is thrown away the moment you open a game, a setting or the suggestion sheet.
+	const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+	const mainScrollOffset = useRef(0);
 	const [prefs, setPrefs] = useState<UserPreferences>(createDefaultUserPreferences());
 	const prefsRef = useRef<UserPreferences>(createDefaultUserPreferences());
 	const [prefsLoaded, setPrefsLoaded] = useState(false);
 	const [registry, setRegistry] = useState<TabRegistration[]>([]);
 	const [openTabs, setOpenTabs] = useState<Browser.tabs.Tab[]>([]);
 	const [demoMode, setDemoMode] = useState(false);
+	const [demoSeason, setDemoSeason] = useState<demoSeason>('real');
 	const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 	const [walkthroughActive, setWalkthroughActive] = useState(false);
 	const [standbyOnboardingDone, setStandbyOnboardingDone] = useState(false);
 	const [standbyStreamTabId, setStandbyStreamTabId] = useState<number | null>(null);
+	const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
 	const [reviewPromptState, setReviewPromptState] = useState<ReviewPromptState>(normalizeReviewPromptState(null));
 	const [settled, setSettled] = useState(false);
 	const [allLeagueLogoCache, setAllLeagueLogoCache] = useState<LeagueLogoMap>({});
@@ -73,6 +91,18 @@ export default () => {
 	}, []);
 
 	const games = useMemo(() => data?.games ?? [], [data?.games]);
+
+	// openTabs is a mount-time snapshot, so this settles once per popup open. That is what lets a
+	// dismissal stick for the session while still re-raising when a genuinely new pair shows up.
+	const suggestions = useMemo(() => suggestTabAssignments({
+		tabs: openTabs.flatMap<SuggestionTab>(tab => tab.id === undefined || !tab.url
+			? []
+			: [{ id: tab.id, title: tab.title ?? '', url: tab.url }]),
+		games,
+		registry,
+		dismissed: dismissedSuggestions,
+		standbyStreamTabId,
+	}), [openTabs, games, registry, dismissedSuggestions, standbyStreamTabId]);
 	const scores = useMemo(() => data?.scores ?? [], [data?.scores]);
 	const leagueLogos = useMemo<LeagueLogoMap>(
 		() => ({ ...allLeagueLogoCache, ...data?.leagueLogos }),
@@ -94,11 +124,13 @@ export default () => {
 
 			const localResult = await browser.storage.local.get({
 				demoMode: false,
+				demoSeason: 'real',
 				onboardingCompleted: null,
 				standbyOnboardingDone: false,
 				[reviewPromptStorageKey]: null,
 			});
 			setDemoMode(localResult.demoMode as boolean);
+			setDemoSeason(isDemoSeason(localResult.demoSeason) ? localResult.demoSeason : 'real');
 			setStandbyOnboardingDone(localResult.standbyOnboardingDone as boolean);
 			setReviewPromptState(normalizeReviewPromptState(localResult[reviewPromptStorageKey]));
 
@@ -114,9 +146,10 @@ export default () => {
 
 		void init();
 
-		browser.storage.session.get({ tabRegistry: [], standbyStreamTabId: null }).then(result => {
+		browser.storage.session.get({ tabRegistry: [], standbyStreamTabId: null, [tabSuggestionDismissalsKey]: [] }).then(result => {
 			setRegistry(result.tabRegistry as TabRegistration[]);
 			setStandbyStreamTabId((result.standbyStreamTabId as number | null) ?? null);
+			setDismissedSuggestions(normalizeDismissedSuggestions(result[tabSuggestionDismissalsKey]));
 		});
 
 		void browser.tabs.query({ currentWindow: true }).then(tabs => {
@@ -236,6 +269,26 @@ export default () => {
 		void browser.runtime.sendMessage({ type: 'UPDATE_REGISTRY', tabRegistry: updated });
 	};
 
+	// Every pair the sheet showed is recorded, not just the accepted ones. Leaving the rejected rows
+	// out would raise the banner again the next time the popup opened.
+	const retireShownSuggestions = () => {
+		const updated = dismissSuggestions(dismissedSuggestions, suggestions);
+		setDismissedSuggestions(updated);
+		void browser.storage.session.set({ [tabSuggestionDismissalsKey]: updated });
+	};
+
+	const onApplySuggestions = (accepted: TabSuggestion[]) => {
+		onRegistryChange(applyTabSuggestions(registry, accepted));
+		retireShownSuggestions();
+		setView('main');
+		showToast(i18n.t('suggest.toastApplied', accepted.length), 'success');
+	};
+
+	const onDismissSuggestions = () => {
+		retireShownSuggestions();
+		setView('main');
+	};
+
 	// Shared by the game list and the pre-game poster's stars, so the two can't drift.
 	const toggleFavoriteTeam = (leagueId: LeagueId, teamId: string) => {
 		const favoriteTeamKey = createFavoriteTeamKey(leagueId, teamId);
@@ -329,7 +382,9 @@ export default () => {
 						prefs={prefs}
 						prefsLoaded={prefsLoaded}
 						demoMode={demoMode}
+						demoSeason={demoSeason}
 						leagueLogos={leagueLogos}
+						favoriteTeamIds={favoriteTeamIds}
 						standbyStreamTabId={standbyStreamTabId}
 						standbyOnboardingDone={standbyOnboardingDone}
 						openTabs={openTabs}
@@ -339,6 +394,7 @@ export default () => {
 						onCooldownChange={val => persistPrefs(currentPrefs => ({ ...currentPrefs, cooldownSeconds: val }))}
 						onSwitchDelayChange={val => persistPrefs(currentPrefs => ({ ...currentPrefs, switchDelaySeconds: val }))}
 						onFavoriteTeamBonusChange={val => persistPrefs(currentPrefs => ({ ...currentPrefs, favoriteTeamBonusPoints: val }))}
+						onToggleFavoriteTeam={toggleFavoriteTeam}
 						onToggleLeague={onToggleLeague}
 						onToggleSport={onToggleSport}
 						onReorderLeague={onReorderLeague}
@@ -352,12 +408,21 @@ export default () => {
 							setDemoMode(next);
 							void browser.runtime.sendMessage({ type: 'SET_DEMO_MODE', enabled: next });
 						}}
+						onDemoSeasonChange={season => {
+							setDemoSeason(season);
+							void browser.storage.local.set({ demoSeason: season });
+						}}
 						onToggleStandbyStream={() => persistPrefs(currentPrefs => ({ ...currentPrefs, standbyStreamEnabled: !currentPrefs.standbyStreamEnabled }))}
 						onStandbyThresholdChange={val => persistPrefs(currentPrefs => ({ ...currentPrefs, standbyStreamThreshold: val }))}
 						onSetStandbyTab={onSetStandbyTab}
 						onStandbyOnboardingDone={onStandbyOnboardingDone}
 						onToggleBetting={() => persistPrefs(currentPrefs => ({ ...currentPrefs, bettingEnabled: !currentPrefs.bettingEnabled }))}
-						onToggleTemperatureUnit={() => persistPrefs(currentPrefs => ({ ...currentPrefs, temperatureUnit: currentPrefs.temperatureUnit === 'F' ? 'C' : 'F' }))}
+						onToggleTemperatureUnit={() => persistPrefs(currentPrefs => ({ ...currentPrefs, temperatureUnit: nextTemperatureUnit(currentPrefs.temperatureUnit, currentPrefs.romerUnlocked) }))}
+						onUnlockRomer={() => persistPrefs(currentPrefs => ({ ...currentPrefs, romerUnlocked: true, temperatureUnit: 'Ro' }))}
+						onToggleHolidayDecorations={() => persistPrefs(currentPrefs => ({ ...currentPrefs, holidayDecorationsEnabled: !currentPrefs.holidayDecorationsEnabled }))}
+						onToggleHolidaySnow={() => persistPrefs(currentPrefs => ({ ...currentPrefs, holidaySnowEnabled: !currentPrefs.holidaySnowEnabled }))}
+						onToggleHolidayLights={() => persistPrefs(currentPrefs => ({ ...currentPrefs, holidayLightsEnabled: !currentPrefs.holidayLightsEnabled }))}
+						onToggleHolidayLeaves={() => persistPrefs(currentPrefs => ({ ...currentPrefs, holidayLeavesEnabled: !currentPrefs.holidayLeavesEnabled }))}
 						onPostseasonBoostChange={val => persistPrefs(currentPrefs => ({ ...currentPrefs, postseasonBoostPoints: val }))}
 						onToggleSignal={onToggleSignal}
 					/>
@@ -379,6 +444,9 @@ export default () => {
 						onStandbyStream={onStandbyStream}
 						onOpenGameDetail={openGameDetail}
 						onOpenSetup={() => setView('setup')}
+						suggestionCount={suggestions.length}
+						onReviewSuggestions={() => setView('suggest')}
+						onDismissSuggestions={onDismissSuggestions}
 						onStartWalkthrough={() => setWalkthroughActive(true)}
 						showReviewPrompt={shouldShowReviewPrompt(reviewPromptState)}
 						onToggleEnabled={() => persistPrefs(currentPrefs => ({ ...currentPrefs, enabled: !currentPrefs.enabled }))}
@@ -387,6 +455,19 @@ export default () => {
 						onToggleFavoriteTeam={toggleFavoriteTeam}
 						onRegistryChange={onRegistryChange}
 						formatTabLabel={tab => formatTabLabel(tab, openTabs)}
+						scrollOffsetRef={mainScrollOffset}
+						selectedDayKey={selectedDayKey}
+						onSelectDay={setSelectedDayKey}
+					/>
+				)}
+				{view === 'suggest' && (
+					<SuggestView
+						suggestions={suggestions}
+						games={games}
+						openTabs={openTabs}
+						formatTabLabel={tab => formatTabLabel(tab, openTabs)}
+						onApply={onApplySuggestions}
+						onBack={() => setView('main')}
 					/>
 				)}
 				{view === 'detail' && selectedGame && (
@@ -403,6 +484,13 @@ export default () => {
 						weatherPrefs={{
 							temperatureUnit: prefs.temperatureUnit,
 						}}
+						decorationPrefs={{
+							holidayDecorationsEnabled: prefs.holidayDecorationsEnabled,
+							holidaySnowEnabled: prefs.holidaySnowEnabled,
+							holidayLightsEnabled: prefs.holidayLightsEnabled,
+							holidayLeavesEnabled: prefs.holidayLeavesEnabled,
+						}}
+						decorationDate={resolveDecorationDate(new Date(), demoMode ? demoSeason : 'real')}
 						disabledSignals={prefs.disabledSignals}
 						favoriteTeamIds={favoriteTeamIds}
 						openTabs={openTabs}

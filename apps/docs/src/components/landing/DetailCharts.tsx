@@ -13,6 +13,7 @@ import {
 	buildWinProbabilityOption,
 } from '@arenaswap/ui/src/components/gameDetailChartOptions';
 import { useT } from '@arenaswap/ui/src/components/i18nContext';
+import { TranslationContext, islandTranslator } from '../../i18n/islandStrings';
 
 echarts.use([LineChart, BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
@@ -122,7 +123,7 @@ const Chart = ({ title, option }: { title: string; option: EChartsOption }) => {
 	);
 };
 
-const DetailCharts = () => {
+const ChartGrid = () => {
 	const t = useT();
 	return (
 		<div className='charts-grid'>
@@ -133,5 +134,11 @@ const DetailCharts = () => {
 		</div>
 	);
 };
+
+const DetailCharts = ({ strings }: { strings?: Record<string, string> }) => (
+	<TranslationContext.Provider value={islandTranslator(strings)}>
+		<ChartGrid />
+	</TranslationContext.Provider>
+);
 
 export default DetailCharts;

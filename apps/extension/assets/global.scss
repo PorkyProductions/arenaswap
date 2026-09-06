@@ -41,6 +41,13 @@ button, input, select, optgroup, textarea {
 	min-width: 0;
 }
 
+/* Same gap on the other axis. A flex child that is not itself a scroll container keeps
+   `min-height: auto`, which stops it shrinking and pushes the scrollbar onto the whole page
+   instead of onto the list inside it. */
+.min-h-0 {
+	min-height: 0;
+}
+
 /* ─── Ludicrous Speed ─────────────────────────────────────────────────────── */
 @keyframes ludicrousSpeed {
 	0%   { color: #ff4500; text-shadow: 0 0 6px #ff4500; }
@@ -615,3 +622,103 @@ button, input, select, optgroup, textarea {
 	}
 }
 
+/* ─── Rømer reveal ────────────────────────────────────────────────────────── */
+/* Warm through cold to frost, then back to an ordinary outline button. The sweep is the
+   thermometer's own journey, which is the only thing about this unit that makes any sense. */
+@keyframes romerFrost {
+	0%   { background-color: #f75c03; border-color: #f75c03; color: #0d1117; transform: scale(1); }
+	20%  { background-color: #f1c40f; border-color: #f1c40f; color: #0d1117; transform: scale(1.14); }
+	45%  { background-color: #3e9bd1; border-color: #3e9bd1; color: #0d1117; transform: scale(1.14); }
+	70%  { background-color: #cfe9fb; border-color: #cfe9fb; color: #0d1117; transform: scale(1.06); box-shadow: 0 0 14px rgba(207, 233, 251, 0.7); }
+	100% { background-color: transparent; border-color: var(--as-border-color); color: inherit; transform: scale(1); box-shadow: none; }
+}
+
+.romer-revealing {
+	animation: romerFrost 1.2s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.romer-revealing { animation: none; }
+}
+
+/* ─── Holiday decorations ─────────────────────────────────────────────────── */
+/* The string hangs immediately under the sticky back bar and stays there while the screen scrolls,
+   the way FOX drapes lights over the scorebug rather than over the pitch. The bar is sticky at
+   minus the shell's own padding to reach the popup edge, so this offset re-adds it. */
+.holiday-lights {
+	position: sticky;
+	top: calc(var(--gd-inset) + 1rem);
+	z-index: 4;
+	display: block;
+	width: calc(100% + var(--gd-inset) * 2);
+	height: 22px;
+	margin: 0 calc(var(--gd-inset) * -1) -22px;
+	pointer-events: none;
+}
+
+.holiday-lights-wire {
+	fill: none;
+	stroke: #2f3a45;
+	stroke-width: 1;
+}
+
+.holiday-bulb {
+	fill: currentcolor;
+	animation: holidayBulbTwinkle 3.4s ease-in-out infinite;
+}
+
+.holiday-bulb-cap {
+	fill: #4a5561;
+}
+
+.holiday-bulb-glass {
+	filter: drop-shadow(0 0 4px currentcolor);
+}
+
+/* Slow enough to read as a shimmer rather than a strobe, and it never goes fully dark. */
+@keyframes holidayBulbTwinkle {
+	0%, 100% { opacity: 1; }
+	50%      { opacity: 0.48; }
+}
+
+/* A favourite has just scored. Faster, brighter and in that team's colours, for as long as the
+   confetti on the main screen would have run. */
+.is-celebrating {
+	.holiday-bulb {
+		animation: holidayBulbCelebrate 0.5s ease-in-out infinite;
+	}
+
+	.holiday-bulb-glass {
+		filter: drop-shadow(0 0 7px currentcolor);
+	}
+}
+
+@keyframes holidayBulbCelebrate {
+	0%, 100% { opacity: 1; }
+	50%      { opacity: 0.25; }
+}
+
+/* Fixed rather than absolute: the flakes belong to the popup window, not to the scrolling
+   document, so a long detail screen does not scroll its own weather away. */
+.holiday-fall {
+	position: fixed;
+	inset: 0;
+	z-index: 7;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+/* The pile is the opposite: it belongs to the ground, which is the foot of the page. Last element
+   in the flow, bleeding the shell's padding so it reaches both edges. */
+.holiday-drift {
+	display: block;
+	width: calc(100% + var(--gd-inset) * 2);
+	height: 96px;
+	margin: 0 calc(var(--gd-inset) * -1) calc(var(--gd-inset) * -1);
+	pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.holiday-bulb { animation: none; }
+}

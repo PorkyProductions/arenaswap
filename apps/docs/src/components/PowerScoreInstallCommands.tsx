@@ -7,7 +7,13 @@ const installCommands = [
 	{ id: 'bun', label: 'bun', command: 'bun add powerscore', icon: 'bi-lightning-charge' },
 ];
 
-const PowerScoreInstallCommands = () => {
+interface Props {
+	copyLabel: string;
+	copiedLabel: string;
+}
+
+// The package manager names are not translated: they are the commands you type.
+const PowerScoreInstallCommands = ({ copyLabel, copiedLabel }: Props) => {
 	const [activeId, setActiveId] = useState(installCommands[0]?.id ?? 'npm');
 	const [copied, setCopied] = useState(false);
 
@@ -49,7 +55,7 @@ const PowerScoreInstallCommands = () => {
 				<code className='mb-0 text-[0.92rem] text-[var(--color-text)] font-[var(--font-mono)]'>{activeCommand?.command}</code>
 				<button type='button' className='btn btn-cta py-2 px-3' onClick={copyCommand}>
 					<i className={`bi ${copied ? 'bi-check2' : 'bi-clipboard'} me-2`}></i>
-					{copied ? 'Copied' : 'Copy'}
+					{copied ? copiedLabel : copyLabel}
 				</button>
 			</div>
 		</div>

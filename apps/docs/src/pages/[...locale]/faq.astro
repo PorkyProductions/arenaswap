@@ -1,0 +1,75 @@
+---
+import { leagueConfigs } from '@arenaswap/core/constants';
+import Shell from '../../layouts/Shell.astro';
+import { localeRoutes } from '../../i18n/locales';
+import { tokenize, useTranslations } from '../../i18n/ui';
+
+// Off the homepage and onto its own page. The eight questions are worth keeping for search — they
+// are what people actually type — but they were the fourth thing competing for attention at the
+// bottom of the landing page.
+//
+// Native <details> rather than the React accordion this used to be: no JavaScript, open by
+// default when JS never arrives, and Cmd-F finds an answer that is collapsed.
+
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const leagueCount = leagueConfigs.length;
+
+interface Item {
+	q: string;
+	a: string;
+}
+
+// Only the first answer names the count, and substituting into every one of them costs nothing and
+// means no locale has to remember which one it was.
+const items = t.list<Item>('faq.items').map(item => ({
+	q: item.q,
+	a: item.a.split('{leagues}').join(String(leagueCount)),
+}));
+
+const lede = tokenize(t('faq.lede'));
+
+const structuredData = {
+	'@context': 'https://schema.org',
+	'@type': 'FAQPage',
+	mainEntity: items.map(item => ({
+		'@type': 'Question',
+		name: item.q,
+		acceptedAnswer: { '@type': 'Answer', text: item.a },
+	})),
+};
+---
+<Shell
+	title={t('meta.faqTitle')}
+	description={t('meta.faqDescription')}
+	path='faq/'
+>
+	<div class='container'>
+		<div class='page-head'>
+			<h1 class='page-title'>{t('faq.title')}</h1>
+			<p class='page-lede'>
+				{lede.map(part => (
+					typeof part === 'string' ? part
+					: <a href='https://github.com/hiteacheryouare/arenaswap/issues'>{t('faq.ledeLink')}</a>
+				))}
+			</p>
+		</div>
+
+		<div class='reading-shell reading-shell-plain'>
+			<div class='faq-list'>
+				{items.map((item, index) => (
+					<details class='faq-item' open={index === 0}>
+						<summary>{item.q}</summary>
+						<p>{item.a}</p>
+					</details>
+				))}
+
+			</div>
+		</div>
+	</div>
+
+	<script type='application/ld+json' set:html={JSON.stringify(structuredData)} is:inline />
+</Shell>

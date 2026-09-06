@@ -1,0 +1,80 @@
+---
+import { findLocale, locales, localePath, stripLocale } from '../i18n/locales';
+import { currentLocale, useTranslations } from '../i18n/ui';
+
+interface Props {
+	// The drawer lays the same twelve entries out as a plain list, because a dropdown inside a
+	// dropdown on a phone is a menu you have to open twice.
+	variant?: 'dropdown' | 'list';
+	// False on the pages that were never translated. Every entry then points at that language's
+	// home page, which is somewhere real, rather than at a URL the build never produced.
+	localized?: boolean;
+}
+
+const { variant = 'dropdown', localized = true } = Astro.props;
+
+const locale = currentLocale(Astro.currentLocale);
+const t = useTranslations(locale);
+const path = localized ? stripLocale(Astro.url.pathname) : '';
+const current = findLocale(locale);
+
+const entries = locales.map(entry => ({
+	code: entry.code,
+	label: entry.label,
+	flag: entry.flag,
+	href: localePath(entry.code, path),
+	isCurrent: entry.code === locale,
+}));
+---
+{variant === 'dropdown' ? (
+	<div class='lang-switch dropdown'>
+		<button
+			class='lang-switch-trigger'
+			type='button'
+			data-bs-toggle='dropdown'
+			data-bs-display='static'
+			aria-expanded='false'
+			aria-label={t('nav.chooseLanguage')}
+		>
+			<span class='lang-switch-flag' aria-hidden='true'>{current.flag}</span>
+			<span class='lang-switch-current'>{current.shortLabel}</span>
+			<i class='bi bi-chevron-down lang-switch-caret' aria-hidden='true'></i>
+		</button>
+		<ul class='dropdown-menu dropdown-menu-end lang-switch-menu'>
+			{!localized && (
+				<>
+					<li><p class='lang-switch-note'>{t('nav.englishOnly')}</p></li>
+					<li><hr class='dropdown-divider' /></li>
+				</>
+			)}
+			{entries.map(entry => (
+				<li>
+					<a
+						class:list={['dropdown-item', entry.isCurrent && 'active']}
+						href={entry.href}
+						hreflang={entry.code}
+						lang={entry.code}
+						aria-current={entry.isCurrent ? 'true' : undefined}
+					><span class='lang-switch-flag' aria-hidden='true'>{entry.flag}</span>{entry.label}</a>
+				</li>
+			))}
+		</ul>
+	</div>
+) : (
+	<div class='lang-switch-list'>
+		<p class='lang-switch-heading'>{t('nav.language')}</p>
+		<ul>
+			{entries.map(entry => (
+				<li>
+					<a
+						href={entry.href}
+						hreflang={entry.code}
+						lang={entry.code}
+						aria-current={entry.isCurrent ? 'true' : undefined}
+					><span class='lang-switch-flag' aria-hidden='true'>{entry.flag}</span>{entry.label}</a>
+				</li>
+			))}
+		</ul>
+		{!localized && <p class='lang-switch-note'>{t('nav.englishOnly')}</p>}
+	</div>
+)}

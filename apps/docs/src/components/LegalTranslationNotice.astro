@@ -1,0 +1,27 @@
+---
+import { defaultLocale, localePath } from '../i18n/locales';
+import { currentLocale, tokenize, useTranslations } from '../i18n/ui';
+
+interface Props {
+	// Path without the base or a locale, e.g. `legal/privacy/`. Points at the English original.
+	path: string;
+}
+
+const { path } = Astro.props;
+const locale = currentLocale(Astro.currentLocale);
+const t = useTranslations(locale);
+
+// English is the text that governs, so it says nothing about itself. Every other language opens
+// with one line saying which version wins, and links to it — a translated privacy notice or
+// disclaimer that quietly presents itself as authoritative is the one way this feature could
+// cost somebody something.
+const notice = tokenize(t('legal.convenienceNotice'));
+---
+{locale !== defaultLocale && (
+	<p class='legal-updated'>
+		{notice.map(part => (
+			typeof part === 'string' ? part
+			: <a href={localePath(defaultLocale, path)} hreflang={defaultLocale} lang={defaultLocale}>{t('legal.convenienceNoticeLink')}</a>
+		))}
+	</p>
+)}

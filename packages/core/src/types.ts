@@ -21,6 +21,34 @@ export type {
 	LeagueConfig,
 };
 
+// Baseball pitchers and hockey goalies arrive in the same `probables` structure, so this is not
+// named for either one.
+export interface ProbableStarter {
+	name: string;
+	// Present for 97% of pitchers and every goalie sampled. Soccer has almost none, which is why
+	// the UI needs a fallback rather than treating absence as an edge case.
+	headshot?: string;
+	// Assembled from the separate wins and losses stats rather than parsed back out of `line`, so
+	// each number can carry its own label. All 182 upcoming probables sampled had both, plus ERA.
+	winLoss?: string;
+	era?: string;
+	// ESPN's own pre-formatted "(7-7, 5.17)". Rendered unlabelled, and only when the two above are
+	// missing — which no baseball probable sampled was, and every goalie is.
+	line?: string;
+	// Hockey only. ESPN sends no starter status for baseball.
+	status?: 'expected' | 'confirmed';
+}
+
+export interface TeamLeader {
+	// ESPN's category name, normalized. The key a label is looked up by, never display text.
+	category: string;
+	// ESPN's own abbreviation, rendered only for a category we have no translation for.
+	fallbackLabel: string;
+	player: string;
+	value: string;
+	headshot?: string;
+}
+
 export interface Team {
 	id: string;
 	name: string;
@@ -33,6 +61,14 @@ export interface Team {
 	// CSS hex, from the API. `alternateColor` is used when the primary clashes with the opponent.
 	color?: string;
 	alternateColor?: string;
+	// The overall record, e.g. "76-58". Carried in every status because the detail hero shows it
+	// for live and finished games too.
+	record?: string;
+	// Pre-game only, and only where ESPN sends them. Leaders in particular are pre-game only for
+	// correctness rather than economy: once a game starts, the same categories hold that game's box
+	// line ("1-4, HR, 4 RBI") instead of a season total.
+	probableStarter?: ProbableStarter;
+	leaders?: TeamLeader[];
 }
 
 export interface GameCondition {
@@ -61,6 +97,8 @@ export interface Game {
 	homeTeam: Team;
 	awayTeam: Team;
 	venueName?: string;
+	// Already comma-joined for display, e.g. 'Inglewood, CA' or 'London, England'.
+	venueLocation?: string;
 	period: number;
 	clockSeconds: number;
 	status: 'pre' | 'in' | 'post';
@@ -81,6 +119,14 @@ export interface Game {
 	down?: number;
 	distance?: number;
 	isGoalToGo?: boolean;
+	// Absolute field coordinate, 0-100: 0 is the home team's own goal line and 100 is the away
+	// team's. So the home offense always drives toward 100 and the away offense toward 0, and the
+	// field diagram reads its direction of travel off `possessionTeamId` alone.
+	yardLine?: number;
+	// Matches `homeTeam.id` or `awayTeam.id`.
+	possessionTeamId?: string;
+	// Where the current drive began, in the same coordinates as `yardLine`.
+	driveStartYardLine?: number;
 	weather?: GameCondition;
 	// ESPN signals this three different ways — see resolvePostseason in apiClient.ts.
 	isPostseason?: boolean;
@@ -104,7 +150,15 @@ export interface UserPreferences {
 	// Switch to standby once every registered game falls below this.
 	standbyStreamThreshold: number;
 	bettingEnabled: boolean;
-	temperatureUnit: 'F' | 'C';
+	temperatureUnit: 'F' | 'C' | 'Ro';
+	// Rømer is not offered by the settings list, so the toggle needs to know whether this user
+	// has found it before it will cycle through a third unit.
+	romerUnlocked: boolean;
+	// Seasonal decoration on the game detail screen. The parent gates all three.
+	holidayDecorationsEnabled: boolean;
+	holidaySnowEnabled: boolean;
+	holidayLightsEnabled: boolean;
+	holidayLeavesEnabled: boolean;
 	postseasonBoostPoints: number;
 	// 1–14.
 	upcomingGamesDays: number;

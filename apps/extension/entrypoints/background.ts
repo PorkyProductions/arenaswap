@@ -444,7 +444,7 @@ export default defineBackground(() => {
 		// at halftime would pull the user off whatever they were actually doing.
 		const notWatchingAGame = !activeReg && best.total > 0;
 		if (!notWatchingAGame && best.total < activeScore + threshold) return null;
-		if (Date.now() - lastSwitchTime <= prefs.cooldownSeconds * 1000) return null;
+		if (prefs.cooldownSeconds > 0 && Date.now() - lastSwitchTime <= prefs.cooldownSeconds * 1000) return null;
 
 		return { tabId: bestReg.tabId, gameId: best.gameId, reason: best.reason };
 	};

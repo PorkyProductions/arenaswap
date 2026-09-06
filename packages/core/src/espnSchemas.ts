@@ -23,6 +23,49 @@ const EspnTeamSchema = zod.object({
 	alternateColor: zod.string().optional(),
 });
 
+const EspnAthleteRefSchema = zod.object({
+	displayName: zod.string().optional(),
+	shortName: zod.string().optional(),
+	jersey: espnNumericText.optional(),
+	headshot: zod.string().optional(),
+});
+
+// Baseball sends `probableStartingPitcher`, hockey `probableStartingGoalie`, and no other sport
+// sends anything here. `record` is the athlete's own line, pre-formatted by ESPN as "(7-7, 5.17)"
+// for a pitcher and always empty for a goalie. `status` is hockey-only.
+const EspnProbableSchema = zod.object({
+	name: zod.string().optional(),
+	athlete: EspnAthleteRefSchema.optional(),
+	record: zod.string().optional(),
+	status: zod.object({ type: zod.string().optional() }).optional(),
+	// Declared but unread: a pitcher's W/L/ERA already arrives assembled in `record`, and whether
+	// a goalie carries GAA here cannot be checked until the NHL season starts.
+	statistics: zod.array(zod.object({
+		name: zod.string().optional(),
+		abbreviation: zod.string().optional(),
+		displayValue: espnNumericText.optional(),
+	})).catch([]).optional(),
+});
+
+// `type` is open-ended: `total` in most leagues, `ytd` in the NHL, `standingsoverall` in the AFL,
+// alongside `home`, `road`, `vsconf`, `homerecord` and `awayrecord`.
+const EspnRecordEntrySchema = zod.object({
+	name: zod.string().optional(),
+	type: zod.string().optional(),
+	summary: zod.string().optional(),
+	displayValue: zod.string().optional(),
+});
+
+const EspnLeaderCategorySchema = zod.object({
+	name: zod.string().optional(),
+	shortDisplayName: zod.string().optional(),
+	abbreviation: zod.string().optional(),
+	leaders: zod.array(zod.object({
+		displayValue: espnNumericText.optional(),
+		athlete: EspnAthleteRefSchema.optional(),
+	})).catch([]).optional(),
+});
+
 const EspnCompetitorSchema = zod.object({
 	id: espnNumericText,
 	homeAway: zod.string(),
@@ -30,6 +73,12 @@ const EspnCompetitorSchema = zod.object({
 	// Soccer shootouts only, where `score` stays frozen at the 120-minute scoreline.
 	shootoutScore: zod.number().optional(),
 	team: EspnTeamSchema,
+	probables: zod.array(EspnProbableSchema).catch([]).optional(),
+	records: zod.array(EspnRecordEntrySchema).catch([]).optional(),
+	// `.catch` sits on the array rather than the row because cricket returns a `$ref` string here
+	// where every other sport returns an array. Not a league we ship, but adding one must not be
+	// able to take the whole competitor down with it.
+	leaders: zod.array(EspnLeaderCategorySchema).catch([]).optional(),
 });
 
 const EspnCompetitionStatusSchema = zod.object({
@@ -41,6 +90,19 @@ const EspnCompetitionStatusSchema = zod.object({
 		description: zod.string().optional(),
 		shortDetail: zod.string().optional(),
 	}).optional(),
+});
+
+// `yardLine` here and on the drive is an absolute field coordinate: 0 is the home team's own goal
+// line and 100 is the away team's, whichever team is holding the ball. So the home offense drives
+// toward 100 and the away offense toward 0 — verified against ESPN's own drive yardage, which
+// equals `yardLine - drive.start.yardLine` for a home drive and the negation of it for an away one.
+const EspnDriveSchema = zod.object({
+	start: zod.object({ yardLine: zod.number().optional() }).optional(),
+});
+
+const EspnLastPlaySchema = zod.object({
+	team: zod.object({ id: espnNumericText.optional() }).optional(),
+	drive: EspnDriveSchema.optional(),
 });
 
 const EspnSituationSchema = zod.object({
@@ -58,11 +120,24 @@ const EspnSituationSchema = zod.object({
 	// ESPN also ships these pre-joined into `downDistanceText`, but that string is English-only,
 	// so the halves are read separately and joined through the locale files.
 	possessionText: zod.string().optional(),
+	// The team id holding the ball. Dropped at every dead ball — timeouts, the end of a period —
+	// while `yardLine` survives, so the field diagram falls back to `lastPlay.team`.
+	possession: espnNumericText.optional(),
+	lastPlay: EspnLastPlaySchema.optional(),
+});
+
+// ESPN is not consistent about `state`: the NFL and NHL send abbreviations, MLB sends full names,
+// and leagues outside North America send no state at all and lean on `country` instead.
+const EspnVenueAddressSchema = zod.object({
+	city: zod.string().optional(),
+	state: zod.string().optional(),
+	country: zod.string().optional(),
 });
 
 const EspnCompetitionVenueSchema = zod.object({
 	fullName: zod.string().optional(),
 	name: zod.string().optional(),
+	address: EspnVenueAddressSchema.optional(),
 	indoor: zod.boolean().optional(),
 });
 
@@ -219,10 +294,15 @@ export const parseTeams = (raw: unknown): EspnTeamsResult => {
 export type EspnLeagueLogo = zod.infer<typeof EspnLeagueLogoSchema>;
 export type EspnLeague = zod.infer<typeof EspnLeagueSchema>;
 export type EspnTeam = zod.infer<typeof EspnTeamSchema>;
+export type EspnAthleteRef = zod.infer<typeof EspnAthleteRefSchema>;
+export type EspnProbable = zod.infer<typeof EspnProbableSchema>;
+export type EspnRecordEntry = zod.infer<typeof EspnRecordEntrySchema>;
+export type EspnLeaderCategory = zod.infer<typeof EspnLeaderCategorySchema>;
 export type EspnCompetitor = zod.infer<typeof EspnCompetitorSchema>;
 export type EspnCompetitionStatus = zod.infer<typeof EspnCompetitionStatusSchema>;
 export type EspnSituation = zod.infer<typeof EspnSituationSchema>;
 export type EspnCompetitionVenue = zod.infer<typeof EspnCompetitionVenueSchema>;
+export type EspnVenueAddress = zod.infer<typeof EspnVenueAddressSchema>;
 export type EspnCompetitionBroadcast = zod.infer<typeof EspnCompetitionBroadcastSchema>;
 export type EspnCompetitionGeoBroadcast = zod.infer<typeof EspnCompetitionGeoBroadcastSchema>;
 export type EspnOddsProviderLogo = zod.infer<typeof EspnOddsProviderLogoSchema>;

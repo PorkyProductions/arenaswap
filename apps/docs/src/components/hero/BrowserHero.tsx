@@ -3,6 +3,7 @@ import type { LeagueId } from '@arenaswap/core/types';
 import GameCard from '@arenaswap/ui/src/components/gameCard';
 import { LeagueSectionHeader, PopupHeader, PopupSectionTitle } from '@arenaswap/ui/src/components/popupChrome';
 import { useT } from '@arenaswap/ui/src/components/i18nContext';
+import { TranslationContext, islandTranslator, tokenize } from '../../i18n/islandStrings';
 import { heroGames, heroTickCount, heroTickMs } from './heroGames';
 import { cooldownTicks, openingIndex, replayThrough, scoreBoardAt, shouldSwitch } from './heroTimeline';
 import type { HeroSwitch } from './heroTimeline';
@@ -37,7 +38,16 @@ const HeroTabSlot = ({ label }: { label: string }) => (
 	</div>
 );
 
-const BrowserHero = () => {
+// The hero's own copy, separate from the `strings` map the shared components read: that one
+// mirrors the extension key for key, and these four sentences belong to this page.
+export interface HeroStrings {
+	captionSwitched: string;
+	captionWatching: string;
+	replay: string;
+	tabLabel: string;
+}
+
+const HeroWindow = ({ copy }: { copy: HeroStrings }) => {
 	const t = useT();
 	const [tick, setTick] = useState(0);
 	const [running, setRunning] = useState(false);
@@ -264,7 +274,7 @@ const BrowserHero = () => {
 												onToggleFavoriteTeam={noop}
 												onOpenGameDetail={noop}
 												bettingPrefs={{ bettingEnabled: false }}
-												tabSlot={<HeroTabSlot label={`Tab ${entry.index + 1}: ${script.tabHost}`} />}
+												tabSlot={<HeroTabSlot label={copy.tabLabel.split('{number}').join(String(entry.index + 1)).split('{host}').join(script.tabHost)} />}
 											/>
 										</div>
 									);
@@ -276,17 +286,31 @@ const BrowserHero = () => {
 
 			<p className='browser-caption' aria-live='polite'>
 				{lastSwitch
-					? <>ArenaSwap moved you off <b>{lastSwitch.from}</b> and onto <b>{lastSwitch.to}</b>.</>
-					: <>You are watching <b>{onScreen.tabTitle}</b>, the best game on the board.</>}
+					? tokenize(copy.captionSwitched).map((part, index) => (
+						typeof part === 'string'
+							? <span key={index}>{part}</span>
+							: <b key={index}>{part.slot === 'from' ? lastSwitch.from : lastSwitch.to}</b>
+					))
+					: tokenize(copy.captionWatching).map((part, index) => (
+						typeof part === 'string'
+							? <span key={index}>{part}</span>
+							: <b key={index}>{onScreen.tabTitle}</b>
+					))}
 			</p>
 
 			{reduced && (
 				<button type='button' className='browser-replay' onClick={() => { setReduced(false); restart(); }}>
-					Play the demo
+					{copy.replay}
 				</button>
 			)}
 		</div>
 	);
 };
+
+const BrowserHero = ({ strings, copy }: { strings?: Record<string, string>; copy: HeroStrings }) => (
+	<TranslationContext.Provider value={islandTranslator(strings)}>
+		<HeroWindow copy={copy} />
+	</TranslationContext.Provider>
+);
 
 export default BrowserHero;

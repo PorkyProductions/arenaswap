@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap——自動切換 NFL、NBA、March Madness、MLB 直播",
+	"extDescription": "監控 31 個聯賽的所有直播比賽，自動把你的分頁切到最精彩的一場，最快每 6 秒判定一次。",
 	"app": {
 		"welcomeToast": "歡迎使用 ArenaSwap！",
 		"settingsSavedToast": "設定已儲存",
@@ -143,6 +145,11 @@
 		"proTips": "達人技巧",
 		"switchNotifications": "切換通知",
 		"demoMode": "示範模式",
+		"demoSeason": "假裝現在是",
+		"demoSeasonReal": "真實日期",
+		"demoSeasonThanksgiving": "感恩節當週",
+		"demoSeasonDecember": "十二月",
+		"demoSeasonExplainer": "僅影響節日裝飾，方便你在非節日期間查看。",
 		"standbySection": "Standby Stream",
 		"enableStandby": "啟用 Standby Stream",
 		"standbyBelow": "低於此分數時待機",
@@ -154,6 +161,12 @@
 		"temperatureUnit": "溫度單位",
 		"temperatureUnitF": "°F",
 		"temperatureUnitC": "°C",
+		"temperatureUnitRomer": "°Rø",
+		"holidayDecorations": "節日裝飾",
+		"holidayDecorationsExplainer": "比賽現場下雪時飄雪，感恩節當週飄落葉，整個十二月掛彩燈。",
+		"holidaySnow": "雪",
+		"holidayLights": "彩燈",
+		"holidayLeaves": "落葉",
 		"signalsSection": "PowerScore 信號",
 		"signalsExplainer": "已停用的信號不計入評分，分數會重新校準以維持在範圍內。",
 		"signalLastActive": "至少須保留一個信號處於啟用狀態",
@@ -171,6 +184,9 @@
 		"groupSwitchingDesc": "ArenaSwap 有多積極把你帶到更精彩的比賽。",
 		"groupScoring": "評分",
 		"groupScoringDesc": "哪些信號會影響 PowerScore，以及哪些能加分。",
+		"groupFavorites": "收藏球隊",
+		"groupFavoritesDesc": "你關注的球隊，以及收藏能加多少分。",
+		"followedTeams": "你關注的球隊",
 		"groupLeagues": "聯賽",
 		"groupLeaguesDesc": "追蹤哪些聯賽，以及它們的顯示順序。",
 		"groupDisplay": "顯示",
@@ -191,6 +207,7 @@
 		"keywordsLeadChanges": "領先交替, 來回, 領先, 信號",
 		"keywordsComeback": "追分, 落後, 逆轉, 信號",
 		"keywordsFavoriteBonus": "收藏, 關注, 我的球隊, 加成, 分數",
+		"keywordsFavoriteTeams": "星標, 收藏, 關注, 俱樂部, 選擇, 我的球隊",
 		"keywordsPostseasonBoost": "季後賽, 淘汰賽, 錦標賽, 對戰表, 加成, 分數",
 		"keywordsLeagues": "運動, 項目, 追蹤, nba, nfl, nhl, mlb, 足球",
 		"keywordsLeagueOrder": "排序, 重排, 重新排列, 拖曳, 順序",
@@ -200,6 +217,7 @@
 		"keywordsNotifications": "警示, 通知, 提醒, 橫幅, 彈出視窗",
 		"keywordsBetting": "賠率, 盤口, 讓分, 博彩, 投注",
 		"keywordsTemperature": "攝氏, 華氏, 度, 天氣, 單位",
+		"keywordsHoliday": "聖誕, 雪, 彩燈, 落葉, 季節, 天氣, 感恩節",
 		"keywordsStandby": "備用, 後備, 閒置, 替補, 冷場",
 		"keywordsStandbyThreshold": "分數, 閾值, 下限, 低於, 冷場",
 		"keywordsStandbyTab": "分頁, 視窗, 頁面, 目標",
@@ -212,7 +230,9 @@
 		"sectionActiveLiveTabs": "活躍分頁",
 		"sectionOtherLiveGames": "直播比賽",
 		"sectionUpNext": "即將開賽",
-		"showMoreUpcoming": "再顯示 {count} 場",
+		"upcomingDayNavLabel": "依日期查看即將開始的比賽",
+		"upcomingPreviousDay": "前一天",
+		"upcomingNextDay": "後一天",
 		"enableToggleLabel": "啟用自動切換"
 	},
 	"detail": {
@@ -248,7 +268,29 @@
 		"getReadyPuckDrop": "準備爭球",
 		"getReadyFirstPitch": "第一球即將投出",
 		"getReadyGametime": "比賽即將開始",
-		"pregameTabExplainer": "比賽開始時會在分頁中開啟。"
+		"pregameTabExplainer": "比賽開始時會在分頁中開啟。",
+		"probablePitchers": "先發投手",
+		"probableGoalies": "先發守門員",
+		"starterConfirmed": "確認",
+		"pitcherRecordLabel": "勝敗",
+		"pitcherEraLabel": "防禦率",
+		"starterExpected": "預計",
+		"teamLeaders": "主力球員",
+		"leaderAvg": "打擊率",
+		"leaderHomeRuns": "全壘打",
+		"leaderRbis": "打點",
+		"leaderPoints": "得分",
+		"leaderRebounds": "籃板",
+		"leaderAssists": "助攻",
+		"leaderPointsPerGame": "PPG",
+		"leaderReboundsPerGame": "RPG",
+		"leaderAssistsPerGame": "APG",
+		"leaderGoals": "進球",
+		"leaderHockeyAssists": "助攻",
+		"leaderHockeyPoints": "得分",
+		"leaderPassing": "PASS",
+		"leaderRushing": "RUSH",
+		"leaderReceiving": "REC"
 	},
 	"gameCard": {
 		"removeFromFavorites": "將 {team} 從收藏移除",
@@ -267,6 +309,10 @@
 		"vs": "vs",
 		"topOfInning": "上半局",
 		"bottomOfInning": "下半局"
+	},
+	"field": {
+		"possession": "{team}持球進攻",
+		"noPossession": "球場位置"
 	},
 	"gameBoost": {
 		"heading": "比賽加成",
@@ -332,6 +378,8 @@
 		"step": "第 $1 步，共 $2 步",
 		"title": "選擇你的球隊",
 		"explainer": "收藏的球隊會獲得評分加成，讓 ArenaSwap 更偏好這些比賽。",
+		"yourFavorites": "你的收藏",
+		"leagueNotTracked": "{league} · 未追蹤",
 		"searchPlaceholder": "搜尋球隊……",
 		"loading": "載入球隊中……",
 		"loadError": "球隊載入失敗。",
@@ -534,6 +582,28 @@
 		"placeholder": "— 指派分頁 —",
 		"inUse": "（使用中）"
 	},
+	"suggest": {
+		"bannerTitle": "這些分頁看起來像比賽",
+		"bannerCopy": {
+			"1": "你打開的 1 個分頁，符合你賽程上的一場比賽。",
+			"n": "你打開的 $1 個分頁，符合你賽程上的比賽。"
+		},
+		"bannerAction": "查看",
+		"bannerDismiss": "忽略建議",
+		"header": "分頁建議",
+		"lede": "取消勾選我們猜錯的項目。每張卡片上的下拉選單依然握有最終決定權。",
+		"empty": "你打開的內容裡，沒有一個像你賽程上的比賽。",
+		"rowLabel": "將 {tab} 與 {away} 對戰 {home} 的比賽配對",
+		"apply": {
+			"1": "指派 1 個分頁",
+			"n": "指派 $1 個分頁"
+		},
+		"applyNone": "指派分頁",
+		"toastApplied": {
+			"1": "已指派 1 個分頁。",
+			"n": "已指派 $1 個分頁。"
+		}
+	},
 	"favoriteTeamBonus": {
 		"label": "收藏球隊加成",
 		"perTeam": "+$1（每支球隊）",
@@ -591,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "切換冷卻",
-		"explainer": "設定自動切換之間的最短間隔，避免分頁來回亂跳。"
+		"explainer": "設定自動切換之間的最短間隔，避免分頁來回亂跳。",
+		"off": "關閉"
 	},
 	"switchDelay": {
 		"label": "切換延遲",

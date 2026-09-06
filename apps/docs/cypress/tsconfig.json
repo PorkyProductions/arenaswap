@@ -1,0 +1,10 @@
+{
+	"extends": "../../../tsconfig.base.json",
+	"compilerOptions": {
+		"types": ["cypress", "node"],
+		// Reading `subject[0]` off a query result is the whole idiom in these specs, and a spec
+		// that queried nothing should fail the assertion rather than be guarded at every site.
+		"noUncheckedIndexedAccess": false
+	},
+	"include": ["./**/*.ts", "../cypress.config.ts"]
+}

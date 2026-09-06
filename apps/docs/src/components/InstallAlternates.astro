@@ -1,13 +1,24 @@
 ---
 import { edgeAddons, firefoxAddons } from '../lib/installTargets';
+import { currentLocale, tokenize, useTranslations } from '../i18n/ui';
 
 interface Props {
 	class?: string;
 }
 
 const { class: className } = Astro.props;
+const t = useTranslations(currentLocale(Astro.currentLocale));
+
+// Both browser names are links, and which two they are is decided in the browser, so the sentence
+// is broken into parts around them rather than substituted into. The two links are filled in by
+// `applyAlternates` in document order, so a language that names Edge first gets Edge first.
+const alsoFor = tokenize(t('install.alsoFor'));
 ---
 <span class={className}>
-	Also for <a href={firefoxAddons} data-install-alternate>Firefox</a> and <a href={edgeAddons} data-install-alternate>Edge</a>
+	{alsoFor.map(part => (
+		typeof part === 'string' ? part
+		: part.slot === 'firefox' ? <a href={firefoxAddons} data-install-alternate>Firefox</a>
+		: <a href={edgeAddons} data-install-alternate>Edge</a>
+	))}
 </span>
 <script is:inline>window.arenaSwapInstall?.applyAlternates(document.currentScript.previousElementSibling);</script>

@@ -1,0 +1,442 @@
+{
+	"meta": {
+		"homeTitle": "ArenaSwap — Ne rate plus jamais le moment.",
+		"homeDescription": "ArenaSwap surveille chaque match en direct dans {leagues} ligues et bascule ton onglet de navigateur vers le plus palpitant. Gratuit, sans compte, sans tracking.",
+		"faqTitle": "FAQ — ArenaSwap",
+		"faqDescription": "Comment ArenaSwap change d'onglet, avec quelles ligues et services de streaming il fonctionne, ce que mesure PowerScore, et ce qu'il fait de tes données.",
+		"powerscoreTitle": "Le paquet PowerScore — ArenaSwap",
+		"powerscoreDescription": "PowerScore transforme n'importe quel match en direct en un score d'intensité de 0 à 100. Installe-le depuis npm, découvre comment fonctionnent les cinq signaux, et regarde-le noter les matchs de ce soir en direct.",
+		"legalTitle": "Mentions légales — ArenaSwap",
+		"legalDescription": "L'avis de confidentialité d'ArenaSwap, les licences, les crédits des images et les avertissements.",
+		"privacyTitle": "Confidentialité — ArenaSwap",
+		"privacyDescription": "L'avis de confidentialité d'ArenaSwap : les préférences que l'extension conserve, les informations qu'elle transmet, les permissions du navigateur qu'elle demande, et le traitement réservé à ce site.",
+		"termsTitle": "Avertissements — ArenaSwap",
+		"termsDescription": "ArenaSwap décline toute affiliation avec ESPN et avec chaque ligue mentionnée, fournit son logiciel sans garantie, et dépend de données qu'il ne contrôle pas.",
+		"creditsTitle": "Crédits — ArenaSwap",
+		"creditsDescription": "Les crédits des images de match qui apparaissent sur la page d'accueil d'ArenaSwap, ainsi que la propriété des scores, marques de ligues et écussons d'équipes affichés.",
+		"licensesTitle": "Licences — ArenaSwap",
+		"licensesDescription": "ArenaSwap est distribué sous la licence ISC. Les logiciels open source et les polices dont il dépend sont listés ici avec la licence de chacun.",
+		"notFoundTitle": "404 — ArenaSwap",
+		"notFoundDescription": "Cette page n'est pas au calendrier. Retourne sur ArenaSwap.",
+		"releaseFeedTitle": "Notes de version d'ArenaSwap"
+	},
+	"nav": {
+		"home": "Accueil",
+		"powerscore": "PowerScore",
+		"docs": "Docs",
+		"releases": "Versions",
+		"faq": "FAQ",
+		"legal": "Mentions légales",
+		"openMenu": "Ouvrir le menu",
+		"language": "Langue",
+		"chooseLanguage": "Choisir une langue",
+		"englishOnly": "Cette page n'est disponible qu'en anglais.",
+		"untranslatedHeading": "Cette page n'a pas encore été traduite.",
+		"untranslatedBody": "La documentation et les notes de version sont rédigées en anglais. Tout le reste du site est disponible dans ta langue."
+	},
+	"install": {
+		"addTo": "Ajouter à {browser}",
+		"alsoFor": "Aussi pour {firefox} et {edge}"
+	},
+	"footer": {
+		"tagline": "Construit par des fans de sport, pour des fans de sport.",
+		"product": "Produit",
+		"documentation": "Documentation",
+		"powerscorePackage": "Paquet PowerScore",
+		"releaseNotes": "Notes de version",
+		"legal": "Mentions légales",
+		"privacy": "Confidentialité",
+		"licenses": "Licences",
+		"credits": "Crédits",
+		"disclaimers": "Avertissements",
+		"install": "Installer",
+		"chromeWebStore": "Chrome Web Store",
+		"firefoxAddons": "Firefox Add-ons",
+		"edgeAddons": "Edge Add-ons",
+		"iscLicense": "ISC License",
+		"disclaimer": "Non affilié à ESPN, la NFL, la NBA, la NHL, la MLB, la MLS ni à aucune autre ligue suivie par cette extension, et non soutenu par elles.",
+		"legalNotices": "Mentions légales",
+		"madeWith": "Fait avec ❤️ à Philadelphie & Boston par {name}"
+	},
+	"sport": {
+		"basketball": "Basketball",
+		"football": "Football américain",
+		"hockey": "Hockey",
+		"baseball": "Baseball",
+		"softball": "Softball",
+		"soccer": "Football"
+	},
+	"home": {
+		"hero": {
+			"titleLine1": "Ne rate plus jamais",
+			"titleLine2": "le moment.",
+			"lede": "ArenaSwap surveille chaque match en direct dans {leagues} ligues et bascule automatiquement ton onglet de navigateur vers le plus palpitant, jusqu'à toutes les 6 secondes.",
+			"teamStrip": "Fonctionne avec chaque équipe dans {leagues} ligues. La tienne y compris.",
+			"captionSwitched": "ArenaSwap t'a fait passer de {from} à {to}.",
+			"captionWatching": "Tu regardes {game}, le meilleur match du moment.",
+			"replay": "Lancer la démo",
+			"tabLabel": "Onglet {number} : {host}"
+		},
+		"tabs": {
+			"titleLine1": "Configure une fois.",
+			"titleLine2": "Regarde tout.",
+			"copy": "Ouvre tes streams, assigne-les à des matchs, et pars tranquille. À partir de là, ArenaSwap gère chaque changement.",
+			"steps": [
+				{
+					"title": "Ouvre tes streams.",
+					"copy": "Ouvre tes matchs dans des onglets de navigateur séparés. Tout service de streaming qui tourne dans un navigateur fonctionne avec ArenaSwap."
+				},
+				{
+					"title": "Assigne chaque onglet.",
+					"copy": "Ouvre l'extension, trouve chaque match dans la liste, et relie-le au bon onglet avec un simple menu déroulant."
+				},
+				{
+					"title": "Le meilleur match te trouve.",
+					"copy": "ArenaSwap note chaque match en direct et bascule automatiquement vers le plus palpitant. Toi, tu regardes."
+				}
+			]
+		},
+		"charts": {
+			"title": "Vois pourquoi. À chaque fois.",
+			"copy": "Cinq signaux s'additionnent dans chaque score. Ouvre n'importe quel match et le détail est là, avec la tendance du PowerScore, l'historique du score et le graphique d'écart."
+		},
+		"leagues": {
+			"titleLine1": "Si c'est en direct,",
+			"titleLine2": "c'est couvert.",
+			"copy": "{sports} sports. Tous les niveaux de jeu. ArenaSwap surveille tout en même temps. Désactive ceux que tu ne regardes pas, et il arrête de les suivre.",
+			"numerals": [
+				"Aucun",
+				"Un",
+				"Deux",
+				"Trois",
+				"Quatre",
+				"Cinq",
+				"Six",
+				"Sept",
+				"Huit",
+				"Neuf",
+				"Dix"
+			]
+		},
+		"settings": {
+			"title": "Réglé sur toi.",
+			"copy": "Sensibilité trop élevée ? Ralentis-la. Tu aimes ton équipe mais tu veux voir le meilleur match ? Ajoute un bonus. Tu fais un saut chercher une bière ? Standby Stream garde quelque chose à l'écran. ArenaSwap fonctionne exactement comme tu en as besoin.",
+			"items": [
+				{
+					"name": "Sensibilité (1–{levels})",
+					"copy": "L'écart de score nécessaire avant qu'ArenaSwap ne change."
+				},
+				{
+					"name": "Délai entre les changements",
+					"copy": "Temps minimum entre deux changements. Empêche les allers-retours rapides entre onglets."
+				},
+				{
+					"name": "Délai de changement",
+					"copy": "Attend avant de changer, pour quand ton stream retarde sur les données."
+				},
+				{
+					"name": "Bonus d'équipe favorite",
+					"copy": "Des points en plus pour tout match où jouent tes équipes."
+				},
+				{
+					"name": "Standby Stream",
+					"copy": "Quand tous les matchs en direct s'endorment, ArenaSwap te gare sur un onglet de secours de ton choix."
+				},
+				{
+					"name": "Coup de boost",
+					"copy": "Augmente à la main le PowerScore d'un match pour le garder plus longtemps à l'écran."
+				}
+			],
+			"levelOf": "Niveau {level} sur {levels}"
+		}
+	},
+	"faq": {
+		"title": "Questions.",
+		"lede": "Si quelque chose manque ici, {link}",
+		"ledeLink": "ouvre une issue",
+		"items": [
+			{
+				"q": "Quelles ligues ArenaSwap prend-il en charge ?",
+				"a": "{leagues} ligues dans six sports. Basketball : NBA, WNBA, NCAA Basketball, NCAA Women's Basketball et les deux tournois olympiques. Football américain : NFL, NCAA Football et l'UFL. Hockey : NHL, NCAA Men's Hockey et les deux tournois olympiques. Baseball et softball : MLB, NCAA Baseball, NCAA Softball, le World Baseball Classic et le baseball olympique. Football : la Premier League, la Liga, la Bundesliga, la Serie A, la Liga MX, la MLS, la NWSL, la Ligue des champions, la Ligue Europa, les deux Coupes du monde de la FIFA et les deux tournois olympiques."
+			},
+			{
+				"q": "Comment fonctionne le changement d'onglet ?",
+				"a": "Tu assignes chacun de tes streams ouverts à un match. ArenaSwap note chaque match en direct avec PowerScore, et quand l'un d'eux prend assez d'avance sur le match que tu regardes, il bascule ton onglet vers celui-là, lève sa sourdine, et met les autres en sourdine. La sensibilité définit à quel point l'avance doit être suffisante, et un délai empêche qu'il te fasse rebondir entre deux matchs."
+			},
+			{
+				"q": "Ai-je besoin d'un compte ou d'un abonnement ?",
+				"a": "Non. ArenaSwap est gratuit, ne demande aucun compte, et ne collecte rien. Il tourne entièrement dans ton navigateur et lit les scores publics d'ESPN. Rien de ce que tu regardes n'est envoyé où que ce soit."
+			},
+			{
+				"q": "Fonctionnera-t-il avec mon service de streaming ?",
+				"a": "Tout stream qui se lit dans un onglet de navigateur fonctionne, parce qu'ArenaSwap change et met en sourdine des onglets plutôt que de s'intégrer à un service. Ça couvre ESPN+, Peacock, Paramount+, YouTube TV, Hulu Live, Fubo et les streams gratuits des ligues. Il ne peut rien pour une appli native ou un boîtier décodeur."
+			},
+			{
+				"q": "Comment fonctionne PowerScore ?",
+				"a": "PowerScore est une note de 0 à 100 construite à partir de cinq signaux : à quel point le match est serré, à quel point c'est tard, le momentum des points récents, les changements de tête, et l'ampleur d'un retour en cours. Chaque sport a sa propre idée de ce qu'est un match serré, donc un match de hockey à un but d'écart et un match de basketball à un point d'écart sont traités de la même façon. Tes équipes et les playoffs ajoutent des points ; un match qui s'est calmé les perd, et un match en retard ou en pause marque zéro."
+			},
+			{
+				"q": "Puis-je l'empêcher de changer de match ?",
+				"a": "Oui. Retire l'assignation de l'onglet et ArenaSwap le laisse tranquille, ou désactive le changement automatique avec l'interrupteur en haut du popup. Baisser la sensibilité ou augmenter le délai rend les changements plus rares sans les désactiver complètement."
+			},
+			{
+				"q": "Que se passe-t-il quand tous les matchs sont ennuyeux ?",
+				"a": "Active Standby Stream et choisis un onglet. Quand rien de ce que tu suis ne dépasse le seuil, ArenaSwap t'y gare plutôt que de te laisser sur le match le moins mauvais."
+			},
+			{
+				"q": "Le code source est-il disponible ?",
+				"a": "Oui, sur GitHub, y compris l'algorithme PowerScore, publié séparément sur npm pour que tu puisses noter des matchs sans l'extension."
+			}
+		]
+	},
+	"notFound": {
+		"title": "Ce match n'est pas au calendrier.",
+		"sub": "La page que tu cherches a été échangée, retirée, ou n'a jamais vraiment débuté.",
+		"requested": "Demandée",
+		"backHome": "Retour à l'accueil",
+		"readReleases": "Lire les notes de version"
+	},
+	"legal": {
+		"nav": {
+			"heading": "Mentions légales",
+			"overview": "Aperçu",
+			"privacy": "Confidentialité",
+			"licenses": "Licences",
+			"credits": "Crédits",
+			"terms": "Avertissements"
+		},
+		"index": {
+			"title": "Mentions légales.",
+			"privacyBlurb": "Les préférences qu'ArenaSwap conserve, les informations qu'il transmet et à qui, et les permissions qu'il demande à ton navigateur.",
+			"licensesBlurb": "La licence sous laquelle ArenaSwap est distribué, ainsi que les logiciels open source et les polices dont il dépend.",
+			"creditsBlurb": "Les crédits des images qui apparaissent sur ce site, et la propriété des scores, marques et écussons qu'il affiche.",
+			"termsBlurb": "Les avertissements d'affiliation et de garantie, et les limites de ce qu'ArenaSwap s'engage à fournir."
+		},
+		"convenienceNotice": "Cette traduction est fournie par commodité. Le {link} fait foi.",
+		"convenienceNoticeLink": "texte anglais",
+		"privacy": {
+			"title": "Confidentialité.",
+			"updated": "Dernière mise à jour le {date}",
+			"updatedDate": "19 août 2026",
+			"retainsHeading": "Informations que l'extension conserve",
+			"retains1": "L'extension conserve les préférences que tu définis. Cela comprend les ligues que tu suis, les équipes que tu as marquées comme favorites, tes réglages de sensibilité, de délai et de délai de changement, ton seuil de Standby Stream, et la manière dont le score est composé. Ton navigateur conserve ces préférences comme il conserve tes favoris, et peut donc te les rendre disponibles sur tout autre ordinateur où tu es connecté au même profil de navigateur.",
+			"retains2": "Toute autre information appartient à la session de navigation où elle apparaît et est effacée quand cette session se termine. Cela comprend les onglets que tu as assignés à des matchs particuliers, l'onglet que tu as désigné comme ton Standby Stream, tout ajustement manuel que tu as appliqué à un match, et l'historique récent des scores à partir duquel les graphiques sont dessinés.",
+			"retains3": "L'extension ne conserve ni ton nom, ni ton adresse, ni un compte, ni une coordonnée de contact, ni aucun autre élément permettant de t'identifier. Aucun élément de ce genre ne t'est jamais demandé.",
+			"transmitsHeading": "Informations que l'extension transmet",
+			"transmits1": "L'extension communique avec deux hôtes, tous deux exploités par ESPN, et ne peut en atteindre aucun autre :",
+			"transmitsHost1": "pour les scores, calendriers, chronomètres de match, cotes et probabilités de victoire.",
+			"transmitsHost2": "pour les écussons d'équipes et marques de ligues.",
+			"transmits2": "Ce sont des requêtes ordinaires pour des informations qu'ESPN publie ouvertement. ESPN reçoit donc ton adresse réseau et un relevé des tableaux de scores de ligue demandés, exactement comme si tu visitais toi-même son site. L'extension n'attache à ces requêtes aucun identifiant, aucun compte et aucune information personnelle. Si tu désactives une ligue dans les réglages, l'extension cesse totalement de la demander.",
+			"permissionsHeading": "Permissions du navigateur",
+			"permissions1": "L'extension demande trois permissions à ton navigateur, chacune utilisée uniquement pour l'objectif indiqué :",
+			"permissionTabsName": "Onglets.",
+			"permissionTabs": "Pour présenter les onglets que tu as ouverts, afin que tu puisses leur assigner des matchs, et pour changer, mettre en sourdine et réactiver le son de ces onglets. Cette permission transmet la liste des onglets et rien de plus. Aucune partie de l'extension ne s'exécute dans les pages que tu visites.",
+			"permissionStorageName": "Stockage.",
+			"permissionStorage": "Pour conserver les préférences décrites ci-dessus.",
+			"permissionNotificationsName": "Notifications.",
+			"permissionNotifications": "Pour t'informer qu'un changement a eu lieu. Ton navigateur compose et affiche chaque notification, et rien ne quitte ton ordinateur dans le processus.",
+			"websiteHeading": "Ce site",
+			"website1": "Ce site ne dépose aucun cookie, n'utilise aucune analyse, et ne contient aucun tracking d'aucune sorte, et ne te demande aucun consentement parce qu'il n'y a rien à consentir. Il est hébergé par GitHub Pages, et GitHub enregistre les requêtes faites à ses serveurs dans le cadre habituel de cet hébergement. Les polices sont servies depuis ce site plutôt que par un tiers.",
+			"website2": "Deux fonctionnalités de ce site communiquent bien avec ESPN depuis ton navigateur. Les écrans de démonstration demandent des écussons d'équipes à {host}, et la {link} note les matchs en cours et demande donc des tableaux de scores en direct tant que tu la laisses ouverte.",
+			"website2Link": "page PowerScore",
+			"childrenHeading": "Enfants",
+			"children1": "L'extension ne collecte aucune information personnelle auprès de qui que ce soit, quel que soit son âge, y compris les enfants de moins de treize ans.",
+			"modificationsHeading": "Modifications de cet avis",
+			"modifications1": "Cet avis peut être révisé de temps à autre. Une révision prend effet dès sa publication, et la date indiquée ci-dessus enregistre la dernière révision de cet avis. Ton utilisation continue de l'extension après publication vaut acceptation de l'avis révisé.",
+			"questionsHeading": "Questions",
+			"questions1": "Les questions concernant cet avis peuvent être adressées au {link} du projet.",
+			"questionsLink": "gestionnaire d'issues sur GitHub"
+		},
+		"terms": {
+			"title": "Avertissements.",
+			"affiliationHeading": "Aucune affiliation",
+			"affiliation1": "ArenaSwap n'est affilié à, parrainé par, soutenu par, ni autrement lié à ESPN, la NFL, la NBA, la WNBA, la NHL, la MLB, la MLS, la NWSL, la NCAA, l'UFL, la FIFA, l'UEFA, le Comité international olympique, ni aucune autre ligue, club, diffuseur ou service de streaming. Les noms, marques et écussons de ligues et d'équipes sont la propriété de leurs détenteurs respectifs et n'apparaissent ici que dans le seul but d'identifier les matchs.",
+			"notStreamingHeading": "Pas un service de streaming",
+			"notStreaming1": "ArenaSwap n'héberge, ne rediffuse, ne déchiffre, ne déverrouille ni ne fournit d'aucune autre façon l'accès à un match. Il se déplace entre des onglets de navigateur que tu as ouverts toi-même, sur des services auxquels tu as déjà le droit d'accéder. Que tu aies le droit de regarder un match donné est une affaire entre toi et celui qui te le vend.",
+			"thirdPartyHeading": "Données obtenues de tiers",
+			"thirdParty1": "Les scores, chronomètres de match, calendriers, cotes et probabilités de victoire proviennent d'ESPN. ArenaSwap ne contrôle pas ces données, ne peut garantir qu'elles sont exactes, complètes, à jour ou disponibles, et n'a aucune influence sur leurs changements. Ces données peuvent être retardées, erronées ou absentes, et un stream a normalement du retard sur le flux de données. Rien de ce qui est présenté dans l'extension ne doit être traité comme un score officiel, et aucun pari ne doit s'appuyer dessus.",
+			"estimateHeading": "PowerScore est une estimation",
+			"estimate1": "PowerScore estime, à partir de chiffres disponibles publiquement, à quel point un match paraît captivant en ce moment. Ce n'est ni une prédiction, ni une probabilité, ni un modèle de pari, ni une affirmation de fait, et il t'éloignera parfois du match que tu voulais regarder. Les {link} existent pour ça.",
+			"estimateLink": "réglages de sensibilité, de délai et d'équipe favorite",
+			"warrantyHeading": "Aucune garantie",
+			"warranty1": "Le logiciel est fourni « tel quel », sans garantie d'aucune sorte, expresse ou implicite, y compris sans s'y limiter les garanties implicites de qualité marchande et d'adéquation à un usage particulier. Aucune personne impliquée dans ArenaSwap ne sera responsable des dommages découlant de son usage. Le texte complet figure sur la {link}.",
+			"warrantyLink": "page des licences",
+			"availabilityHeading": "Disponibilité",
+			"availability1": "ArenaSwap est fourni gratuitement, ne bénéficie d'aucun financement, et est maintenu sur le temps libre de ses auteurs. Les navigateurs modifient les règles régissant les extensions, les services qu'il consulte changent sans préavis, et rien ici n'est accompagné d'un accord de niveau de service. Toute fonctionnalité peut être modifiée ou retirée dans une version ultérieure.",
+			"noAdviceHeading": "Rien ici n'est un conseil juridique",
+			"noAdvice1": "Ces pages décrivent le comportement d'une extension de navigateur. Elles ne constituent pas un conseil, et ne créent aucun contrat au-delà de la licence ISC sous laquelle le logiciel est distribué."
+		},
+		"credits": {
+			"title": "Crédits.",
+			"footageHeading": "Images",
+			"sourceLink": "Source",
+			"publicDomain": "Domaine public",
+			"scoresHeading": "Scores",
+			"scores1": "Les scores en direct, calendriers, couleurs d'équipe, écussons et probabilités de victoire proviennent d'ESPN. ArenaSwap n'est ni affilié à ESPN ni soutenu par ESPN, et aucune ligue mentionnée sur ce site n'est affiliée à ArenaSwap ni ne le soutient.",
+			"marksHeading": "Marques",
+			"marks1": "Les marques de ligues et d'équipes sont la propriété de leurs ligues et clubs respectifs. Elles n'apparaissent ici que dans le seul but d'identifier les matchs."
+		},
+		"licenses": {
+			"title": "Licences.",
+			"arenaswapHeading": "ArenaSwap",
+			"arenaswap1": "La licence ISC, reproduite intégralement ci-dessous, régit l'extension, ce site, les composants d'interface partagés et le client par lequel les scores sont obtenus.",
+			"softwareHeading": "Logiciels",
+			"software1": "ArenaSwap est construit sur les logiciels listés ci-dessous, chacun restant soumis à la licence indiquée en face de lui. Suis n'importe quelle entrée pour le texte complet de sa licence.",
+			"colPackage": "Paquet",
+			"colVersion": "Version",
+			"colLicense": "Licence",
+			"typefacesHeading": "Polices",
+			"typefaces1": "Les polices ci-dessous sont servies depuis ce site et restent soumises à la licence indiquée en face de chacune.",
+			"colFamily": "Famille",
+			"colBy": "Par"
+		}
+	},
+	"powerscore": {
+		"heroName": "PowerScore.",
+		"heroTaglinePrefix": "Le score derrière chaque score de la ",
+		"heroTaglineSuffix": ".",
+		"heroRestingToken": "partie",
+		"heroRestingSuffix": ".",
+		"heroSub": "PowerScore transforme n'importe quel match en direct en un score d'intensité de 0 à 100, mis à jour au fil du match. C'est le même moteur qu'utilise ArenaSwap pour choisir ce que tu regardes ensuite, et il s'installe tout seul.",
+		"viewOnNpm": "Voir sur npm",
+		"sourceOnGithub": "Code source sur GitHub",
+		"installHeading": "Installation en une commande",
+		"copy": "Copier",
+		"copied": "Copié",
+		"signalsHeading": "Ce qui compose le nombre",
+		"signalsSub": "Cinq signaux s'empilent pour donner un score de 0 à {max}. Leurs plafonds s'additionnent volontairement à plus de {max}, et le total est plafonné, donc un match serré grimpe haut et une raclée reste bas. Un score plus élevé signifie plus de drame en ce moment même.",
+		"signalMax": "{max} max",
+		"signals": [
+			{
+				"name": "Étroitesse",
+				"copy": "À quel point le match est-il serré ? Les matchs à égalité obtiennent le score le plus haut, et l'étroitesse compte de plus en plus à mesure que ça avance."
+			},
+			{
+				"name": "Fin de match",
+				"copy": "La tension monte pendant la dernière période d'un match serré, et une égalité en route vers la prolongation marque encore plus haut."
+			},
+			{
+				"name": "Momentum",
+				"copy": "Une série sans réponse fait bondir le score, puis s'estompe sur les quelques minutes suivantes."
+			},
+			{
+				"name": "Changements de tête",
+				"copy": "Un match où la tête change sans arrêt bat un match où ça n'arrive jamais."
+			},
+			{
+				"name": "Retour",
+				"copy": "Une équipe menée qui revient de loin fait grimper le score."
+			}
+		],
+		"liveHeading": "PowerScores en direct",
+		"liveLoading": "Chargement des PowerScores en direct",
+		"liveError": "Impossible de charger les données de match en direct pour le moment.",
+		"liveNow": "En direct",
+		"machineHeading": "Regarde-le en action.",
+		"machineSub": "ArenaSwap note chaque match en direct au fur et à mesure, puis place ton onglet sur le meilleur. Voici à quoi ça ressemble.",
+		"machineWatch": "Regarder",
+		"machineWatchCopy": "Chaque match en direct de chaque ligue que tu suis, en même temps.",
+		"machineScore": "Noter",
+		"machineScoreCopy": "PowerScore évalue en direct à quel point chaque match est palpitant.",
+		"machineSwitch": "Basculer",
+		"machineSwitchCopy": "Ton onglet saute automatiquement vers le meilleur match.",
+		"liveLoadingCopy": "Récupération des matchs en direct et calcul du PowerScore en cours.",
+		"liveEmptyTitle": "Aucun match en direct pour le moment",
+		"liveEmptyCopy": "Quand des matchs passeront en direct, cette section s'actualisera automatiquement et affichera des PowerScores en temps réel dans toutes les ligues prises en charge.",
+		"liveScoreBadge": "PowerScore {score} / 100",
+		"machineAlt": "ArenaSwap en train de regarder et noter chaque match en direct",
+		"machineNowWatching": "En train de regarder",
+		"machineNowOn": "sur {service}",
+		"machineCaptions": [
+			"Il surveille chaque match en direct dans tes ligues",
+			"Et note chacun sur son niveau d'intensité, en direct",
+			"Ouvre un match pour voir exactement pourquoi",
+			"Puis ton onglet atterrit sur le meilleur"
+		],
+		"machineSignals": [
+			"Étroitesse",
+			"Pression de fin de match",
+			"Momentum",
+			"Changements de tête",
+			"Retour"
+		]
+	},
+	"ui": {
+		"gameCard": {
+			"live": "EN DIRECT",
+			"powerScore": "PowerScore",
+			"watchLabel": "Regarder :",
+			"oddsProvidedBy": "Cotes fournies par :",
+			"favorited": "En favoris",
+			"addToFavoritesShort": "Ajouter aux favoris",
+			"addToFavorites": "Ajouter {team} aux favoris",
+			"removeFromFavorites": "Retirer {team} des favoris",
+			"openDetails": "Ouvrir les détails de {away} vs {home}",
+			"delay": "EN ATTENTE",
+			"delayFallback": "En attente",
+			"vs": "vs",
+			"topOfInning": "Début de la manche",
+			"bottomOfInning": "Fin de la manche",
+			"shootout": "TAB {away}–{home}",
+			"downDistanceAt": "{downDistance} à {fieldPosition}"
+		},
+		"field": {
+			"possession": "{team} a le ballon",
+			"noPossession": "Position sur le terrain"
+		},
+		"main": {
+			"tourButton": "Visite guidée",
+			"settingsButton": "Paramètres",
+			"sectionActiveLiveTabs": "Onglets actifs",
+			"sectionOtherLiveGames": "Matchs en direct",
+			"sectionUpNext": "À suivre",
+			"enableToggleLabel": "Activer le changement automatique",
+			"onStandbyStream": "En Standby Stream, en attente d'action"
+		},
+		"tabAssign": {
+			"placeholder": "— Associer un onglet —"
+		},
+		"detail": {
+			"chartPowerScoreTitle": "PowerScore dans le temps",
+			"chartScoreTitle": "Score dans le temps",
+			"chartWinProbTitle": "Probabilité de victoire",
+			"chartComponentsTitle": "Composantes du PowerScore dans le temps"
+		},
+		"setup": {
+			"groupSwitching": "Changement",
+			"groupSwitchingDesc": "L'empressement d'ArenaSwap à t'emmener vers un meilleur match.",
+			"groupScoring": "Notation",
+			"groupScoringDesc": "Les signaux qui alimentent le PowerScore et ce qui rapporte des points bonus.",
+			"groupLeagues": "Ligues",
+			"groupLeaguesDesc": "Les ligues suivies et l'ordre dans lequel elles apparaissent.",
+			"groupDisplay": "Affichage",
+			"groupDisplayDesc": "Ce qui apparaît sur l'écran principal.",
+			"groupStandby": "Standby Stream",
+			"groupStandbyDesc": "Où te garer quand tous les matchs s'endorment.",
+			"groupDemo": "Mode démo",
+			"groupDemoDesc": "Des matchs inventés, pour voir un changement quand tu veux.",
+			"switchNotifications": "Notifications de changement"
+		},
+		"sensitivity": {
+			"label": "Sensibilité de changement"
+		},
+		"cooldown": {
+			"label": "Délai entre les changements"
+		},
+		"switchDelay": {
+			"label": "Délai de changement",
+			"off": "Désactivé"
+		},
+		"favoriteTeamBonus": {
+			"label": "Bonus d'équipe favorite"
+		},
+		"postseasonBoost": {
+			"label": "Bonus de playoffs"
+		},
+		"bso": {
+			"balls": "B",
+			"strikes": "S",
+			"outs": "O"
+		}
+	}
+}

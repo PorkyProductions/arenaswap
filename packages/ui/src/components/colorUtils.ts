@@ -58,6 +58,23 @@ const pickPair = (ap: string, aa: string, hp: string, ha: string): [string, stri
 	return colorDistance(best[0], best[1]) > colorDistance(ap, hp) ? best : [ap, hp];
 };
 
+// White on a team colour is fine for the navies and reds and unreadable on a gold. 0.1833 is where
+// white stops clearing 4.5:1 — contrast is 1.05 / (L + 0.05) — and these labels are too small to
+// qualify for the 3:1 large-text allowance.
+export const readableInkOn = (background: string, light = '#ffffff', dark = '#111827'): string => (
+	hexToRgb(background) && luminance(background) > 0.1833 ? dark : light
+);
+
+// A crest sits on a white disc tinted with its own colour rather than on the surface behind it: a
+// navy logo on a navy half of a poster is invisible, and every league has at least one. `28` is the
+// alpha the matchup card already uses for its team-colour washes. No colour leaves the disc plain
+// white, which still separates the crest from a dark background.
+export const crestBacking = (color: string | null | undefined): string => (
+	color && /^#[\da-fA-F]{6}$/.test(color)
+		? `linear-gradient(160deg, ${color}14, ${color}28), #ffffff`
+		: '#ffffff'
+);
+
 export const resolveTeamColorPair = (
 	away: { color?: string; alternateColor?: string },
 	home: { color?: string; alternateColor?: string },

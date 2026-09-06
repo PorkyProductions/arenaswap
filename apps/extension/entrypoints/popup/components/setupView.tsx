@@ -3,22 +3,26 @@ import { i18n } from '#i18n';
 import type { LeagueId, LeagueLogoMap, SignalName, SportType, UserPreferences } from '@arenaswap/core/types';
 import type { Browser } from 'wxt/browser';
 import CooldownSlider from './cooldownSlider';
-import FavoriteTeamBonusInput from './favoriteTeamBonusInput';
+import FavoriteTeamsPage from './favoriteTeamsPage';
 import LeagueLogo from './leagueLogo';
 import LeagueOrderList from './leagueOrderList';
 import PostseasonBoostInput from './postseasonBoostInput';
 import SensitivitySlider from './sensitivitySlider';
 import SettingTooltipIcon from './settingTooltipIcon';
 import SwitchDelaySlider from './switchDelaySlider';
+import TemperatureUnitToggle from './temperatureUnitToggle';
 import StandbyStreamGuide from './standbyStreamGuide';
 import { searchSettings, settingsGroups, type settingsGroupId } from './settingsCatalog';
+import type { demoSeason } from '../../../utils/holidayDecorations';
 import { leaguesBySportType, sportTypeLabels, sportTypeOrder } from '../popupHelpers';
 
 interface setupViewProps {
 	prefs: UserPreferences;
 	prefsLoaded: boolean;
 	demoMode: boolean;
+	demoSeason: demoSeason;
 	leagueLogos: LeagueLogoMap;
+	favoriteTeamIds: ReadonlySet<string>;
 	standbyStreamTabId: number | null;
 	standbyOnboardingDone: boolean;
 	openTabs: Browser.tabs.Tab[];
@@ -28,6 +32,7 @@ interface setupViewProps {
 	onCooldownChange: (val: number) => void;
 	onSwitchDelayChange: (val: number) => void;
 	onFavoriteTeamBonusChange: (val: number) => void;
+	onToggleFavoriteTeam: (leagueId: LeagueId, teamId: string) => void;
 	onToggleLeague: (leagueId: LeagueId) => void;
 	onToggleSport: (sport: SportType, selectAll: boolean) => void;
 	onReorderLeague: (fromIndex: number, toIndex: number) => void;
@@ -37,12 +42,18 @@ interface setupViewProps {
 	onToggleProTips: () => void;
 	onToggleNotifications: () => void;
 	onToggleDemo: () => void;
+	onDemoSeasonChange: (season: demoSeason) => void;
 	onToggleStandbyStream: () => void;
 	onStandbyThresholdChange: (val: number) => void;
 	onSetStandbyTab: (tabId: number | null) => void;
 	onStandbyOnboardingDone: () => void;
 	onToggleBetting: () => void;
 	onToggleTemperatureUnit: () => void;
+	onUnlockRomer: () => void;
+	onToggleHolidayDecorations: () => void;
+	onToggleHolidaySnow: () => void;
+	onToggleHolidayLights: () => void;
+	onToggleHolidayLeaves: () => void;
 	onPostseasonBoostChange: (val: number) => void;
 	onToggleSignal: (signal: SignalName) => void;
 }
@@ -56,12 +67,13 @@ const setupSignalMeta = [
 ] as const;
 
 const setupView = ({
-	prefs, prefsLoaded, demoMode, leagueLogos, standbyStreamTabId, standbyOnboardingDone,
+	prefs, prefsLoaded, demoMode, demoSeason, leagueLogos, favoriteTeamIds, standbyStreamTabId, standbyOnboardingDone,
 	openTabs, formatTabLabel, onClose, onSensitivityChange, onCooldownChange, onSwitchDelayChange,
-	onFavoriteTeamBonusChange, onToggleLeague, onToggleSport, onReorderLeague, onResetLeagueOrder,
+	onFavoriteTeamBonusChange, onToggleFavoriteTeam, onToggleLeague, onToggleSport, onReorderLeague, onResetLeagueOrder,
 	onToggleShowUpcoming, onUpcomingGamesDaysChange,
-	onToggleProTips, onToggleNotifications, onToggleDemo, onToggleStandbyStream, onStandbyThresholdChange,
-	onSetStandbyTab, onStandbyOnboardingDone, onToggleBetting, onToggleTemperatureUnit, onPostseasonBoostChange,
+	onToggleProTips, onToggleNotifications, onToggleDemo, onDemoSeasonChange, onToggleStandbyStream, onStandbyThresholdChange,
+	onSetStandbyTab, onStandbyOnboardingDone, onToggleBetting, onToggleTemperatureUnit, onUnlockRomer, onPostseasonBoostChange,
+	onToggleHolidayDecorations, onToggleHolidaySnow, onToggleHolidayLights, onToggleHolidayLeaves,
 	onToggleSignal,
 }: setupViewProps) => {
 	const [page, setPage] = useState<settingsGroupId | null>(null);
@@ -136,10 +148,19 @@ const setupView = ({
 
 			<div className='fw-bold popup-section-label mt-3'><i className='bi bi-plus-slash-minus' />{i18n.t('setup.bonusesSection')}</div>
 			<div className='settings-stack'>
-				<FavoriteTeamBonusInput value={prefs.favoriteTeamBonusPoints} onChange={onFavoriteTeamBonusChange} />
 				<PostseasonBoostInput value={prefs.postseasonBoostPoints} onChange={onPostseasonBoostChange} />
 			</div>
 		</>
+	);
+
+	const favoritesPage = (
+		<FavoriteTeamsPage
+			enabledLeagues={prefs.enabledLeagues}
+			favoriteTeamIds={favoriteTeamIds}
+			favoriteTeamBonusPoints={prefs.favoriteTeamBonusPoints}
+			onFavoriteTeamBonusChange={onFavoriteTeamBonusChange}
+			onToggleFavoriteTeam={onToggleFavoriteTeam}
+		/>
 	);
 
 	const displayPage = (
@@ -198,18 +219,48 @@ const setupView = ({
 				</div>
 			</div>
 
+			<TemperatureUnitToggle
+				unit={prefs.temperatureUnit}
+				romerUnlocked={prefs.romerUnlocked}
+				disabled={!prefsLoaded}
+				onCycle={onToggleTemperatureUnit}
+				onUnlockRomer={onUnlockRomer}
+			/>
+
 			<div className='d-flex justify-content-between align-items-center mt-2'>
-				<label className='text-body-secondary setting-toggle-label' htmlFor='temperatureUnitToggle'>{i18n.t('setup.temperatureUnit')}</label>
-				<button
-					type='button'
-					id='temperatureUnitToggle'
-					className='btn btn-sm btn-outline-secondary temperature-unit-toggle'
-					onClick={onToggleTemperatureUnit}
-					disabled={!prefsLoaded}
-				>
-					{prefs.temperatureUnit === 'F' ? i18n.t('setup.temperatureUnitF') : i18n.t('setup.temperatureUnitC')}
-				</button>
+				<div className='d-flex align-items-center gap-1'>
+					<label className='text-body-secondary setting-toggle-label' htmlFor='holidayDecorationsToggle'>{i18n.t('setup.holidayDecorations')}</label>
+					<SettingTooltipIcon text={i18n.t('setup.holidayDecorationsExplainer')} />
+				</div>
+				<div className='form-check form-switch mb-0'>
+					<input className='form-check-input' type='checkbox' id='holidayDecorationsToggle' checked={prefs.holidayDecorationsEnabled} onChange={onToggleHolidayDecorations} disabled={!prefsLoaded} />
+				</div>
 			</div>
+
+			{prefs.holidayDecorationsEnabled && (
+				<div className='ms-3'>
+					<div className='d-flex justify-content-between align-items-center mt-2'>
+						<label className='text-body-secondary setting-toggle-label' htmlFor='holidaySnowToggle'>{i18n.t('setup.holidaySnow')}</label>
+						<div className='form-check form-switch mb-0'>
+							<input className='form-check-input' type='checkbox' id='holidaySnowToggle' checked={prefs.holidaySnowEnabled} onChange={onToggleHolidaySnow} disabled={!prefsLoaded} />
+						</div>
+					</div>
+
+					<div className='d-flex justify-content-between align-items-center mt-2'>
+						<label className='text-body-secondary setting-toggle-label' htmlFor='holidayLightsToggle'>{i18n.t('setup.holidayLights')}</label>
+						<div className='form-check form-switch mb-0'>
+							<input className='form-check-input' type='checkbox' id='holidayLightsToggle' checked={prefs.holidayLightsEnabled} onChange={onToggleHolidayLights} disabled={!prefsLoaded} />
+						</div>
+					</div>
+
+					<div className='d-flex justify-content-between align-items-center mt-2'>
+						<label className='text-body-secondary setting-toggle-label' htmlFor='holidayLeavesToggle'>{i18n.t('setup.holidayLeaves')}</label>
+						<div className='form-check form-switch mb-0'>
+							<input className='form-check-input' type='checkbox' id='holidayLeavesToggle' checked={prefs.holidayLeavesEnabled} onChange={onToggleHolidayLeaves} disabled={!prefsLoaded} />
+						</div>
+					</div>
+				</div>
+			)}
 		</>
 	);
 
@@ -277,12 +328,31 @@ const setupView = ({
 	);
 
 	const demoPage = (
-		<div className='d-flex justify-content-between align-items-center'>
-			<label className='text-body-secondary setting-toggle-label' htmlFor='demoToggle'>{i18n.t('setup.demoMode')}</label>
-			<div className='form-check form-switch mb-0'>
-				<input className='form-check-input' type='checkbox' id='demoToggle' checked={demoMode} onChange={onToggleDemo} />
+		<>
+			<div className='d-flex justify-content-between align-items-center'>
+				<label className='text-body-secondary setting-toggle-label' htmlFor='demoToggle'>{i18n.t('setup.demoMode')}</label>
+				<div className='form-check form-switch mb-0'>
+					<input className='form-check-input' type='checkbox' id='demoToggle' checked={demoMode} onChange={onToggleDemo} />
+				</div>
 			</div>
-		</div>
+
+			{demoMode && (
+				<div className='mt-3'>
+					<label className='text-body-secondary setting-toggle-label d-block mb-1' htmlFor='demoSeasonSelect'>{i18n.t('setup.demoSeason')}</label>
+					<select
+						id='demoSeasonSelect'
+						className='form-select form-select-sm'
+						value={demoSeason}
+						onChange={event => onDemoSeasonChange(event.target.value as demoSeason)}
+					>
+						<option value='real'>{i18n.t('setup.demoSeasonReal')}</option>
+						<option value='thanksgiving'>{i18n.t('setup.demoSeasonThanksgiving')}</option>
+						<option value='december'>{i18n.t('setup.demoSeasonDecember')}</option>
+					</select>
+					<div className='setting-explainer mt-1'>{i18n.t('setup.demoSeasonExplainer')}</div>
+				</div>
+			)}
+		</>
 	);
 
 	const leaguesPage = (
@@ -361,6 +431,7 @@ const setupView = ({
 	const pages: Record<settingsGroupId, ReactNode> = {
 		switching: switchingPage,
 		scoring: scoringPage,
+		favorites: favoritesPage,
 		leagues: leaguesPage,
 		display: displayPage,
 		standby: standbyPage,
@@ -369,8 +440,11 @@ const setupView = ({
 
 	if (page) {
 		const group = settingsGroups.find(candidate => candidate.id === page);
+		// Every other page is short enough to scroll as one block. The team picker is the only one
+		// that has to keep its own search box in view, so it takes the column and scrolls inside it.
+		const scrollsWithin = page === 'favorites';
 		return (
-			<div className='popup-container'>
+			<div className={`popup-container${scrollsWithin ? ' d-flex flex-column' : ''}`}>
 				<button className='setup-header' onClick={() => setPage(null)}>
 					<i className='bi bi-arrow-left' />
 					{group ? i18n.t(group.labelKey) : i18n.t('setup.header')}

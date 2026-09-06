@@ -1,0 +1,442 @@
+{
+	"meta": {
+		"homeTitle": "ArenaSwap — Verpasse nie den Moment.",
+		"homeDescription": "ArenaSwap beobachtet jedes Live-Spiel aus {leagues} Ligen und wechselt deinen Browser-Tab automatisch zum spannendsten. Kostenlos, ohne Konto, ohne Tracking.",
+		"faqTitle": "FAQ — ArenaSwap",
+		"faqDescription": "Wie ArenaSwap Tabs wechselt, mit welchen Ligen und Streaming-Diensten es funktioniert, was PowerScore misst und was mit deinen Daten passiert.",
+		"powerscoreTitle": "PowerScore-Paket — ArenaSwap",
+		"powerscoreDescription": "PowerScore verwandelt jedes Live-Spiel in einen Spannungswert von 0 bis 100. Installiere es über npm, lies nach, wie die fünf Signale funktionieren, und sieh live zu, wie es die heutigen Spiele bewertet.",
+		"legalTitle": "Rechtliche Hinweise — ArenaSwap",
+		"legalDescription": "Der Datenschutzhinweis von ArenaSwap, Lizenzangaben, Quellenangaben für Filmmaterial und Haftungsausschlüsse.",
+		"privacyTitle": "Datenschutz — ArenaSwap",
+		"privacyDescription": "Der Datenschutzhinweis von ArenaSwap: die Einstellungen, die die Erweiterung speichert, welche Informationen sie überträgt, welche Browser-Berechtigungen sie anfordert, und wie diese Website behandelt wird.",
+		"termsTitle": "Haftungsausschlüsse — ArenaSwap",
+		"termsDescription": "ArenaSwap ist weder mit ESPN noch mit einer der genannten Ligen verbunden, bietet seine Software ohne Gewährleistung an und ist auf Daten angewiesen, die es nicht kontrolliert.",
+		"creditsTitle": "Credits — ArenaSwap",
+		"creditsDescription": "Quellenangaben für das Spielmaterial auf der ArenaSwap-Startseite sowie Angaben zu den Rechteinhabern der angezeigten Spielstände, Liga-Marken und Teamwappen.",
+		"licensesTitle": "Lizenzen — ArenaSwap",
+		"licensesDescription": "ArenaSwap wird unter der ISC License vertrieben. Die Open-Source-Software und Schriften, auf die es sich stützt, sind hier mit der jeweiligen Lizenz aufgeführt.",
+		"notFoundTitle": "404 — ArenaSwap",
+		"notFoundDescription": "Diese Seite steht nicht auf dem Spielplan. Zurück zu ArenaSwap.",
+		"releaseFeedTitle": "ArenaSwap-Versionshinweise"
+	},
+	"nav": {
+		"home": "Start",
+		"powerscore": "PowerScore",
+		"docs": "Docs",
+		"releases": "Releases",
+		"faq": "FAQ",
+		"legal": "Rechtliches",
+		"openMenu": "Menü öffnen",
+		"language": "Sprache",
+		"chooseLanguage": "Sprache auswählen",
+		"englishOnly": "Diese Seite ist nur auf Englisch verfügbar.",
+		"untranslatedHeading": "Diese Seite wurde noch nicht übersetzt.",
+		"untranslatedBody": "Die Dokumentation und die Versionshinweise sind auf Englisch verfasst. Alles andere auf dieser Website ist in deiner Sprache verfügbar."
+	},
+	"install": {
+		"addTo": "Zu {browser} hinzufügen",
+		"alsoFor": "Auch für {firefox} und {edge}"
+	},
+	"footer": {
+		"tagline": "Gebaut von Sportfans, für Sportfans.",
+		"product": "Produkt",
+		"documentation": "Dokumentation",
+		"powerscorePackage": "PowerScore-Paket",
+		"releaseNotes": "Versionshinweise",
+		"legal": "Rechtliches",
+		"privacy": "Datenschutz",
+		"licenses": "Lizenzen",
+		"credits": "Credits",
+		"disclaimers": "Haftungsausschlüsse",
+		"install": "Installieren",
+		"chromeWebStore": "Chrome Web Store",
+		"firefoxAddons": "Firefox Add-ons",
+		"edgeAddons": "Edge Add-ons",
+		"iscLicense": "ISC License",
+		"disclaimer": "Nicht verbunden mit oder unterstützt von ESPN, der NFL, NBA, NHL, MLB, MLS oder einer anderen von dieser Erweiterung erfassten Liga.",
+		"legalNotices": "Rechtliche Hinweise",
+		"madeWith": "Mit ❤️ in Philadelphia & Boston gemacht von {name}"
+	},
+	"sport": {
+		"basketball": "Basketball",
+		"football": "American Football",
+		"hockey": "Eishockey",
+		"baseball": "Baseball",
+		"softball": "Softball",
+		"soccer": "Fußball"
+	},
+	"home": {
+		"hero": {
+			"titleLine1": "Verpasse nie",
+			"titleLine2": "den Moment.",
+			"lede": "ArenaSwap beobachtet jedes Live-Spiel aus {leagues} Ligen und wechselt deinen Browser-Tab automatisch zum spannendsten – bis zu alle 6 Sekunden.",
+			"teamStrip": "Funktioniert mit jedem Team in {leagues} Ligen. Deins inklusive.",
+			"captionSwitched": "ArenaSwap hat dich von {from} weg und zu {to} hin gewechselt.",
+			"captionWatching": "Du schaust gerade {game}, das beste Spiel auf dem Brett.",
+			"replay": "Demo abspielen",
+			"tabLabel": "Tab {number}: {host}"
+		},
+		"tabs": {
+			"titleLine1": "Einmal einrichten.",
+			"titleLine2": "Alles im Blick.",
+			"copy": "Öffne deine Streams, weise sie Spielen zu, und lehn dich zurück. Ab dann übernimmt ArenaSwap jeden Wechsel.",
+			"steps": [
+				{
+					"title": "Öffne deine Streams.",
+					"copy": "Ruf deine Spiele in separaten Browser-Tabs auf. Jeder Streaming-Dienst, der im Browser läuft, funktioniert mit ArenaSwap."
+				},
+				{
+					"title": "Weise jedem Tab ein Spiel zu.",
+					"copy": "Öffne die Erweiterung, finde jedes Spiel in der Liste und verknüpfe es über ein einziges Dropdown mit dem richtigen Tab."
+				},
+				{
+					"title": "Das beste Spiel findet dich.",
+					"copy": "ArenaSwap bewertet jedes Live-Spiel und wechselt automatisch zum spannendsten. Du schaust einfach zu."
+				}
+			]
+		},
+		"charts": {
+			"title": "Sieh, warum. Jedes Mal.",
+			"copy": "Fünf Signale ergeben jeden Wert. Öffne ein beliebiges Spiel, und die Aufschlüsselung ist da – zusammen mit dem PowerScore-Verlauf, der Spielstandhistorie und dem Differenz-Chart."
+		},
+		"leagues": {
+			"titleLine1": "Wenn's live läuft,",
+			"titleLine2": "ist es dabei.",
+			"copy": "{sports} Sportarten. Jede Spielklasse. ArenaSwap behält sie alle gleichzeitig im Blick. Schalte ab, was du nicht schaust, und es wird nicht mehr verfolgt.",
+			"numerals": [
+				"Keine",
+				"Eine",
+				"Zwei",
+				"Drei",
+				"Vier",
+				"Fünf",
+				"Sechs",
+				"Sieben",
+				"Acht",
+				"Neun",
+				"Zehn"
+			]
+		},
+		"settings": {
+			"title": "Auf dich abgestimmt.",
+			"copy": "Empfindlichkeit zu hoch? Drossle sie. Liebst dein Team, willst aber das beste Spiel sehen? Füg einen Bonus hinzu. Schnell Bier holen? Standby Stream hält etwas auf dem Bildschirm. ArenaSwap funktioniert genau so, wie du es brauchst.",
+			"items": [
+				{
+					"name": "Empfindlichkeit (1–{levels})",
+					"copy": "Wie groß der Punktabstand sein muss, bevor ArenaSwap wechselt."
+				},
+				{
+					"name": "Wechsel-Cooldown",
+					"copy": "Mindestzeit zwischen Wechseln. Verhindert schnelles Hin-und-her-Springen zwischen Tabs."
+				},
+				{
+					"name": "Wechselverzögerung",
+					"copy": "Wartet vor dem Wechsel – für den Fall, dass dein Stream der Datenlage hinterherhinkt."
+				},
+				{
+					"name": "Lieblingsteam-Bonus",
+					"copy": "Extra Punkte für jedes Spiel, in dem deine Teams antreten."
+				},
+				{
+					"name": "Standby Stream",
+					"copy": "Wenn jedes Live-Spiel ruhig wird, parkt ArenaSwap dich auf einem Ausweich-Tab deiner Wahl."
+				},
+				{
+					"name": "Spielboost",
+					"copy": "Erhöhe den PowerScore eines Spiels von Hand, um es länger auf dem Bildschirm zu behalten."
+				}
+			],
+			"levelOf": "Stufe {level} von {levels}"
+		}
+	},
+	"faq": {
+		"title": "Fragen.",
+		"lede": "Wenn etwas hier fehlt, {link}",
+		"ledeLink": "erstelle ein Issue",
+		"items": [
+			{
+				"q": "Welche Ligen unterstützt ArenaSwap?",
+				"a": "{leagues} Ligen aus sechs Sportarten. Basketball: NBA, WNBA, NCAA Basketball, NCAA Women's Basketball und beide olympischen Turniere. American Football: NFL, NCAA Football und die UFL. Eishockey: NHL, NCAA Men's Hockey und beide olympischen Turniere. Baseball und Softball: MLB, NCAA Baseball, NCAA Softball, der World Baseball Classic und Olympisches Baseball. Fußball: Premier League, La Liga, Bundesliga, Serie A, Liga MX, MLS, NWSL, Champions League, Europa League, beide FIFA-Weltmeisterschaften und beide olympischen Turniere."
+			},
+			{
+				"q": "Wie funktioniert der Tab-Wechsel?",
+				"a": "Du weist jeden deiner offenen Streams einem Spiel zu. ArenaSwap bewertet jedes Live-Spiel mit PowerScore, und wenn eines weit genug an dem Spiel vorbeizieht, das du gerade schaust, wechselt es deinen Tab dorthin, hebt die Stummschaltung auf und schaltet die anderen stumm. Die Empfindlichkeit legt fest, wie groß der Vorsprung sein muss, und ein Cooldown verhindert, dass du ständig zwischen zwei Spielen hin- und hergeworfen wirst."
+			},
+			{
+				"q": "Brauche ich ein Konto oder ein Abo?",
+				"a": "Nein. ArenaSwap ist kostenlos, kommt ohne Konto aus und sammelt nichts. Es läuft komplett in deinem Browser und liest öffentliche Spielstände von ESPN. Nichts davon, was du schaust, wird irgendwohin gesendet."
+			},
+			{
+				"q": "Funktioniert es mit meinem Streaming-Dienst?",
+				"a": "Jeder Stream, der in einem Browser-Tab läuft, funktioniert, weil ArenaSwap Tabs wechselt und stummschaltet, statt sich in einen Dienst zu integrieren. Das deckt ESPN+, Peacock, Paramount+, YouTube TV, Hulu Live, Fubo und die kostenlosen Liga-Streams ab. Bei einer nativen App oder einer Set-Top-Box kann es nicht helfen."
+			},
+			{
+				"q": "Wie funktioniert PowerScore?",
+				"a": "PowerScore ist eine Bewertung von 0 bis 100, die sich aus fünf Signalen zusammensetzt: wie eng das Spiel ist, wie spät es ist, Momentum aus jüngsten Punkten, Führungswechsel und wie groß eine laufende Aufholjagd ist. Jede Sportart hat ihr eigenes Verständnis von „eng“, sodass ein Eishockeyspiel mit einem Tor Unterschied genauso behandelt wird wie ein Basketballspiel mit einem Punkt Unterschied. Deine Teams und die Postseason bringen Extrapunkte; ein Spiel, das ruhig geworden ist, verliert sie, und ein Spiel in einer Unterbrechung oder Pause erhält null Punkte."
+			},
+			{
+				"q": "Kann ich verhindern, dass es von einem Spiel wegwechselt?",
+				"a": "Ja. Hebe die Tab-Zuweisung auf, und ArenaSwap lässt es in Ruhe, oder schalte das automatische Wechseln über den Schalter im Popup-Kopf ganz aus. Eine niedrigere Empfindlichkeit oder ein längerer Cooldown machen Wechsel seltener, ohne sie abzuschalten."
+			},
+			{
+				"q": "Was passiert, wenn jedes Spiel langweilig ist?",
+				"a": "Aktiviere Standby Stream und wähle einen Tab. Wenn nichts, was du verfolgst, den Schwellenwert erreicht, parkt ArenaSwap dich dort, statt dich auf dem am wenigsten schlechten Spiel sitzen zu lassen."
+			},
+			{
+				"q": "Ist der Quellcode verfügbar?",
+				"a": "Ja, auf GitHub – einschließlich des PowerScore-Algorithmus, der eigenständig auf npm veröffentlicht ist, damit du Spiele auch ohne die Erweiterung bewerten kannst."
+			}
+		]
+	},
+	"notFound": {
+		"title": "Die Seite steht nicht auf dem Spielplan.",
+		"sub": "Die gesuchte Seite wurde getradet, zurückgezogen oder ist nie angetreten.",
+		"requested": "Angefragt",
+		"backHome": "Zurück zur Startseite",
+		"readReleases": "Versionshinweise lesen"
+	},
+	"legal": {
+		"nav": {
+			"heading": "Rechtliche Hinweise",
+			"overview": "Übersicht",
+			"privacy": "Datenschutz",
+			"licenses": "Lizenzen",
+			"credits": "Credits",
+			"terms": "Haftungsausschlüsse"
+		},
+		"index": {
+			"title": "Rechtliche Hinweise.",
+			"privacyBlurb": "Die Einstellungen, die ArenaSwap speichert, welche Informationen es an wen überträgt und welche Berechtigungen es von deinem Browser anfordert.",
+			"licensesBlurb": "Die Lizenz, unter der ArenaSwap vertrieben wird, sowie die Open-Source-Software und Schriften, auf die es sich stützt.",
+			"creditsBlurb": "Quellenangaben für das auf dieser Website gezeigte Material sowie die Rechteinhaberschaft der angezeigten Spielstände, Marken und Wappen.",
+			"termsBlurb": "Haftungsausschlüsse zu Verbindungen und Gewährleistung sowie die Grenzen dessen, was ArenaSwap zu leisten verspricht."
+		},
+		"convenienceNotice": "Diese Übersetzung dient nur der Verständlichkeit. Maßgeblich ist der {link}.",
+		"convenienceNoticeLink": "englische Originaltext",
+		"privacy": {
+			"title": "Datenschutz.",
+			"updated": "Zuletzt aktualisiert am {date}",
+			"updatedDate": "19. August 2026",
+			"retainsHeading": "Informationen, die die Erweiterung speichert",
+			"retains1": "Die Erweiterung speichert die von dir festgelegten Einstellungen. Dazu zählen die Ligen, denen du folgst, die Teams, die du als Favoriten markiert hast, deine Einstellungen für Empfindlichkeit, Cooldown und Wechselverzögerung, dein Standby-Stream-Schwellenwert sowie die Art und Weise, wie der Punktwert zusammengesetzt wird. Dein Browser speichert diese Einstellungen genauso wie deine Lesezeichen und kann sie dir dementsprechend auch auf jedem anderen Computer zur Verfügung stellen, auf dem du mit demselben Browserprofil angemeldet bist.",
+			"retains2": "Alle anderen Informationen gehören zu der Browsing-Sitzung, in der sie entstehen, und werden verworfen, sobald diese Sitzung endet. Dazu zählen die Tabs, die du bestimmten Spielen zugewiesen hast, der Tab, den du als deinen Standby Stream festgelegt hast, jede manuelle Anpassung, die du an einem Spiel vorgenommen hast, sowie der jüngste Punkteverlauf, aus dem die Diagramme gezeichnet werden.",
+			"retains3": "Die Erweiterung speichert weder deinen Namen noch deine Adresse, kein Konto, keine Kontaktdaten und keine anderen Angaben, durch die du identifiziert werden könntest. Zu keinem Zeitpunkt wird eine solche Angabe von dir verlangt.",
+			"transmitsHeading": "Informationen, die die Erweiterung überträgt",
+			"transmits1": "Die Erweiterung kommuniziert mit zwei Hosts, die beide von ESPN betrieben werden, und kann keine anderen erreichen:",
+			"transmitsHost1": "für Spielstände, Spielpläne, Spieluhren, Quoten und Siegwahrscheinlichkeiten.",
+			"transmitsHost2": "für Teamwappen und Liga-Marken.",
+			"transmits2": "Dies sind gewöhnliche Anfragen nach Informationen, die ESPN offen veröffentlicht. ESPN erhält dadurch deine Netzwerkadresse und einen Eintrag der angefragten Liga-Spielstände – genau so, wie es auch der Fall wäre, würdest du die Website selbst besuchen. Die Erweiterung fügt diesen Anfragen keine Kennung, kein Konto und keinerlei persönliche Informationen hinzu. Deaktivierst du eine Liga in den Einstellungen, fragt die Erweiterung diese Liga überhaupt nicht mehr ab.",
+			"permissionsHeading": "Browser-Berechtigungen",
+			"permissions1": "Die Erweiterung fordert drei Berechtigungen von deinem Browser an, und jede wird nur für den genannten Zweck genutzt:",
+			"permissionTabsName": "Tabs.",
+			"permissionTabs": "Um deine geöffneten Tabs anzuzeigen, damit du ihnen Spiele zuweisen kannst, und um diese Tabs zu wechseln, stumm- und lautzuschalten. Diese Berechtigung übermittelt die Liste der Tabs und nichts weiter. Kein Teil der Erweiterung läuft innerhalb der von dir besuchten Seiten.",
+			"permissionStorageName": "Speicher.",
+			"permissionStorage": "Um die oben beschriebenen Einstellungen zu speichern.",
+			"permissionNotificationsName": "Benachrichtigungen.",
+			"permissionNotifications": "Um dich darüber zu informieren, dass ein Wechsel stattgefunden hat. Dein Browser erstellt und zeigt jede Benachrichtigung an, und dabei verlässt nichts deinen Computer.",
+			"websiteHeading": "Diese Website",
+			"website1": "Diese Website setzt keine Cookies, verwendet keine Analysewerkzeuge und enthält keinerlei Tracking, und sie bittet dich um keine Einwilligung, weil es nichts gibt, wozu einzuwilligen wäre. Sie wird von GitHub Pages gehostet, und GitHub protokolliert Anfragen an seine Server im Rahmen des üblichen Hostingbetriebs. Die Schriften werden von dieser Website selbst ausgeliefert und nicht von Dritten.",
+			"website2": "Zwei Funktionen dieser Website kommunizieren von deinem Browser aus mit ESPN. Die Demo-Bildschirme fordern Teamwappen von {host} an, und die {link} bewertet laufende Spiele und fragt deshalb Live-Spielstände ab, solange du sie geöffnet lässt.",
+			"website2Link": "PowerScore-Seite",
+			"childrenHeading": "Kinder",
+			"children1": "Die Erweiterung sammelt von keiner Person jeglichen Alters persönliche Informationen, einschließlich Kindern unter dreizehn Jahren.",
+			"modificationsHeading": "Änderungen dieses Hinweises",
+			"modifications1": "Dieser Hinweis kann von Zeit zu Zeit überarbeitet werden. Eine Überarbeitung tritt mit der Veröffentlichung in Kraft, und das oben genannte Datum gibt an, wann dieser Hinweis zuletzt überarbeitet wurde. Deine fortgesetzte Nutzung der Erweiterung nach der Veröffentlichung gilt als Zustimmung zum überarbeiteten Hinweis.",
+			"questionsHeading": "Fragen",
+			"questions1": "Fragen zu diesem Hinweis kannst du an den {link} des Projekts richten.",
+			"questionsLink": "Issue-Tracker auf GitHub"
+		},
+		"terms": {
+			"title": "Haftungsausschlüsse.",
+			"affiliationHeading": "Keine Verbindung",
+			"affiliation1": "ArenaSwap ist weder verbunden mit noch gesponsert, unterstützt oder anderweitig assoziiert mit ESPN, der NFL, der NBA, der WNBA, der NHL, MLB, MLS, der NWSL, der NCAA, der UFL, der FIFA, der UEFA, dem Internationalen Olympischen Komitee oder einer anderen Liga, einem Verein, Sender oder Streaming-Dienst. Liga- und Teamnamen, Marken und Wappen sind Eigentum ihrer jeweiligen Inhaber und erscheinen hier ausschließlich zur Identifikation von Spielen.",
+			"notStreamingHeading": "Kein Streaming-Dienst",
+			"notStreaming1": "ArenaSwap hostet, überträgt, entschlüsselt oder entsperrt kein Spiel und verschafft auch sonst keinen Zugang dazu. Es wechselt zwischen Browser-Tabs, die du selbst geöffnet hast, bei Diensten, für die du bereits berechtigt bist. Ob du berechtigt bist, ein bestimmtes Spiel zu sehen, ist eine Angelegenheit zwischen dir und demjenigen, der es dir verkauft.",
+			"thirdPartyHeading": "Von Dritten bezogene Daten",
+			"thirdParty1": "Spielstände, Spieluhren, Spielpläne, Quoten und Siegwahrscheinlichkeiten stammen von ESPN. ArenaSwap hat keine Kontrolle über diese Daten, kann nicht gewährleisten, dass sie korrekt, vollständig, aktuell oder verfügbar sind, und hat keinen Einfluss darauf, wann sie sich ändern. Solche Daten können verzögert, fehlerhaft oder gar nicht vorhanden sein, und ein Stream läuft normalerweise dem Daten-Feed hinterher. Nichts, was in der Erweiterung angezeigt wird, sollte als offizieller Spielstand behandelt werden, und darauf sollte keine Wette platziert werden.",
+			"estimateHeading": "PowerScore ist eine Schätzung",
+			"estimate1": "PowerScore schätzt anhand öffentlich verfügbarer Zahlen, wie spannend ein Spiel gerade erscheint. Es ist keine Vorhersage, keine Wahrscheinlichkeit, kein Wettmodell und keine Tatsachenbehauptung, und es wird dich gelegentlich von dem Spiel wegführen, das du eigentlich sehen wolltest. Dafür gibt es die {link}.",
+			"estimateLink": "Einstellungen für Empfindlichkeit, Cooldown und Lieblingsteam",
+			"warrantyHeading": "Keine Gewährleistung",
+			"warranty1": "Die Software wird „wie besehen“ bereitgestellt, ohne jegliche Gewährleistung, weder ausdrücklich noch stillschweigend, einschließlich, aber nicht beschränkt auf die stillschweigenden Gewährleistungen der Marktgängigkeit und der Eignung für einen bestimmten Zweck. Keine an ArenaSwap beteiligte Person haftet für Schäden, die aus der Nutzung entstehen. Der vollständige Text findet sich auf der {link}.",
+			"warrantyLink": "Lizenzseite",
+			"availabilityHeading": "Verfügbarkeit",
+			"availability1": "ArenaSwap wird kostenlos bereitgestellt, ist nicht finanziert und wird in der Freizeit seiner Autoren gepflegt. Browser ändern die Regeln für Erweiterungen, die Dienste, von denen gelesen wird, ändern sich ohne Vorankündigung, und nichts hiervon ist mit einer Service-Level-Vereinbarung verbunden. Jede Funktion kann in einer späteren Version geändert oder entfernt werden.",
+			"noAdviceHeading": "Nichts hiervon ist Rechtsberatung",
+			"noAdvice1": "Diese Seiten beschreiben das Verhalten einer Browser-Erweiterung. Sie stellen keine Beratung dar und begründen keinen Vertrag über die ISC License hinaus, unter der die Software vertrieben wird."
+		},
+		"credits": {
+			"title": "Credits.",
+			"footageHeading": "Filmmaterial",
+			"sourceLink": "Quelle",
+			"publicDomain": "Gemeinfrei",
+			"scoresHeading": "Spielstände",
+			"scores1": "Live-Spielstände, Spielpläne, Teamfarben, Wappen und Siegwahrscheinlichkeiten stammen von ESPN. ArenaSwap ist weder mit ESPN verbunden noch wird es von ESPN unterstützt, und keine auf dieser Website genannte Liga ist mit ArenaSwap verbunden oder unterstützt es.",
+			"marksHeading": "Marken",
+			"marks1": "Liga- und Teammarken sind Eigentum ihrer jeweiligen Ligen und Vereine. Sie erscheinen hier ausschließlich zur Identifikation von Spielen."
+		},
+		"licenses": {
+			"title": "Lizenzen.",
+			"arenaswapHeading": "ArenaSwap",
+			"arenaswap1": "Die ISC License, unten in vollem Wortlaut aufgeführt, gilt für die Erweiterung, diese Website, die gemeinsam genutzten Oberflächenkomponenten und den Client, über den Spielstände bezogen werden.",
+			"softwareHeading": "Software",
+			"software1": "ArenaSwap baut auf der unten aufgeführten Software auf, wobei jeder Eintrag der jeweils angegebenen Lizenz unterliegt. Folge einem Eintrag für den vollständigen Lizenztext.",
+			"colPackage": "Paket",
+			"colVersion": "Version",
+			"colLicense": "Lizenz",
+			"typefacesHeading": "Schriften",
+			"typefaces1": "Die unten aufgeführten Schriften werden von dieser Website ausgeliefert und unterliegen der jeweils angegebenen Lizenz.",
+			"colFamily": "Familie",
+			"colBy": "Von"
+		}
+	},
+	"powerscore": {
+		"heroName": "PowerScore.",
+		"heroTaglinePrefix": "Der Score hinter jedem ",
+		"heroTaglineSuffix": "-Spielstand.",
+		"heroRestingToken": "Score",
+		"heroRestingSuffix": ".",
+		"heroSub": "PowerScore verwandelt jedes Live-Spiel in einen Spannungswert von 0 bis 100, der sich mit dem Spielverlauf aktualisiert. Es ist dieselbe Engine, die ArenaSwap nutzt, um auszuwählen, was du als Nächstes siehst, und sie lässt sich eigenständig installieren.",
+		"viewOnNpm": "Auf npm ansehen",
+		"sourceOnGithub": "Quellcode auf GitHub",
+		"installHeading": "Installation mit einem Befehl",
+		"copy": "Kopieren",
+		"copied": "Kopiert",
+		"signalsHeading": "Was in die Zahl einfließt",
+		"signalsSub": "Fünf Signale ergeben zusammen einen Wert von 0 bis {max}. Ihre Obergrenzen summieren sich absichtlich auf mehr als {max}, und die Summe wird gedeckelt, sodass ein enges Spiel hoch klettert und ein einseitiges Spiel niedrig bleibt. Ein höherer Wert bedeutet mehr Drama gerade jetzt.",
+		"signalMax": "max. {max}",
+		"signals": [
+			{
+				"name": "Enge",
+				"copy": "Wie eng ist das Spiel? Unentschiedene Spiele erzielen den höchsten Wert, und die Enge zählt umso mehr, je später es wird."
+			},
+			{
+				"name": "Schlussphase",
+				"copy": "Die Spannung steigt in der letzten Phase eines engen Spiels, und ein Unentschieden auf dem Weg in die Verlängerung erzielt noch höhere Werte."
+			},
+			{
+				"name": "Momentum",
+				"copy": "Ein unbeantworteter Lauf lässt den Wert nach oben schnellen und verblasst dann über die nächsten Minuten."
+			},
+			{
+				"name": "Führungswechsel",
+				"copy": "Ein Spiel mit ständigem Führungswechsel schlägt eines, bei dem das nie passiert."
+			},
+			{
+				"name": "Aufholjagd",
+				"copy": "Ein zurückliegendes Team, das sich zurückkämpft, erhöht den Wert."
+			}
+		],
+		"liveHeading": "Live-PowerScores",
+		"liveLoading": "Live-PowerScores werden geladen",
+		"liveError": "Live-Spieldaten können gerade nicht geladen werden.",
+		"liveNow": "Live",
+		"machineHeading": "Sieh es in Aktion.",
+		"machineSub": "ArenaSwap bewertet jedes Live-Spiel in Echtzeit – und legt deinen Tab dann auf das beste. So sieht das aus.",
+		"machineWatch": "Beobachten",
+		"machineWatchCopy": "Jedes Live-Spiel in jeder Liga, der du folgst, gleichzeitig.",
+		"machineScore": "Bewerten",
+		"machineScoreCopy": "PowerScore bewertet live, wie spannend jedes Spiel ist.",
+		"machineSwitch": "Wechseln",
+		"machineSwitchCopy": "Dein Tab springt automatisch zum besten Spiel.",
+		"liveLoadingCopy": "Live-Spiele werden abgerufen, PowerScore wird gerade berechnet.",
+		"liveEmptyTitle": "Gerade keine Live-Spiele",
+		"liveEmptyCopy": "Sobald Spiele live gehen, aktualisiert sich dieser Bereich automatisch und zeigt Echtzeit-PowerScores aus allen unterstützten Ligen.",
+		"liveScoreBadge": "PowerScore {score} / 100",
+		"machineAlt": "ArenaSwap beobachtet und bewertet jedes Live-Spiel",
+		"machineNowWatching": "Schaut gerade",
+		"machineNowOn": "auf {service}",
+		"machineCaptions": [
+			"Es beobachtet jedes Live-Spiel in deinen Ligen",
+			"Und bewertet live, wie spannend jedes einzelne ist",
+			"Öffne ein Spiel, um genau zu sehen, warum",
+			"Dann landet dein Tab beim besten"
+		],
+		"machineSignals": [
+			"Enge",
+			"Druck in der Schlussphase",
+			"Momentum",
+			"Führungswechsel",
+			"Aufholjagd"
+		]
+	},
+	"ui": {
+		"gameCard": {
+			"live": "LIVE",
+			"powerScore": "PowerScore",
+			"watchLabel": "Schauen:",
+			"oddsProvidedBy": "Quoten bereitgestellt von:",
+			"favorited": "Favorisiert",
+			"addToFavoritesShort": "Zu Favoriten hinzufügen",
+			"addToFavorites": "{team} zu Favoriten hinzufügen",
+			"removeFromFavorites": "{team} aus Favoriten entfernen",
+			"openDetails": "Details für {away} vs {home} öffnen",
+			"delay": "VERZÖGERUNG",
+			"delayFallback": "Verzögerung",
+			"vs": "vs",
+			"topOfInning": "Anfang des Innings",
+			"bottomOfInning": "Ende des Innings",
+			"shootout": "I.E. {away}–{home}",
+			"downDistanceAt": "{downDistance} an {fieldPosition}"
+		},
+		"field": {
+			"possession": "{team} hat den Ball",
+			"noPossession": "Feldposition"
+		},
+		"main": {
+			"tourButton": "Tour",
+			"settingsButton": "Einstellungen",
+			"sectionActiveLiveTabs": "Aktive Tabs",
+			"sectionOtherLiveGames": "Live-Spiele",
+			"sectionUpNext": "Als Nächstes",
+			"enableToggleLabel": "Automatisches Wechseln aktivieren",
+			"onStandbyStream": "Im Standby Stream, wartet auf Action"
+		},
+		"tabAssign": {
+			"placeholder": "— Tab zuweisen —"
+		},
+		"detail": {
+			"chartPowerScoreTitle": "PowerScore über die Zeit",
+			"chartScoreTitle": "Spielstand über die Zeit",
+			"chartWinProbTitle": "Siegwahrscheinlichkeit",
+			"chartComponentsTitle": "PowerScore-Komponenten über die Zeit"
+		},
+		"setup": {
+			"groupSwitching": "Wechseln",
+			"groupSwitchingDesc": "Wie schnell ArenaSwap dich zu einem besseren Spiel bringt.",
+			"groupScoring": "Bewertung",
+			"groupScoringDesc": "Welche Signale in den PowerScore einfließen und was Bonuspunkte bringt.",
+			"groupLeagues": "Ligen",
+			"groupLeaguesDesc": "Welche Ligen verfolgt werden und in welcher Reihenfolge sie erscheinen.",
+			"groupDisplay": "Anzeige",
+			"groupDisplayDesc": "Was auf dem Hauptbildschirm zu sehen ist.",
+			"groupStandby": "Standby Stream",
+			"groupStandbyDesc": "Wohin du kommst, wenn alle Spiele einschlafen.",
+			"groupDemo": "Demo-Modus",
+			"groupDemoDesc": "Erfundene Spiele, damit du einen Wechsel jederzeit sehen kannst.",
+			"switchNotifications": "Wechsel-Benachrichtigungen"
+		},
+		"sensitivity": {
+			"label": "Wechselempfindlichkeit"
+		},
+		"cooldown": {
+			"label": "Wechsel-Cooldown"
+		},
+		"switchDelay": {
+			"label": "Wechselverzögerung",
+			"off": "Aus"
+		},
+		"favoriteTeamBonus": {
+			"label": "Lieblingsteam-Bonus"
+		},
+		"postseasonBoost": {
+			"label": "Postseason-Boost"
+		},
+		"bso": {
+			"balls": "B",
+			"strikes": "S",
+			"outs": "O"
+		}
+	}
+}

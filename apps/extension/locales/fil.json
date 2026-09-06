@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Auto-Switch sa Live na NFL, NBA, March Madness at MLB",
+	"extDescription": "Nanonood ng bawat live game sa 31 liga at awtomatikong nagpapalit sa pinaka-exciting, kada 6 segundo.",
 	"app": {
 		"welcomeToast": "Maligayang pagdating sa ArenaSwap!",
 		"settingsSavedToast": "Na-save ang mga setting",
@@ -143,6 +145,11 @@
 		"proTips": "Mga Pro Tip",
 		"switchNotifications": "Mga Abiso sa Paglipat",
 		"demoMode": "Demo Mode",
+		"demoSeason": "Magpanggap na",
+		"demoSeasonReal": "Ang totoong petsa",
+		"demoSeasonThanksgiving": "Linggo ng Thanksgiving",
+		"demoSeasonDecember": "Disyembre",
+		"demoSeasonExplainer": "Nakakaapekto lang sa holiday decorations para makita mo ang mga ito kahit wala sa season.",
 		"standbySection": "Standby Stream",
 		"enableStandby": "I-enable ang Standby Stream",
 		"standbyBelow": "Standby sa ibaba ng",
@@ -154,6 +161,12 @@
 		"temperatureUnit": "Yunit ng Temperatura",
 		"temperatureUnitF": "°F",
 		"temperatureUnitC": "°C",
+		"temperatureUnitRomer": "°Rø",
+		"holidayDecorations": "Holiday decorations",
+		"holidayDecorationsExplainer": "May snow kapag umuulan ng niyebe sa laro, dahon tuwing linggo ng Thanksgiving, at ilaw buong Disyembre.",
+		"holidaySnow": "Niyebe",
+		"holidayLights": "Ilaw",
+		"holidayLeaves": "Dahon",
 		"signalsSection": "PowerScore Signals",
 		"signalsExplainer": "Hindi kasama sa scoring ang mga naka-disable na signal. Ina-adjust ulit ang mga score para manatili sa tamang range.",
 		"signalLastActive": "Dapat may kahit isang signal na naka-active",
@@ -171,6 +184,9 @@
 		"groupSwitchingDesc": "Kung gaano kasabik ang ArenaSwap na ilipat ka sa mas magandang laro.",
 		"groupScoring": "Scoring",
 		"groupScoringDesc": "Kung aling mga signal ang bumubuo sa PowerScore, at ano ang nagbibigay ng bonus points.",
+		"groupFavorites": "Mga Paboritong Team",
+		"groupFavoritesDesc": "Kung anong mga team ang paborito mo, at gaano karaming bonus points ang idinaragdag nito.",
+		"followedTeams": "Mga Team na Na-star Mo",
 		"groupLeagues": "Mga Liga",
 		"groupLeaguesDesc": "Kung aling mga liga ang tine-track, at ang pagkakasunod-sunod nila.",
 		"groupDisplay": "Display",
@@ -191,6 +207,7 @@
 		"keywordsLeadChanges": "pabalik-balik, lead, swap, signal",
 		"keywordsComeback": "comeback, huli, deficit, signal, bawi",
 		"keywordsFavoriteBonus": "paborito, star, team ko, bonus, points",
+		"keywordsFavoriteTeams": "paborito, star, na-star, sundan, club, franchise, pili, team ko",
 		"keywordsPostseasonBoost": "playoff, playoffs, knockout, tournament, bracket, bonus, points",
 		"keywordsLeagues": "sport, sports, liga, nba, nfl, nhl, mlb, soccer",
 		"keywordsLeagueOrder": "sort, ayos, drag, pagkakasunod-sunod",
@@ -200,6 +217,7 @@
 		"keywordsNotifications": "alerts, abiso, banner, toast, popup",
 		"keywordsBetting": "odds, lines, spread, sugal, bet, moneyline",
 		"keywordsTemperature": "celsius, fahrenheit, degrees, panahon, temperatura",
+		"keywordsHoliday": "pasko, niyebe, ilaw, dahon, panahon, festive, thanksgiving",
 		"keywordsStandby": "fallback, backup, tahimik, standby",
 		"keywordsStandbyThreshold": "score, cutoff, limit, ibaba, tahimik",
 		"keywordsStandbyTab": "tab, window, page, patutunguhan",
@@ -212,7 +230,9 @@
 		"sectionActiveLiveTabs": "Mga Aktibong Tab",
 		"sectionOtherLiveGames": "Mga Live na Laro",
 		"sectionUpNext": "Susunod",
-		"showMoreUpcoming": "Ipakita ang {count} pa",
+		"upcomingDayNavLabel": "Mga paparating na laro ayon sa araw",
+		"upcomingPreviousDay": "Nakaraang araw",
+		"upcomingNextDay": "Susunod na araw",
 		"enableToggleLabel": "I-enable ang awtomatikong paglipat"
 	},
 	"detail": {
@@ -248,7 +268,29 @@
 		"getReadyPuckDrop": "Maghanda para sa puck drop",
 		"getReadyFirstPitch": "Maghanda para sa first pitch",
 		"getReadyGametime": "Maghanda para sa gametime",
-		"pregameTabExplainer": "Buksan ang larong ito sa isang tab kapag nagsimula na."
+		"pregameTabExplainer": "Buksan ang larong ito sa isang tab kapag nagsimula na.",
+		"probablePitchers": "Mga Posibleng Pitcher",
+		"probableGoalies": "Mga Posibleng Goalie",
+		"starterConfirmed": "Nakumpirma",
+		"pitcherRecordLabel": "W-L",
+		"pitcherEraLabel": "ERA",
+		"starterExpected": "Inaasahan",
+		"teamLeaders": "Mga Lider ng Koponan",
+		"leaderAvg": "AVG",
+		"leaderHomeRuns": "HR",
+		"leaderRbis": "RBI",
+		"leaderPoints": "PTS",
+		"leaderRebounds": "REB",
+		"leaderAssists": "AST",
+		"leaderPointsPerGame": "PPG",
+		"leaderReboundsPerGame": "RPG",
+		"leaderAssistsPerGame": "APG",
+		"leaderGoals": "G",
+		"leaderHockeyAssists": "A",
+		"leaderHockeyPoints": "PTS",
+		"leaderPassing": "PASS",
+		"leaderRushing": "RUSH",
+		"leaderReceiving": "REC"
 	},
 	"gameCard": {
 		"removeFromFavorites": "Alisin ang {team} sa paborito",
@@ -267,6 +309,10 @@
 		"vs": "vs",
 		"topOfInning": "Top of inning",
 		"bottomOfInning": "Bottom of inning"
+	},
+	"field": {
+		"possession": "Nasa {team} ang bola",
+		"noPossession": "Posisyon sa field"
 	},
 	"gameBoost": {
 		"heading": "Boost ng Laro",
@@ -332,6 +378,8 @@
 		"step": "Step $1 ng $2",
 		"title": "Piliin ang mga Team Mo",
 		"explainer": "May scoring bonus ang mga paborito para mas paboran sila ng ArenaSwap.",
+		"yourFavorites": "Mga Paborito Mo",
+		"leagueNotTracked": "{league} · hindi tine-track",
 		"searchPlaceholder": "Maghanap ng team…",
 		"loading": "Nilo-load ang mga team…",
 		"loadError": "Hindi na-load ang mga team.",
@@ -534,6 +582,28 @@
 		"placeholder": "— Mag-assign ng tab —",
 		"inUse": " (ginagamit na)"
 	},
+	"suggest": {
+		"bannerTitle": "Mukhang mga laro ang mga tab na ito",
+		"bannerCopy": {
+			"1": "1 tab na bukas mo ay tumutugma sa isang laro mo ngayon.",
+			"n": "$1 na tab na bukas mo ay tumutugma sa mga laro mo ngayon."
+		},
+		"bannerAction": "Tingnan",
+		"bannerDismiss": "I-dismiss ang mga mungkahi",
+		"header": "Mga Iminumungkahing Tab",
+		"lede": "Alisan ng check ang mali naming na-detect. Ang dropdown sa bawat card ang may huling say pa rin.",
+		"empty": "Wala sa mga bukas mong tab na mukhang isang laro mo ngayon.",
+		"rowLabel": "I-pair ang {tab} sa {away} at {home}",
+		"apply": {
+			"1": "I-assign ang 1 tab",
+			"n": "I-assign ang $1 na tab"
+		},
+		"applyNone": "I-assign ang mga tab",
+		"toastApplied": {
+			"1": "Na-assign ang 1 tab.",
+			"n": "Na-assign ang $1 na tab."
+		}
+	},
 	"favoriteTeamBonus": {
 		"label": "Bonus ng Paboritong Team",
 		"perTeam": "+$1 kada team",
@@ -591,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Cooldown ng Paglipat",
-		"explainer": "Nagtatakda ng pinakamaikling oras sa pagitan ng mga awtomatikong paglipat para mabawasan ang mabilisang pag-flip ng tab."
+		"explainer": "Nagtatakda ng pinakamaikling oras sa pagitan ng mga awtomatikong paglipat para mabawasan ang mabilisang pag-flip ng tab.",
+		"off": "Off"
 	},
 	"switchDelay": {
 		"label": "Delay ng Paglipat",

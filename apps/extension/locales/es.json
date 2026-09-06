@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap: cambio automático de NFL, NBA, March Madness y MLB en vivo",
+	"extDescription": "Observa cada partido en vivo de 31 ligas y cambia tu pestaña al más emocionante, hasta cada 6 segundos.",
 	"app": {
 		"welcomeToast": "¡Bienvenido a ArenaSwap!",
 		"settingsSavedToast": "Ajustes guardados",
@@ -143,6 +145,11 @@
 		"proTips": "Consejos",
 		"switchNotifications": "Notificaciones de cambio",
 		"demoMode": "Modo demostración",
+		"demoSeason": "Simular que es",
+		"demoSeasonReal": "La fecha real",
+		"demoSeasonThanksgiving": "Semana de Acción de Gracias",
+		"demoSeasonDecember": "Diciembre",
+		"demoSeasonExplainer": "Solo afecta a la decoración navideña, para que puedas verla fuera de temporada.",
 		"standbySection": "Standby Stream",
 		"enableStandby": "Activar Standby Stream",
 		"standbyBelow": "En espera por debajo de",
@@ -154,6 +161,12 @@
 		"temperatureUnit": "Unidad de temperatura",
 		"temperatureUnitF": "°F",
 		"temperatureUnitC": "°C",
+		"temperatureUnitRomer": "°Rø",
+		"holidayDecorations": "Decoración navideña",
+		"holidayDecorationsExplainer": "Nieve cuando nieva en el partido, hojas la semana de Acción de Gracias y luces todo diciembre.",
+		"holidaySnow": "Nieve",
+		"holidayLights": "Luces",
+		"holidayLeaves": "Hojas",
 		"signalsSection": "Señales del PowerScore",
 		"signalsExplainer": "Las señales desactivadas se excluyen de la puntuación. Las puntuaciones se renormalizan para mantenerse en rango.",
 		"signalLastActive": "Al menos una señal debe permanecer activa",
@@ -171,6 +184,9 @@
 		"groupSwitchingDesc": "Con cuántas ganas ArenaSwap te lleva a un partido mejor.",
 		"groupScoring": "Puntuación",
 		"groupScoringDesc": "Qué señales alimentan el PowerScore y qué suma puntos extra.",
+		"groupFavorites": "Equipos favoritos",
+		"groupFavoritesDesc": "Los equipos que sigues y cuánto suman tus favoritos.",
+		"followedTeams": "Equipos que sigues",
 		"groupLeagues": "Ligas",
 		"groupLeaguesDesc": "Qué ligas se siguen y en qué orden aparecen.",
 		"groupDisplay": "Visualización",
@@ -191,6 +207,7 @@
 		"keywordsLeadChanges": "cambios de ventaja, ida y vuelta, ventaja, senal",
 		"keywordsComeback": "remontada, desventaja, reaccion, senal",
 		"keywordsFavoriteBonus": "favorito, destacado, mi equipo, bonificacion, puntos",
+		"keywordsFavoriteTeams": "estrella, destacado, seguir, club, franquicia, elegir, mi equipo, favorito",
 		"keywordsPostseasonBoost": "playoff, playoffs, eliminatoria, torneo, llave, bonificacion, puntos",
 		"keywordsLeagues": "deporte, deportes, seguidas, nba, nfl, nhl, mlb, futbol",
 		"keywordsLeagueOrder": "ordenar, orden, reorganizar, arrastrar, secuencia",
@@ -200,6 +217,7 @@
 		"keywordsNotifications": "alertas, avisar, notificar, banner, emergente",
 		"keywordsBetting": "cuotas, apuestas, linea, spread, momio, dinero",
 		"keywordsTemperature": "celsius, fahrenheit, grados, clima, unidades",
+		"keywordsHoliday": "navidad, nieve, luces, hojas, temporada, festivo, clima, accion de gracias",
 		"keywordsStandby": "respaldo, relleno, inactivo, reserva, tranquilo",
 		"keywordsStandbyThreshold": "puntuacion, corte, limite, debajo, tranquilo",
 		"keywordsStandbyTab": "pestana, ventana, pagina, destino",
@@ -212,7 +230,9 @@
 		"sectionActiveLiveTabs": "Pestañas activas",
 		"sectionOtherLiveGames": "Partidos en vivo",
 		"sectionUpNext": "A continuación",
-		"showMoreUpcoming": "Ver {count} más",
+		"upcomingDayNavLabel": "Próximos partidos por día",
+		"upcomingPreviousDay": "Día anterior",
+		"upcomingNextDay": "Día siguiente",
 		"enableToggleLabel": "Activar cambio automático"
 	},
 	"detail": {
@@ -248,7 +268,29 @@
 		"getReadyPuckDrop": "Listo para el faceoff",
 		"getReadyFirstPitch": "Listo para el primer lanzamiento",
 		"getReadyGametime": "Listo para el partido",
-		"pregameTabExplainer": "Abrir este partido en una pestaña cuando empiece."
+		"pregameTabExplainer": "Abrir este partido en una pestaña cuando empiece.",
+		"probablePitchers": "Abridores probables",
+		"probableGoalies": "Porteros probables",
+		"starterConfirmed": "Confirmado",
+		"pitcherRecordLabel": "W-L",
+		"pitcherEraLabel": "ERA",
+		"starterExpected": "Previsto",
+		"teamLeaders": "Líderes del equipo",
+		"leaderAvg": "AVG",
+		"leaderHomeRuns": "HR",
+		"leaderRbis": "RBI",
+		"leaderPoints": "PTS",
+		"leaderRebounds": "REB",
+		"leaderAssists": "AST",
+		"leaderPointsPerGame": "PPG",
+		"leaderReboundsPerGame": "RPG",
+		"leaderAssistsPerGame": "APG",
+		"leaderGoals": "G",
+		"leaderHockeyAssists": "A",
+		"leaderHockeyPoints": "PTS",
+		"leaderPassing": "PASS",
+		"leaderRushing": "RUSH",
+		"leaderReceiving": "REC"
 	},
 	"gameCard": {
 		"removeFromFavorites": "Quitar {team} de favoritos",
@@ -267,6 +309,10 @@
 		"vs": "vs",
 		"topOfInning": "Parte alta de la entrada",
 		"bottomOfInning": "Parte baja de la entrada"
+	},
+	"field": {
+		"possession": "{team} tiene el balón",
+		"noPossession": "Posición en el campo"
 	},
 	"gameBoost": {
 		"heading": "Impulso del partido",
@@ -332,6 +378,8 @@
 		"step": "Paso $1 de $2",
 		"title": "Elige tus equipos",
 		"explainer": "Los favoritos reciben una bonificación para que ArenaSwap priorice esos partidos.",
+		"yourFavorites": "Tus favoritos",
+		"leagueNotTracked": "{league} · no seguida",
 		"searchPlaceholder": "Buscar equipos…",
 		"loading": "Cargando equipos…",
 		"loadError": "No se pudieron cargar los equipos.",
@@ -534,6 +582,28 @@
 		"placeholder": "— Asigna una pestaña —",
 		"inUse": " (en uso)"
 	},
+	"suggest": {
+		"bannerTitle": "Estas pestañas parecen partidos",
+		"bannerCopy": {
+			"1": "1 pestaña que tienes abierta coincide con un partido de tu cartelera.",
+			"n": "$1 pestañas que tienes abiertas coinciden con partidos de tu cartelera."
+		},
+		"bannerAction": "Echar un vistazo",
+		"bannerDismiss": "Descartar sugerencias",
+		"header": "Pestañas sugeridas",
+		"lede": "Desmarca lo que hayamos identificado mal. El menú desplegable de cada tarjeta sigue teniendo la última palabra.",
+		"empty": "Nada de lo que tienes abierto parece un partido de tu cartelera.",
+		"rowLabel": "Vincular {tab} con {away} en {home}",
+		"apply": {
+			"1": "Asignar 1 pestaña",
+			"n": "Asignar $1 pestañas"
+		},
+		"applyNone": "Asignar pestañas",
+		"toastApplied": {
+			"1": "1 pestaña asignada.",
+			"n": "$1 pestañas asignadas."
+		}
+	},
 	"favoriteTeamBonus": {
 		"label": "Bonificación de equipo favorito",
 		"perTeam": "+$1 por equipo",
@@ -591,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Tiempo de espera entre cambios",
-		"explainer": "Establece el tiempo mínimo entre cambios automáticos para reducir el cambio rápido de pestañas."
+		"explainer": "Establece el tiempo mínimo entre cambios automáticos para reducir el cambio rápido de pestañas.",
+		"off": "Desactivado"
 	},
 	"switchDelay": {
 		"label": "Retardo de cambio",

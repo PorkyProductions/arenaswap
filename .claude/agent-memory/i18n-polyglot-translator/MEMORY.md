@@ -4,7 +4,7 @@
 - [project_shootout_translations.md](project_shootout_translations.md) — Approved gameCard.shootout (PENS badge) translations for all 8 locales incl. pt_PT/pt_BR split (2026-08-03)
 - [project_pregame_gameinfo_translations.md](project_pregame_gameinfo_translations.md) — detail.getReady*/detail.info* rulings: hockey/baseball loanwords, pt_PT tu-register, shared kickoff key issue (2026-08-10)
 - [reference_locale_file_mechanics.md](reference_locale_file_mechanics.md) — Tabs/CRLF/EOF quirks and the two Cypress width tests + measured px budgets that gate translations
-- [project_brand_term_leakage.md](project_brand_term_leakage.md) — Open: "Standby Stream" is translated in es/zh/ja; fr instance fixed 2026-08-15; root cause is en.json's own inconsistent casing
+- [project_brand_term_leakage.md](project_brand_term_leakage.md) — RESOLVED 2026-08-19: "Standby Stream" is always literal in all 12 locales; every known leak fixed
 - [project_settings_drilldown_review.md](project_settings_drilldown_review.md) — fr/pt_PT/zh_CN register bugs, German ß-normalize gotcha, label/keyword semantic collisions (2026-08-15)
 - [project_fr_fr_ca_split.md](project_fr_fr_ca_split.md) — REVERTED: fr_FR/fr_CA aren't valid extension locale codes; read before proposing any regional variant
 - [terminology_it.md](terminology_it.md) — it.json (2026-08-15): verified Italian sport terms, native-vs-loanword rulings, Spaceballs dub quotes
@@ -16,3 +16,8 @@
 - [reference_locale_status_badge_treatment.md](reference_locale_status_badge_treatment.md) — per-locale literal-vs-translated rule for short uppercase badges like LIVE/WATCHING
 - [reference_plural_object_convention.md](reference_plural_object_convention.md) — how each locale fills the {"1":..,"n":"$1 .."} plural-object shape (fil linker, CJK spacing)
 - [project_clockstall_penalty_wording_fix.md](project_clockstall_penalty_wording_fix.md) — 2026-08-20: fixed "multiplier"→"flat deduction" mechanic error in tooltipClockStallPenalty across 11 locales, removed dead clockFrozenNote key
+- [project_suggest_translations.md](project_suggest_translations.md) — 2026-08-27: new suggest.* tab-suggestion namespace across 11 locales; slate/final-say idiom map, pt_PT "Espreitar" divergence, ko placeholder-particle avoidance
+- [project_pregame_probable_starters_and_leaders.md](project_pregame_probable_starters_and_leaders.md) — 2026-08-27: probable pitcher/goalie headings + 15 team-leader stat labels (incl. PPG/RPG/APG fix) + pitcherRecordLabel/pitcherEraLabel across 11 locales; ESPN-not-domestic-league is the right frame EXCEPT for the pitcher stat pair, where checking NPB/KBO/CPBL directly surfaced ja/zh going fully native (勝敗/防御率) unlike the earlier ja-literal AVG/HR/RBI ruling
+- [project_favorite_teams_settings_translations.md](project_favorite_teams_settings_translations.md) — 2026-09-05: groupFavorites/groupFavoritesDesc/followedTeams/keywordsFavoriteTeams/yourFavorites/leagueNotTracked across 11 locales; per-locale comma-before-conjunction habit, ja/zh "follow" verb precedent check, fil na- prefix reuse
+- [project_store_listing_translations.md](project_store_listing_translations.md) — 2026-09-05: marketing/ store listing translated (11 locales); name_long.txt cap is 75 chars not 132; de separable-verb bug fixed
+- [project_docs_site_i18n_bundle.md](project_docs_site_i18n_bundle.md) — 2026-09-05: apps/docs marketing site strings.json translated (11 locales); heroTagline prefix/token/suffix puzzle solved per language, ui.* copy-from-extension mapping, docs/ build-output cleanup

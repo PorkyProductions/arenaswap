@@ -17,6 +17,21 @@ $form-check-input-checked-border-color: #F75C03;
 $tooltip-color: #f8fafc;
 $tooltip-bg:    #1f2937;
 
+// The Up Next day pager is the only pagination in the popup, and it heads a section rather than
+// closing a page of results, so it takes the scale of a heading label instead of body text.
+$pagination-font-size: 0.72rem;
+// Bootstrap picks the active page's label with $component-active-color, a flat white that only
+// reaches 3.22:1 on $primary. Buttons escape this because they run the colour through
+// color-contrast(); pagination does not.
+$pagination-active-color: #0d1117;
+// Pagination is the first thing in the popup to reach for --as-secondary-bg and --as-tertiary-bg,
+// which this theme never overrode and which are therefore still Bootstrap's light defaults: #e9ecef
+// disabled, #f8f9fa on hover. Left alone, an arrow at the end of the range is a white slab on a
+// #0d1117 popup. Set here rather than on $body-secondary-bg so nothing else has to move.
+$pagination-disabled-bg: #0d1117;
+$pagination-hover-bg: #161b22;
+$pagination-focus-bg: #161b22;
+
 @import 'bootstrap/scss/bootstrap';
 
 $bootstrap-icons-font-dir: '/fonts';
@@ -376,6 +391,37 @@ $bootstrap-icons-font-dir: '/fonts';
 	}
 }
 
+.suggest-list {
+	display:        flex;
+	flex-direction: column;
+}
+
+.suggest-row {
+	display:       flex;
+	align-items:   center;
+	gap:           0.6rem;
+	padding:       0.6rem 0.15rem;
+	border-bottom: 1px solid #21262d;
+	cursor:        pointer;
+
+	&:hover { background: rgba(230, 237, 243, 0.035); }
+}
+
+.suggest-crest {
+	width:  0.95rem;
+	height: 0.95rem;
+}
+
+.suggest-matchup {
+	font-size: 0.72rem;
+}
+
+.suggest-tab-label {
+	margin-top: 0.1rem;
+	font-size:  0.62rem;
+	color:      #6e7681;
+}
+
 .settings-index-icon {
 	width:       1.15rem;
 	flex-shrink: 0;
@@ -603,6 +649,32 @@ $bootstrap-icons-font-dir: '/fonts';
 	width:         28px;
 	height:        28px;
 	border-radius: 50%;
+}
+
+// The same white disc the pre-game poster puts its crests on, at list size, tinted with a colour
+// sampled from the crest itself. A navy or black logo on the dark popup is otherwise a silhouette.
+.team-pick-crest {
+	display:         inline-flex;
+	align-items:     center;
+	justify-content: center;
+	width:           28px;
+	height:          28px;
+	border-radius:   999px;
+	overflow:        hidden;
+	box-shadow:      0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.team-pick-crest-logo {
+	width:  21px;
+	height: 21px;
+}
+
+// The disc already carries the wash, so a second grey disc inside it would read as a hole. The
+// disc under a crest that never loaded is plain white, so the initials take a dark ink.
+.team-pick-crest-logo .crest-fallback {
+	background:  transparent;
+	color:       #111827;
+	font-size:   0.46rem;
 }
 
 .onb-league-logo .crest-fallback {
@@ -903,6 +975,168 @@ $bootstrap-icons-font-dir: '/fonts';
 	min-width: 0;
 }
 
+// Who is starting and who leads the two teams, in the same light card family as the setup block
+// above it.
+//
+// The starters mirror the poster: two short names side by side, each under the crest it belongs to.
+// The leaders do not, and cannot. A football value runs to 21 characters — "14/23, 141 YDS, 1 INT"
+// — against four for baseball's ".276", and no half-width column fits both, so every leader gets
+// the full width of the card and the team is carried by colour instead of by position.
+.gd-pregame-starters {
+	display:               grid;
+	grid-template-columns: 1fr 1fr;
+	column-gap:            0.4rem;
+	padding:               0.3rem 0 0.24rem;
+}
+
+.gd-pregame-starter {
+	display:        flex;
+	flex-direction: column;
+	align-items:    center;
+	text-align:     center;
+	min-width:      0;
+	gap:            0.12rem;
+}
+
+// The disc is the team's colour, which is the only thing distinguishing two headshots on a card
+// that has no crests of its own. The hairline keeps a pale team colour from dissolving into the
+// card behind it. Grey underneath for a team whose colour ESPN sent as something unparseable.
+.gd-pregame-disc {
+	display:       inline-flex;
+	border-radius: 50%;
+	overflow:      hidden;
+	flex-shrink:   0;
+	background:    #e5e7eb;
+	box-shadow:    0 0 0 1px rgba(17, 24, 39, 0.14);
+}
+
+.gd-pregame-starter-shot {
+	width:  38px;
+	height: 38px;
+}
+
+// `cover` rather than the crest's own `contain`: a headshot is a 350x254 crop of a person, and
+// letterboxing one inside a circle leaves bands above and below the head.
+//
+// Nothing here restates `.crest-fallback`. _crest.scss lays the placeholder out and hides it with
+// `[data-crest-state='loaded'] > .crest-fallback`, which is the same specificity as a nested rule
+// here would be — so re-declaring `display: flex` wins on source order and pins the placeholder up
+// for good. Team logos never showed it because they are opaque; these headshots are transparent
+// PNGs, so the disc reads as a white halo around the player's head.
+.gd-pregame-disc-crest {
+	width:  100%;
+	height: 100%;
+
+	img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+}
+
+.gd-pregame-starter-name {
+	font-size:     0.66rem;
+	font-weight:   600;
+	line-height:   1.2;
+	overflow-wrap: anywhere;
+}
+
+// The unlabelled fallback, for a sport that sends a pre-formatted line and no separate stats.
+.gd-pregame-starter-line {
+	font-size: 0.6rem;
+	color:     #4b5563;
+}
+
+.gd-pregame-starter-stats {
+	display:         flex;
+	justify-content: center;
+	gap:             0.6rem;
+	margin-top:      0.06rem;
+}
+
+.gd-pregame-stat {
+	display:        flex;
+	flex-direction: column;
+	align-items:    center;
+	line-height:    1.15;
+}
+
+.gd-pregame-stat-value {
+	font-size:   0.68rem;
+	font-weight: 600;
+	color:       #111827;
+}
+
+// Quiet enough that the number stays the thing being read, and uppercase so a two-letter label
+// does not read as an initial.
+.gd-pregame-stat-label {
+	font-size:      0.5rem;
+	font-weight:    600;
+	color:          #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.gd-pregame-starter-status {
+	font-size:      0.54rem;
+	color:          #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+}
+
+.gd-pregame-leaders {
+	padding-top: 0.16rem;
+}
+
+.gd-pregame-category {
+	font-size:      0.54rem;
+	font-weight:    700;
+	color:          #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin:         0.24rem 0 0.1rem;
+
+	&:first-child { margin-top: 0; }
+}
+
+// `1fr` on the name and `auto` on the value, deliberately: a truncated name is still readable and
+// a truncated stat is not, so the name is what gives way when a row runs out of room.
+.gd-pregame-leader-row {
+	display:               grid;
+	grid-template-columns: 20px 1.6rem 1fr auto;
+	align-items:           center;
+	column-gap:            0.3rem;
+	padding:               0.11rem 0.24rem 0.11rem 0.14rem;
+	border-radius:         0.2rem;
+
+	& + & { margin-top: 0.08rem; }
+}
+
+.gd-pregame-leader-shot {
+	width:  20px;
+	height: 20px;
+
+	// Only the size, so the hide rule in _crest.scss keeps its say.
+	.crest-fallback { font-size: 0.44rem; }
+}
+
+.gd-pregame-leader-team {
+	font-size:      0.56rem;
+	font-weight:    700;
+	letter-spacing: 0.02em;
+}
+
+.gd-pregame-leader-player {
+	font-size:     0.62rem;
+	color:         #374151;
+	overflow:      hidden;
+	text-overflow: ellipsis;
+	white-space:   nowrap;
+}
+
+.gd-pregame-leader-value {
+	font-size:   0.62rem;
+	font-weight: 600;
+	text-align:  right;
+	white-space: nowrap;
+}
+
 // Venue / broadcast / odds / weather, as one titled section rather than four stacked centred
 // lines. Takes the chart cards' treatment, not the breakdown's white card: everything below the
 // PowerScore math reads as one dark column of sections.
@@ -961,6 +1195,18 @@ $bootstrap-icons-font-dir: '/fonts';
 	color:       #e7edf5;
 }
 
+// The building carries the weight; the city sits under it at the same size the weather sub-line
+// uses, so the value column keeps a single sub-line idiom rather than growing a second one.
+.game-info-venue-name {
+	font-weight: 600;
+}
+
+.game-info-venue-location {
+	margin-top: 0.04rem;
+	font-size:  0.58rem;
+	color:      #8b949e;
+}
+
 .game-info-weather {
 	display:     flex;
 	align-items: center;
@@ -970,14 +1216,29 @@ $bootstrap-icons-font-dir: '/fonts';
 	color:       #8b949e;
 }
 
-.game-info-attribution {
-	display:      inline-flex;
-	align-items:  center;
-	margin-left:  0.35rem;
-	font-size:    0.54rem;
-	color:        #6e7b8a;
-	opacity:      0.8;
-	white-space:  nowrap;
+// Matches the shape of Reboot's `[type="button"]:not(:disabled)` so the help cursor survives it.
+button.game-info-attribution {
+	&:not(:disabled) { cursor: help; }
+
+	display:       inline-flex;
+	align-items:   center;
+	margin-left:   0.35rem;
+	font-size:     0.54rem;
+	color:         #6e7b8a;
+	opacity:       0.8;
+	white-space:   nowrap;
+	padding:       0;
+	background:    transparent;
+	border:        none;
+	border-bottom: 1px dotted currentColor;
+
+	&:hover { opacity: 1; }
+	&:focus-visible {
+		opacity:        1;
+		outline:        1px solid $primary;
+		outline-offset: 1px;
+		border-radius:  2px;
+	}
 }
 
 .series-dots-wrap {
@@ -986,10 +1247,10 @@ $bootstrap-icons-font-dir: '/fonts';
 }
 
 .series-dots-summary {
-	font-size: 0.58rem;
-	color: #8b949e;
-	font-family: 'Lekton', monospace;
-	letter-spacing: 0.02em;
+	font-size:   0.66rem;
+	font-weight: 500;
+	color:       #6b7280;
+	line-height: 1;
 }
 
 .series-dot {
@@ -1001,12 +1262,15 @@ $bootstrap-icons-font-dir: '/fonts';
 }
 
 .game-detail-shell {
+	// The shell's own padding, and the amount the sticky bar has to bleed back out to reach the
+	// popup edge. One variable so the light frame can push both inwards together.
+	--gd-inset: 0.75rem;
+	padding: var(--gd-inset);
 	background: #0d1117;
 
 	.game-meta-venue,
 	.game-meta-networks,
-	.game-meta-odds,
-	.game-meta-provider {
+	.game-meta-odds {
 		color: #c6ced8;
 	}
 }
@@ -1015,17 +1279,16 @@ $bootstrap-icons-font-dir: '/fonts';
 	position: sticky;
 	// Sticky offsets resolve against the scroll container's *padding* box, so top:0 would
 	// park the bar 0.75rem down. Pulling it back by that padding pins it flush to the top.
-	top: -0.75rem;
+	top: calc(var(--gd-inset) * -1);
 	z-index: 5;
 	display: flex;
 	align-items: center;
 	// Fixed height in both states so the compact matchup fading in never shifts the layout.
 	height: 2.5rem;
-	// .popup-container carries 0.75rem of padding that scrolls away with the content.
-	// Bleed the bar full-width and re-add that padding inside, so rows sliding under it
-	// are covered edge to edge instead of showing through a 12px gap above.
-	margin: -0.75rem -0.75rem 0.5rem;
-	padding: 0 0.75rem;
+	// The shell's padding scrolls away with the content. Bleed the bar back out to the popup edge
+	// and re-add that padding inside, so rows sliding under it are covered edge to edge.
+	margin: calc(var(--gd-inset) * -1) calc(var(--gd-inset) * -1) 0.5rem;
+	padding: 0 var(--gd-inset);
 	background: #0d1117;
 	border-bottom: 1px solid #30363d;
 }
@@ -1278,6 +1541,21 @@ $bootstrap-icons-font-dir: '/fonts';
 	.bso-indicator {
 		margin-top: 0;
 	}
+}
+
+.gd-field-row {
+	margin-top: 0.4rem;
+	padding: 0 0.15rem;
+}
+
+.gd-field-caption {
+	font-size: 0.66rem;
+	font-weight: 700;
+	color: #495057;
+	letter-spacing: 0.01em;
+	text-align: center;
+	white-space: nowrap;
+	margin-bottom: 0.22rem;
 }
 
 .gd-countdown {

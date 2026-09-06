@@ -1,0 +1,30 @@
+---
+import { leagueConfigs } from '@arenaswap/core/constants';
+import Shell from '../../layouts/Shell.astro';
+import HeroBand from '../../components/landing/HeroBand.astro';
+import TabsBand from '../../components/landing/TabsBand.astro';
+
+import ChartsBand from '../../components/landing/ChartsBand.astro';
+import LeaguesBand from '../../components/landing/LeaguesBand.astro';
+import SettingsBand from '../../components/landing/SettingsBand.astro';
+import { localeRoutes } from '../../i18n/locales';
+import { useTranslations } from '../../i18n/ui';
+
+// One file, twelve pages. The rest parameter is empty for English, which keeps `/arenaswap/` on the
+// URL it has always had, and is the locale code for the other eleven.
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+---
+<Shell
+	title={t('meta.homeTitle')}
+	ogTitle={t('meta.homeTitle')}
+	description={t('meta.homeDescription', { leagues: leagueConfigs.length })}
+>
+	<HeroBand />
+	<TabsBand />
+	<ChartsBand />
+	<LeaguesBand />
+	<SettingsBand />
+</Shell>

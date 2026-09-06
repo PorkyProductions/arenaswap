@@ -1,5 +1,20 @@
 import SetupView from '../../entrypoints/popup/components/setupView';
 import type { UserPreferences } from '@arenaswap/core/types';
+import de from '../../locales/de.json';
+import en from '../../locales/en.json';
+import es from '../../locales/es.json';
+import fil from '../../locales/fil.json';
+import fr from '../../locales/fr.json';
+// Not `it` — that would shadow Mocha's global it() and break every test in this file.
+import itLocale from '../../locales/it.json';
+import ja from '../../locales/ja.json';
+import ko from '../../locales/ko.json';
+import ptBR from '../../locales/pt_BR.json';
+import ptPT from '../../locales/pt_PT.json';
+import zhCN from '../../locales/zh_CN.json';
+import zhTW from '../../locales/zh_TW.json';
+
+const locales = { de, en, es, fil, fr, it: itLocale, ja, ko, pt_BR: ptBR, pt_PT: ptPT, zh_CN: zhCN, zh_TW: zhTW };
 
 const defaultPrefs: UserPreferences = {
 	sensitivity: 4,
@@ -16,6 +31,11 @@ const defaultPrefs: UserPreferences = {
 	standbyStreamThreshold: 20,
 	bettingEnabled: false,
 	temperatureUnit: 'F',
+	romerUnlocked: false,
+	holidayDecorationsEnabled: true,
+	holidaySnowEnabled: true,
+	holidayLightsEnabled: true,
+	holidayLeavesEnabled: true,
 	postseasonBoostPoints: 0,
 	upcomingGamesDays: 7,
 	disabledSignals: [],
@@ -25,7 +45,9 @@ const defaultProps = {
 	prefs: defaultPrefs,
 	prefsLoaded: true,
 	demoMode: false,
+	demoSeason: 'real' as const,
 	leagueLogos: {},
+	favoriteTeamIds: new Set<string>(),
 	standbyStreamTabId: null,
 	standbyOnboardingDone: true,
 	openTabs: [],
@@ -35,6 +57,7 @@ const defaultProps = {
 	onCooldownChange: () => {},
 	onSwitchDelayChange: () => {},
 	onFavoriteTeamBonusChange: () => {},
+	onToggleFavoriteTeam: () => {},
 	onToggleLeague: () => {},
 	onToggleSport: () => {},
 	onReorderLeague: () => {},
@@ -44,17 +67,30 @@ const defaultProps = {
 	onToggleProTips: () => {},
 	onToggleNotifications: () => {},
 	onToggleDemo: () => {},
+	onDemoSeasonChange: () => {},
 	onToggleStandbyStream: () => {},
 	onStandbyThresholdChange: () => {},
 	onSetStandbyTab: () => {},
 	onStandbyOnboardingDone: () => {},
 	onToggleBetting: () => {},
 	onToggleTemperatureUnit: () => {},
+	onUnlockRomer: () => {},
+	onToggleHolidayDecorations: () => {},
+	onToggleHolidaySnow: () => {},
+	onToggleHolidayLights: () => {},
+	onToggleHolidayLeaves: () => {},
 	onPostseasonBoostChange: () => {},
 	onToggleSignal: () => {},
 };
 
 const openGroup = (id: string) => cy.get(`#settingsGroup-${id}`).click();
+
+// React tracks an input's last value on the element itself and swallows a change event whose value
+// it thinks it already has, so the value goes in through the native setter the tracker patched.
+const dragRangeTo = (selector: string, index: number) => cy.get(selector).then(([el]: JQuery<HTMLElement>) => {
+	Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(el, String(index));
+	el.dispatchEvent(new Event('input', { bubbles: true }));
+});
 
 describe('setupView index', () => {
 	it('shows the Settings header with a back button', () => {
@@ -64,7 +100,7 @@ describe('setupView index', () => {
 
 	it('lists every settings group with a description', () => {
 		cy.mount(<SetupView {...defaultProps} />);
-		cy.get('.settings-index-row').should('have.length', 6);
+		cy.get('.settings-index-row').should('have.length', 7);
 		cy.get('#settingsGroup-switching').find('.settings-index-desc').should('not.be.empty');
 	});
 
@@ -104,7 +140,7 @@ describe('setupView navigation', () => {
 		cy.mount(<SetupView {...defaultProps} onClose={spy} />);
 		openGroup('display');
 		cy.get('button.setup-header').click();
-		cy.get('.settings-index-row').should('have.length', 6);
+		cy.get('.settings-index-row').should('have.length', 7);
 		cy.get('@onClose').should('not.have.been.called');
 	});
 
@@ -163,7 +199,7 @@ describe('setupView search', () => {
 		cy.contains('.settings-index-row', 'Switch cooldown').click();
 		cy.get('button.setup-header').click();
 		cy.get('#settingsSearch').should('have.value', '');
-		cy.get('.settings-index-row').should('have.length', 6);
+		cy.get('.settings-index-row').should('have.length', 7);
 	});
 });
 
@@ -185,6 +221,40 @@ describe('setupView switching group', () => {
 	it('offers the explainer as a tooltip rather than permanent body copy', () => {
 		cy.get('.setting-tooltip-btn').should('have.length.at.least', 3);
 		cy.contains('Controls how big the PowerScore gap').should('not.exist');
+	});
+});
+
+describe('setupView cooldown slider', () => {
+	it('runs all the way down to off', () => {
+		const onCooldownChange = cy.spy().as('onCooldownChange');
+		cy.mount(<SetupView {...defaultProps} onCooldownChange={onCooldownChange} />);
+		openGroup('switching');
+
+		dragRangeTo('#cooldown-range', 0);
+		cy.get('@onCooldownChange').should('have.been.calledWith', 0);
+	});
+
+	it('names the bottom of the range Off rather than counting zero seconds', () => {
+		cy.mount(<SetupView {...defaultProps} prefs={{ ...defaultPrefs, cooldownSeconds: 0 }} />);
+		openGroup('switching');
+
+		cy.get('#cooldown-range').parent().find('.setting-value-label').should('have.text', 'Off');
+		cy.get('#cooldown-range').parent().should('not.contain.text', '0s');
+	});
+
+	it('keeps every locale\'s Off label on one line beside the setting name', () => {
+		cy.viewport(320, 560);
+		cy.mount(<SetupView {...defaultProps} prefs={{ ...defaultPrefs, cooldownSeconds: 0 }} />);
+		openGroup('switching');
+
+		Object.entries(locales).forEach(([name, locale]) => {
+			cy.get('#cooldown-range').parent().find('.setting-value-label').should(([el]: JQuery<HTMLElement>) => {
+				el.textContent = locale.cooldown.off;
+				const row = el.parentElement!;
+				expect(el.getBoundingClientRect().height, `off label stays one line in ${name}`).to.be.at.most(22);
+				expect(row.getBoundingClientRect().height, `label and value share a line in ${name}`).to.be.at.most(28);
+			});
+		});
 	});
 });
 
@@ -247,6 +317,72 @@ describe('setupView display group', () => {
 		cy.mount(<SetupView {...defaultProps} prefs={{ ...defaultPrefs, temperatureUnit: 'C' }} />);
 		openGroup('display');
 		cy.get('#temperatureUnitToggle').should('contain', '°C');
+	});
+
+	it('shows °Rø label when temperatureUnit is Ro', () => {
+		cy.mount(<SetupView {...defaultProps} prefs={{ ...defaultPrefs, temperatureUnit: 'Ro', romerUnlocked: true }} />);
+		openGroup('display');
+		cy.get('#temperatureUnitToggle').should('contain', '°Rø');
+	});
+});
+
+const clickToggle = (times: number) => {
+	for (let i = 0; i < times; i += 1) cy.get('#temperatureUnitToggle').click();
+};
+
+describe('setupView Rømer unlock', () => {
+	it('cycles the unit on every click, unlocked or not', () => {
+		const onCycle = cy.spy().as('onCycle');
+		cy.mount(<SetupView {...defaultProps} onToggleTemperatureUnit={onCycle} />);
+		openGroup('display');
+		clickToggle(3);
+		cy.get('@onCycle').should('have.callCount', 3);
+	});
+
+	it('does not unlock on six clicks', () => {
+		const onUnlock = cy.spy().as('onUnlock');
+		cy.mount(<SetupView {...defaultProps} onUnlockRomer={onUnlock} />);
+		openGroup('display');
+		clickToggle(6);
+		cy.get('@onUnlock').should('not.have.been.called');
+		cy.get('#temperatureUnitToggle').should('not.have.class', 'romer-revealing');
+	});
+
+	it('unlocks on the seventh click', () => {
+		const onUnlock = cy.spy().as('onUnlock');
+		cy.mount(<SetupView {...defaultProps} onUnlockRomer={onUnlock} />);
+		openGroup('display');
+		clickToggle(7);
+		cy.get('@onUnlock').should('have.been.calledOnce');
+	});
+
+	it('says nothing about what was found — the sweep is the whole reveal', () => {
+		cy.mount(<SetupView {...defaultProps} />);
+		openGroup('display');
+		clickToggle(7);
+		cy.get('.game-detail-shell, .popup-container').should('not.contain', 'Rømer');
+	});
+
+	it('plays the reveal animation on the toggle itself', () => {
+		cy.mount(<SetupView {...defaultProps} />);
+		openGroup('display');
+		clickToggle(7);
+		cy.get('#temperatureUnitToggle').should('have.class', 'romer-revealing');
+	});
+
+	it('stops counting clicks once Rømer is already unlocked', () => {
+		const onUnlock = cy.spy().as('onUnlock');
+		cy.mount(<SetupView {...defaultProps} prefs={{ ...defaultPrefs, romerUnlocked: true }} onUnlockRomer={onUnlock} />);
+		openGroup('display');
+		clickToggle(9);
+		cy.get('@onUnlock').should('not.have.been.called');
+	});
+
+	it('never names Rømer anywhere in the settings before it is found', () => {
+		cy.mount(<SetupView {...defaultProps} />);
+		cy.get('#settingsSearch').type('romer');
+		cy.get('.settings-index-row').should('not.exist');
+		cy.get('.settings-search-empty').should('exist');
 	});
 });
 
@@ -321,11 +457,69 @@ describe('setupView scoring group', () => {
 		cy.get('#signal-closeness').should('be.disabled');
 	});
 
-	it('renders the bonus inputs', () => {
+	it('renders the postseason boost, the bonus that stayed behind', () => {
 		cy.mount(<SetupView {...defaultProps} />);
 		openGroup('scoring');
-		cy.get('#favoriteTeamBonusInput').should('exist');
 		cy.get('#postseasonBoostInput').should('exist');
+		cy.get('#favoriteTeamBonusInput').should('not.exist');
+	});
+});
+
+// The favorites page fetches rosters on mount, so every test that opens it has to answer that
+// call. One team is the floor, not a convenience: fetchTeamsForLeagues throws outright when every
+// league it asked about comes back empty, so a zero-team stub is a failed load rather than a bare one.
+const stubTeamsFetch = (entries: [string, string][] = [['1', 'Atlanta Hawks']]) => cy.window().then(win => {
+	cy.stub(win, 'fetch').resolves({
+		ok: true,
+		json: () => Promise.resolve({
+			sports: [{ leagues: [{ teams: entries.map(([id, displayName]) => ({ team: { id, displayName, abbreviation: 'ABC' } })) }] }],
+		}),
+	} as unknown as Response);
+});
+
+describe('setupView favorites group', () => {
+	it('opens the picker, with the bonus that moved here out of Scoring', () => {
+		stubTeamsFetch();
+		cy.mount(<SetupView {...defaultProps} />);
+		openGroup('favorites');
+		cy.get('#favoriteTeamBonusInput').should('exist');
+		cy.get('input[type=search]').should('exist');
+	});
+
+	it('keeps the search box in view once the list is scrolled', () => {
+		stubTeamsFetch(Array.from({ length: 60 }, (_, i) => [String(i), `Team ${i}`]));
+		cy.viewport(320, 560);
+		cy.mount(<SetupView {...defaultProps} />);
+		openGroup('favorites');
+		cy.contains('Team 59').should('exist');
+
+		cy.get('.popup-container .overflow-auto').scrollTo('bottom');
+		cy.get('.popup-container .overflow-auto').should(([el]: JQuery<HTMLElement>) => {
+			expect(el.scrollTop, 'the list itself scrolled').to.be.greaterThan(0);
+		});
+		cy.get('input[type=search]').should(([el]: JQuery<HTMLElement>) => {
+			const box = el.getBoundingClientRect();
+			expect(box.top, 'search box did not scroll off the top').to.be.at.least(0);
+			expect(box.bottom, 'search box is still on screen').to.be.at.most(560);
+		});
+	});
+
+	it('keeps every locale\'s group name on one line in the index', () => {
+		cy.viewport(320, 560);
+		cy.mount(<SetupView {...defaultProps} />);
+
+		Object.entries(locales).forEach(([name, locale]) => {
+			cy.get('#settingsGroup-favorites .settings-index-name').should(([el]: JQuery<HTMLElement>) => {
+				el.textContent = locale.setup.groupFavorites;
+				expect(el.getBoundingClientRect().height, `group name stays one line in ${name}`).to.be.at.most(22);
+			});
+		});
+	});
+
+	it('turns up in the search under a word that is nowhere in its label', () => {
+		cy.mount(<SetupView {...defaultProps} />);
+		cy.get('#settingsSearch').type('franchise');
+		cy.contains('.settings-index-row', 'Teams you follow').should('exist');
 	});
 });
 

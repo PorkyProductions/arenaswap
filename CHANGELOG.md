@@ -1,2008 +1,1439 @@
 # Changelog
 
-> [!NOTE]
-> This is the seperator between 2.0.0. Everything below is part of 2.0.0 and everything above this is after.
-
-## Clock stall penalty: hidden with no clock, shown as a plain deduction — 2026-08-20
-
-The breakdown card always rendered a "Clock stall penalty" row, even for baseball and softball, which never accumulate a stall count in the first place since `background.ts` only tracks clock-based sports. It's gone entirely for non-clock games now, and the row that remains drops the redundant "before → after" note in favor of just the subtotal and the amount subtracted. The underlying math is unchanged — same PowerScore for the same inputs.
-
-### PowerScore breakdown
-- **The clock stall row no longer shows for sports without a clock.** `PowerScoreBreakdown` takes a new `clockBased` prop, sourced from `sportTypeConfigMap[game.sportType].clockBased`, and skips the row (and its tooltip) entirely when false instead of pinning it at 0
-- **The "before → after" note is gone.** The subtotal row already shows the full pre-penalty signals total, and the penalty row already shows what's subtracted — the note under it just repeated both numbers
-- **`PowerScoreResult.baseTotal` is renamed `signalsSubtotal`** across `powerscore`, `@arenaswap/core`, the extension and the docs site. Same value, clearer name — "base" didn't distinguish it from anything once `total` and the boost fields all exist too
-- The stall tooltip no longer calls the deduction a "multiplier." It's been a flat point deduction since the 2.0 rewrite; the copy never caught up
-
-## A pre-merge sweep, and the docs build was one character from failing — 2026-08-20
-
-A full-repository review before the 2.0 merge, and everything it turned up. The headline is that
-`astro build` would have failed the moment it ran on Linux, which no local build could ever have
-shown us.
-
-### The blocker
-- **`dependencyLicences.ts` looked for `packages/powerScore/`.** The directory is lowercase. macOS
-  resolves it either way, so every local build passed; `ubuntu-latest` would have thrown ENOENT out
-  of the licences page frontmatter and failed the deploy. The same file already had the casing right
-  one line below, in `isOwn`.
-
-### Runtime bugs
-- **The demo's football card teleported backwards.** The drive table was advanced with
-  `findIndex` on `downDistance`, and `1st & 10` appears three times, so it always matched index 0.
-  The card jumped from `DAL 48` back to `PHI 27` and three of the eight patterns were unreachable.
-  The index now lives in `SimState`.
-- **Win-probability polling could grow a second timer chain.** `run()` reassigned the timer handle
-  after its own `await`, so stopping mid-sweep let the resolving call resurrect the loop, and
-  re-scheduling mid-sweep orphaned a live chain. Each extra chain meant another ESPN summary request
-  per live game per minute. It now follows the generation discipline `scheduleLeagueTick` already used.
-- **`forceRefresh` recovery reloaded preferences but never re-armed anything.** The UI looked
-  correct while `leagueTimers` still held timers for the old league set, so a newly enabled league
-  was fetched once and then never polled again.
-- **Hydration trimmed soccer history with the wrong window.** Every service-worker wake discarded
-  15 minutes of persisted snapshots, because the global five-minute window was applied to a sport
-  that keeps twenty.
-- **A dropped ESPN row warned on every poll.** Malformed rows are the documented steady state, so at
-  the six-second floor that was roughly 600 identical warnings an hour per league. Now only on change.
-- **One malformed team dropped an entire league's teams.** The scoreboard path was hardened row by
-  row; the teams path never was, and its caller turned a parse failure into an empty array silently.
-- **Two copies of the same poll constants were both live.** An explicit re-export shadowed the
-  barrel, so `@arenaswap/core` and `@arenaswap/core/constants` served different definitions, and the
-  jitter calculation divided one by the other. Equal at the time, and silently wrong after any edit.
-- Baseball could render "Intermission" instead of the inning, a slider drag could exhaust the
-  `storage.sync` write quota and quietly kill cross-device sync, preferences were written four times
-  per change instead of twice, and league drag-and-drop never called `setData`, so it could not start
-  in Firefox.
-
-### PowerScore
-- **A missing clock read as 0:00, which paid the maximum late-game ceiling.** `clockSeconds` became
-  optional this release but absent was still coerced to zero, and for a countdown sport zero is the
-  final buzzer. A tied game with twelve minutes left doubled its score and announced "0:00 left" in
-  the breakdown. Count-up soccer failed the other way.
-- **A tie mid-window counted as two lead changes.** The sign comparison only excluded 0 to 0, so
-  every ordinary comeback tripped it twice and scored at the `multiple` tier. Fixing it moved the
-  `leadChanges` mean from 4.7 to 1.8 across 1.46M simulated samples, which is the measure of how far
-  the old count was inflated. No tunable was touched.
-- **One non-finite win-probability entry erased the stall penalty.** NaN propagated into the total
-  and the fallback substituted the unpenalised signal sum, so a game four minutes into a commercial
-  break scored as though it were live while still reporting `stalled: true`.
-- **Soccer reason strings claimed overtime, which the sport does not have.** A tied league match at
-  89:50 was told overtime was looming. The card labels had already been fixed for this; the reason
-  line rendering beside them had not.
-- **The momentum reason described a run that had not happened.** The number was a differential but
-  rendered as `N-0`, so a 10-2 stretch read "on an 8-0 run".
-- The published README documented a calibration the code had left behind — four of five ceilings, and
-  a stall penalty described as a multiplier when the shipped field is a flat `deduction`. A 1.x
-  consumer reading `step.multiplier` would have computed `NaN`. Now rewritten against `constants.ts`,
-  with a migration section for the breaking changes.
-- The test suite had quietly lost type checking in the ts-jest to `@swc/jest` swap, and two leftover
-  tsconfigs had become invalid under TypeScript 7. `typecheck` covers the tests again.
-
-### Internationalisation
-- **The plaid speed sign was hardcoded English in all twelve locales.** It now uses a real key, and
-  keeps the purpose-built rectangular sign styling rather than the gradient treatment.
-- Five accessible names were hardcoded — a progress dot label, a "Signal:" prefix concatenated in
-  front of a translated value, and three in the onboarding demo. Screen reader users heard English
-  regardless of locale. All are keyed and translated now.
-- Spanish used one phrase for two deliberately distinct sensitivity levels, so "Ludicrous" and
-  "Ridiculous" were both *ridícula* on a real settings screen. French carried the same collision in
-  its prose. German and Filipino were still shipping the English sign.
-- Fixed a Spanish agreement error, `al cuadros`, that only became visible once the sign started
-  rendering at all.
-- Settled Standby Stream as a proper noun and made all twelve locales agree; Japanese and Simplified
-  Chinese had been translating it.
-
-### Copy that did not match the code
-- The release notes called Volatility "a sixth signal". It is an adjustment; `SignalName` has five
-  members. They also miscounted the locale keys, named the wrong hockey team for footage a viewer can
-  read off the jerseys, and implied ArenaSwap has an account system.
-- The long store description promised a "score margin" chart that does not exist and never mentioned
-  win probability, which does.
-- The hero told screen readers it held five games. It holds three.
-
-### Site, hygiene and CI
-- The site's copyright banner had never shipped: `rollupOptions` sat one level above where Vite reads
-  it. It also credited an entity that appears nowhere else in the repo.
-- League artwork was 6.5 MB of source-resolution PNGs rendered at 17 square. Now 356 KB.
-- The AMO sources archive carried 7 MB of store screenshots. Now 1.9 MB.
-- Added a sitemap and `robots.txt`, `noindex` on the 404 and the nine store-asset pages, and closed a
-  focus trap where the closed mobile drawer kept seven focusable elements in the tab order at every
-  viewport.
-- Deleted two orphaned components and the dead CSS that went with them, tightened the readable-colour
-  threshold to actually clear 3:1, and pinned it with a test.
-- Dependabot had two blocks claiming the same ecosystem and directory, so the second was being
-  dropped, and both it and the auto-merge workflow still referenced Vitest. The auto-merge job also
-  ran twice on every PR.
-- The docs deploy used `npm install` rather than `npm ci`, and could lose a race on push.
-- `syncVersion.ps1` still read Tailwind from the extension package, the exact bug the shell script had
-  already been fixed for.
-- Removed committed paths pointing at one machine, stopped tracking Astro's build cache, gave
-  `.astro` files the same CRLF rule as the rest of the tree, and added the `engines` field the README
-  had been claiming for us.
-
-## Release notes sit in the middle of the page again — 2026-08-19
-
-- Centered the release notes index text measure instead of leaving it against the container edge.
-- Rebalanced individual release pages so the prose column is centered and the section outline sits in
-  a right rail without pulling the article off center.
-
-## Lint stays green on the install CTA helper — 2026-08-19
-
-- Moved the docs install-link helper out of the browser-detection closure so oxlint no longer flags
-  it for consistent function scoping.
-
-## A copy pass over the site, and the PowerScore page was lying about its own numbers — 2026-08-19
-
-An editing pass over every page except the landing page's headings, plus two bugs the reading turned
-up.
-
-### The bugs
-- **The PowerScore page advertised the wrong ceilings.** It listed Closeness 30, Late-Game Pressure
-  28, Momentum 28, Lead Changes 18, Comeback 14. The shipped ceilings are 42, 38, 38, 18 and 20, so
-  four of the five numbers were wrong. The five cards are now generated from `scoreMaxCloseness` and
-  friends imported from `powerscore`, the way the leagues band and the settings band already read
-  from the real constants. The grid markup is byte-identical
-- **That page's meta description was truncated at "tonight".** The description was single-quoted and
-  contained "tonight's", so the attribute closed early. Shipped HTML said `...watch it score
-  tonight`. Now double-quoted and whole
-
-### The copy
-- Em dashes out of the prose. They stay in `<title>` tags, where they separate page from site name
-- `ESPN's` on the FAQ had a curly apostrophe, the only one on the site
-- Passive constructions named their actor: "which league scoreboards were asked for" became "which
-  league scoreboards ArenaSwap asked for", "is called out in that version's release notes" became
-  "that version's release notes say so"
-- The privacy page's permission bullets stopped hanging off dashes and became bold lead-ins
-- British spellings out of visible copy: `licences` and `colours` on pages headed "Licenses."
-- The credits page claimed "DM Sans and Lekton are under the SIL Open Font License. Geist is under
-  the SIL Open Font License", which was two sentences to say one thing and left out DM Serif Text
-- The legal hub described "the one server it talks to" when there are two hosts
-- Smaller edits to the settings band, the charts band, the docs placeholders and the machine
-  explainer: "a designated fallback tab" became "a fallback tab you pick", "Manually raise" became
-  "Raise by hand", and so on
-
-### No unreleased version numbers in the copy
-The site promised 2.1 in two places a visitor could read: the FAQ ended with "More detail is coming
-to the docs in 2.1", and each docs section opened with "This is not written yet. It goes in for 2.1".
-A published page that names a version it does not have yet dates itself the moment that version
-ships without it.
-
-- The docs placeholder now reads "This section is being written. It will cover:" over the same
-  outline, and closes with what does exist today rather than what does not
-- The FAQ drops its trailing line entirely rather than pointing at an empty page. Its opening
-  already invites an issue for anything missing
-- `planned` became `covers` in that page's data, and the comments in `content.config.ts`,
-  `docs/[section].astro` and `_prose.scss` stopped citing a version too
-
-Left as is: the two mentions in this changelog's own 2.0 entries, which are a dated record of what
-was decided then, and `design/landing-redesign/README.md`, which is the superseded proposal.
-
-### Implementation detail out of consumer copy
-The licenses page explained its own build step to the reader: "The table is read from the project's
-manifests when the site is built, so it lists what is installed rather than what somebody remembered
-to type." Nobody visiting a legal page needs to know how the page was assembled. That sentence is
-gone, and so are the rest of them:
-
-- "your browser's local and session storage, never the synced kind" became "All of it stays on that
-  computer. ArenaSwap never syncs any of it"
-- "ArenaSwap ships no content scripts, so none of its code runs inside the pages you visit" became
-  the second half of that sentence alone
-- "The Firefox build declares its data collection as `none`" became "On Firefox, ArenaSwap is listed
-  as collecting no data at all"
-- "Fonts are served from this site rather than from a font CDN" became "rather than from somebody
-  else's server", and "Static pages on GitHub Pages" moved into the sentence about GitHub logging,
-  which is the only reason a reader cares where it is hosted
-- "ESPN's public API" became "ESPN" on the FAQ, the credits page and the disclaimers, and
-  "third-party APIs change without notice" became "the services it reads from"
-- "The hero on the homepage" became "The video at the top of the homepage". `hero` is a word for
-  people who build websites
-- "every typeface it sets" became "every typeface it uses"
-- "stops being polled" became "stops being checked" in the 2.0 notes, and "works in Chrome, Firefox
-  and Edge from the same codebase" lost its last four words
-- "Full license text for any package above ships inside the package itself" became "Follow any link
-  above for that package's own full license", which tells the reader what to do instead of where
-  bytes live
-
-The two ESPN hostnames stay on the privacy page. A privacy statement that says which addresses the
-extension contacts is doing its job.
-
-Left alone on purpose: the landing page's headings, the `/screenshots/` store-asset pages, whose copy
-lengths are measured to fit a 1280x800 crop, and the smart quotes Astro's markdown pipeline renders
-in release notes, which are typography rather than a tell. The PowerScore package page keeps its
-technical detail, because the people reading it are installing an npm package.
-
-## The site's navigation points at pages now, not at scroll positions — 2026-08-19
-
-The nav and footer were half sitemap, half table of contents: "How it works", "Leagues" and
-"Settings" were anchors into the homepage, sitting in the same list as pages that actually exist. So
-half the links moved you within one document and half loaded another, and nothing told you which was
-which before you clicked. The homepage is unchanged — every band it had, it still has — but nothing
-outside it links into the middle of it any more.
-
-### Navigation
-- **Nav is four pages**: PowerScore, Docs, Releases, FAQ. The mobile drawer carries the same four plus
-  Legal notices
-- **Footer is three columns**: Product, Legal, Install. `Resources` and `Product` had drifted into
-  each other, one of them holding a link to the other's page
-- The 404's link list lost its two homepage anchors and gained Docs and Legal notices
-
-### `/blog/` is gone
-- The route, the collection, the one post it held and the four interactive explorers built for that
-  post are all deleted, along with the ~240 lines of CSS that only those explorers used
-- `/blog/` redirects to `/releases/`, and `/blog/introducing-v2/` to `/releases/2.0.0/`, because both
-  were published. Redirects in static output are meta-refresh pages, which is what GitHub Pages can
-  serve
-
-### `/legal/` is new
-Four notices, each with its own URL, because these get linked one at a time — to a store reviewer, to
-an issue — and a URL that lands on the right clause beats a URL plus "scroll down".
-
-- **`/legal/privacy/`** — written against the code, not from a template. Storage is `local` and
-  `session`, never `sync`; the only two hosts the extension may reach are `site.api.espn.com` and
-  `a.espncdn.com`; there are no content scripts; the Firefox build declares data collection as
-  `none`. It also says out loud that ESPN sees an IP address and which scoreboards were requested,
-  and that the PowerScore page fetches live games from your browser
-- **`/legal/licenses/`** — the ISC text in full, then every direct dependency of every workspace with
-  its version and licence, read from the manifests at build time by
-  `apps/docs/src/lib/dependencyLicences.ts`. Both manifest sections, deliberately: `react`,
-  `bootstrap` and `bootstrap-icons` are devDependencies of the extension and all three ship inside
-  the popup, so the `dependencies`/`devDependencies` split says nothing about what reaches a browser.
-  An unresolvable package fails the build rather than dropping quietly off a legal page. Each name
-  links to the package's own declared `homepage` — docs for `astro` and `react`, a README for the
-  smaller ones — with npm as the fallback for the one package that declares none
-- **`/legal/credits/`** — the old `/credits/`, moved. `/credits/` redirects to it. The dead
-  `shareAlike` branch came out; none of the three clips carry that licence
-- **`/legal/terms/`** — the disclaimers that had been living as one line of small type in the footer:
-  no affiliation, not a streaming service, ESPN's data is ESPN's, PowerScore is an opinion, no
-  warranty, no SLA
-
-### Release notes read like an announcement
-- **`/releases/` is a landing page**: the newest release takes the top of it, everything before it is
-  a line in a list below. It no longer carries a side nav that listed every release beside a page
-  that is a list of every release
-- **`/releases/<version>/`** got a centred masthead, a back link, an optional lead image
-  (`image`/`imageAlt` in the frontmatter), previous/next links, and the note's own `h2`s pinned beside
-  the prose as a table of contents. An `IntersectionObserver` marks the section you are reading;
-  without JavaScript the list is still a working set of anchors. Hidden below 992px, where an outline
-  stacked on top of the thing it outlines is just more to scroll past
-- No eyebrow, no "RELEASE" label, no read-time estimate
-
-### Fewer sidebars
-- `ReadingNav` is gone. It listed every release, both docs sections and three "More" links on every
-  page that used it, which by the end was most of the site's navigation duplicated beside the site's
-  navigation
-- `DocsNav` replaces it on the docs pages with the three documentation links and nothing else
-- `LegalNav` does the same for the four legal pages
-- The FAQ and the releases index run full width, both with a measure on the list so a rule is not
-  twice the width of the text under it
-
-## The hero was cramped, and the popup was sitting on the video — 2026-08-19
-
-Two rounds of feedback in one entry. The popup was pinned inside the window at its real 320x560, which
-on a window narrow enough to sit beside the hero copy meant it covered better than a third of the
-stream. And the whole hero was working inside Bootstrap's 1320px container, so on a wide display a
-third of the screen was gutter while both columns were squeezed.
-
-### The hero
-- **The popup hangs off the window's right edge** rather than sitting fully inside it, so it covers the
-  corner of the stream instead of the middle. It stays anchored to the pinned extension button, which
-  is inside the popup's horizontal span. At 2000px it covers 12% of the window, which is close to what
-  a popup covers on a real screen
-- **The page widens past 1320px** — 1560px from 1600px up, 1720px from 1920px up. Nav, hero and bands
-  widen together, so nothing ends up misaligned with anything else
-- **The copy column takes a measure and stops**, and the window takes everything left over. Sharing by
-  ratio meant the window kept a fixed fraction of the page no matter how much room there was
-- **The window keeps the clips' shape wherever it can.** Its height is the popup's 560px as a floor,
-  not a fixed value, so above that floor the video is not cropped at all. At 2000px the window is
-  1050x714 and the video fills it exactly
-- **Side by side only above 1400px.** Below it the window was coming out at 534px next to a 320px
-  popup, which is neither a browser nor a popup. Stacked, it gets the whole container and the video is
-  uncropped — that costs the fold at those widths, which is the better of the two trades
-- Every section heading is one size now. Three were `display-lg` and two `display-md`, which read as
-  sections that could not agree on their own importance
-
-## Crests were a hole in the layout until ESPN answered — 2026-08-19
-
-Every logo in the product is fetched from ESPN's CDN at render time, and every place that drew one
-handled a *failed* logo but not a slow one. The abbreviation only appeared once the request errored,
-so for as long as the fetch was in flight the slot was simply empty: two holes in every game card,
-and thirty-one of them at once on the first screen of onboarding. Nothing in the codebase had an
-`onLoad` handler at all, so there was no point at which "still loading" and "loaded" were different
-states.
-
-Nine components each drew a logo their own way, with four different ideas about what to do when one
-did not arrive. They are now one component.
-
-### The placeholder
-- **A crest slot is never empty.** `Crest` draws the abbreviation on a muted disc and layers the
-  image on top of it, rather than swapping one for the other. The placeholder is there from the first
-  frame, and it is the same thing you see whether the logo is two seconds away or never coming
-- **Nothing moves when a logo lands.** The wrapper owns the box and both layers fill it absolutely, so
-  the placeholder occupies the image's footprint exactly — 64px on a game card, 44px inside the
-  poster's disc, 18px in the sticky bar. Measured in all four states, in both apps
-- **Static, no shimmer.** A sweep across thirty crests at once reads as a fault rather than as loading
-- The placeholder on the game card takes `#495057` rather than the shared `#8b949e`, which only
-  reached 2.92:1 against the card's white. Tolerable while it showed on failure alone; not once it
-  shows on every slow load
-
-### Fixed
-- **A logo that failed once stayed hidden for good.** Five components tracked failure as a boolean.
-  This is not hypothetical for leagues: `resolveLeagueLogoUrl` serves a hardcoded URL until the live
-  list arrives and then switches to ESPN's, so a 404 on the first one permanently hid a mark that
-  would have loaded. Failure is now remembered against the URL that failed, and a new URL retries
-- **Four leagues drew a crest reading "N".** `toLeagueInitials` took the first letter of each word,
-  and half the leagues are already acronyms — NBA, NHL, NFL and NWSL all collapsed to one letter. A
-  single-word label now keeps up to four of its own characters
-- **The walkthrough's tab-assign and auto-switch steps replaced a 32px logo with a 64px disc**, having
-  reached for `.team-logo-fallback` without its size
-- **The sticky bar dropped its crest entirely on failure**, collapsing an 18px flex item and dragging
-  the centred matchup off the card's axis
-- **Step 6 of the walkthrough swallowed the tap it asks for.** The hint over the card carried
-  Tailwind's `pointer-events-none`, which the extension has no build for, so the badge intercepted the
-  click on the middle of the card. It is `pe-none` now
-- `onboardingLeaguePicker` had a hardcoded English `alt` on every league mark
-
-### Under the hood
-- `packages/ui/src/components/crest.tsx` and `_crest.scss`, imported from `_game-card.scss` so both
-  apps pick it up without either one's entry point changing
-- A mount-time `complete` check, because the docs site hydrates its islands after load and the `load`
-  event has already been discarded by then — and `naturalWidth`, because `complete` is true for a
-  broken image too. Without both, a crest on the site sat at `pending` behind its own logo
-- `TeamStrip.astro` renders the same markup and drives `data-crest-state` from a ten-line inline
-  script rather than becoming a React island, since it sits directly under a hero that is already
-  hydrating one. Placeholders are hidden outright under `<noscript>`
-- `setup.leagueLogoAlt` is retired from all twelve locales: every crest sits beside a visible label,
-  so the images are decorative and carry `alt=''`
-- `OddsProvider` is deliberately left alone — provider wordmarks have no fixed width, so it stays a
-  swap rather than a layered box
-- `walkthroughView.cy.tsx` now mounts with the real stylesheets; unstyled, the mock crests fall back
-  to their intrinsic 500px and the cards no longer fit the screen they are describing
-
-## Dead space at the bottom of the hero's player — 2026-08-19
-
-The window held a 16:9 player with a strip of stream page under it, and the popup pinned over the top
-is 560px tall. A 16:9 player at the width the window gets in the hero is nowhere near 560px tall, so
-the difference became a band of empty page at the bottom of the window, and the popup filled the frame
-top to bottom. Two things were wrong at once: the window was too small for a real-size popup, and the
-video was the wrong shape for the window.
-
-### The hero
-- **The video fills the window.** The clips are encoded to 840x580, roughly the shape of the box they
-  play in, rather than to 16:9 and then cropped to fit by `object-fit`. One resample instead of two,
-  and the crop is chosen in ffmpeg rather than always being a centre-cut. The strip of stream page
-  underneath is gone with the dead space it was there to explain
-- **The window gets more of the hero**, 1.38fr against the copy's 0.62fr. The narrower the window, the
-  more of it a 320px popup occupies; at the old split it took a third of the width and all of the
-  height, which is not what an extension popup looks like in a browser
-- Ten crests in the row rather than twelve: at the copy column's new width twelve wrapped to a second
-  row holding three orphans, which reads as a mistake rather than as a grid
-
-### Fixed
-- `.team-strip-logos` was styling `img` directly, which left `.crest` — an inline-flex whose image is
-  absolutely positioned — with no box to fill, so the whole row collapsed to nothing. Size belongs on
-  the wrapper, which is the contract `_crest.scss` documents
-
-## The hero showed three of its five clips, and named the wrong games on all of them — 2026-08-19
-
-The five games in the hero were NBA, NFL, NHL, MLB and Premier League fixtures. The footage under
-them was a Hawai'i college basketball game, an Army-Navy game, a Bemidji State hockey game, a Mexican
-League baseball game and a Latvia-Gibraltar international, because that is what exists under a licence
-that can legally go on a marketing page. The cards described one thing and the video showed another,
-which is the one mistake a demo whose entire subject is "the popup tells you what you are watching"
-cannot make. Two of the five tabs also never came up, so two of those clips were bytes nobody ever saw.
-
-### The hero
-- **Three clips, three games, and the card names the game in the clip.** Northern Arizona at Hawai'i,
-  Army at Navy, Minnesota State at Bemidji State — all leagues ArenaSwap tracks, with team ids,
-  abbreviations and crests from ESPN's own teams endpoint. The Mexican League and Nations League clips
-  were cut for the opposite reason: good footage, untracked leagues, so no card could describe them
-- **Every clip gets a turn.** The timeline now hands the screen to each of the three in turn and never
-  goes back, and `docs:validate-hero` asserts exactly that — every game on screen at least once, in one
-  direction, on gaps that clear the shipped threshold. The old lineup left NFL and soccer unwatched
-- **The clips are the exciting part now.** Windows were picked by measuring frame-to-frame change
-  across each source and shortlisting the busiest few seconds, then looking at the shortlist. Motion
-  alone is not enough — the highest-scoring window in the Army-Navy clip is a touchdown celebration,
-  which is a crowd jumping rather than a game being played — so football took the second-ranked window
-- **It opens on the best game rather than the first in the list**, which is where auto-switching would
-  already have put you. Starting at index 0 produced a switch on the first tick and a caption
-  announcing a change nobody saw
-- Trimming to three tighter clips took the video from 1.74MB to 1.12MB
-
-### The window
-- **Drawn as Chrome on macOS rather than as a dark rectangle**: the tab strip doubles as the title bar
-  with the traffic lights inset, the active tab flares outward at its base into the toolbar, inactive
-  tabs are divided by hairlines instead of boxes, and the omnibox is a pill with the site-information
-  icon, a dimmed path and a bookmark star. The pinned extension is tinted the way Chrome tints an
-  action whose popup is open, which is the only thing tying the panel to the button
-- **The video is a player, not a wallpaper.** Stretching a 2.25:1 clip over a window tall enough to
-  hold a 560px popup cropped 45% of every frame off the sides. There is a 16:9 player at the top and a
-  little of the stream's own page under it, which is how a stream page is actually laid out
-
-### Above the fold
-- **The window sits beside the copy instead of under it.** It was most of the way below the fold
-- **A row of team crests under the install button**, four Philadelphia clubs first, then the rest —
-  picked to read on a dark page as much as for being famous, which is why the Cowboys' navy star and
-  the Yankees' navy monogram are not in it. The hero games are real but obscure, and this is the answer
-  to the question they raise
-
-### Copy
-- **The landing page copy is the copy from the previous site**, which was better: "Set it once. Watch
-  everything.", "31 leagues. One extension.", "See why. Every time.", "If it's live, it's covered.",
-  "Tuned in to you.", and the three steps. The settings band lists individual settings with their real
-  descriptions rather than the six groups they are filed under, because what people want to know is
-  what a control does, not where it lives
-
-### Fixed
-- The page under the player was clipped below 1440px: the window had a fixed height, and as it narrows
-  a 16:9 player grows taller relative to it. It is a floor now, which is safe because the aspect ratio
-  lives on the player rather than on the window
-- At phone widths the stream title was squeezed into a column narrower than a word, because the
-  reserve held for the popup stayed in place after the popup had moved out of the window
-- The popup opened pre-scrolled, pushing its own header and first card out of view before anybody had
-  looked at it. It scrolls when ArenaSwap moves you, and not before
-
-## The website was a hand-drawn picture of the extension, and the two had drifted — 2026-08-18
-
-The old landing page contained a popup. Not the popup — a replica, 108 lines of CSS under a comment
-calling itself "pixel-accurate", built by reading the real one and copying what it looked like. It
-had a `div` for the enable switch, a hand-set section label instead of the orange rule, and no
-league logo at all. Every time the popup changed, two files needed to change, and one of them never
-did.
-
-The site now imports the popup. The chrome, the game cards and the four detail charts are the
-shipped components and the shipped stylesheet, so the homepage cannot describe a product that does
-not exist. Verified the move is a no-op for the extension by compiling `bootstrap.scss` before and
-after and diffing the rule sets: identical, 4,958 rules each, and all 199 component tests pass.
-
-### Shared with the extension
-- **The popup chrome moved into `@arenaswap/ui`** — `_popup.scss` holds `.popup-container`,
-  `.popup-section-title`, `.popup-section-label`, `.popup-league-logo`, `.arenaswap-logo`, the
-  settings buttons and the chart card, and both apps import it
-- **`popupChrome.tsx` holds the header, the section title and the league row**, and `mainView`
-  renders those rather than its own copies
-- **`gameDetailChartOptions.ts` moved to `@arenaswap/ui`** so the website's charts are built by the
-  extension's own option builders; the popup path re-exports it and nothing in the popup changed
-- **Every shared label lives in `defaultStrings.ts`** — a plain module, so Astro can read a label at
-  build time without pulling React in to do it, and the extension keeps overriding all of them
-  through `TranslationContext`
-
-### The hero
-- **A browser window with five streams open and the popup running inside it.** Real game footage
-  plays in the tab you are on; the tab strip, the address bar and the toolbar button are drawn
-  around it
-- **The switching is not choreographed.** Every tick scores all five games with `computePowerScore`
-  and applies the shipped sensitivity threshold and cooldown, so the tab moves for the reason it
-  moves on your machine. `npm run docs:validate-hero` prints the resulting table
-- **The footage is real and freely licensed** — NCAA basketball, Army–Navy, NCAA hockey, Mexican
-  League baseball and a UEFA Nations League match, 1.7MB of H.264 across five clips, lazy so a
-  visitor pulls only the tabs they see. `/credits/` names every one; `scripts/docs/fetchHeroClips.sh`
-  rebuilds them
-- Off-screen or in a background tab it stops scoring entirely, and reduced motion gets a still frame
-  with both switches already made
-
-### The page
-- **Bands replace the feature grid**, one idea each: babysitting tabs, the popup, the charts, the
-  leagues, the settings, and the install
-- **All 31 leagues are listed from `leagueConfigs`**, grouped by sport with each league's own mark,
-  in place of a marquee that slid the logos past faster than anyone could read and had drifted three
-  leagues out of date. The count is computed, so it cannot be wrong again
-- **The settings band reads the shipped defaults** — sensitivity 4 of 7, a 45s cooldown, +10 and +5 —
-  imported rather than typed out
-- Every league mark now sits on a light plate. Roughly a third of the 31 are dark navy artwork and
-  both UEFA crests were invisible on `#0b0f14`
-
-### Routes
-- **`/releases/` is a hand-written notes collection**, one file per version, with a permalink per
-  version and an RSS feed. Not generated from this file: a changelog is an engineering record and
-  reads like one
-- **`/docs/extension/` and `/docs/powerscore/` are reserved** with the schema settled and the URLs
-  linked, so 2.1 writes Markdown instead of designing a docs site
-- **The FAQ moved to `/faq/`** and became eight native `<details>` elements: no JavaScript, and
-  Cmd-F finds an answer that is collapsed. It carries FAQPage structured data
-- **`/credits/` is new**, because two of the five clips are CC BY and one is CC BY-SA
-- `/blog/` is now the long-form writing, `/powerscore/` and `/404` moved onto the shared shell, and
-  the engine explainer moved to `/powerscore/`, where an explanation of the engine belongs
-
-### Still hand-drawn
-- **`apps/docs/src/pages/screenshots/` keeps its own copy of the popup CSS.** Those nine pages are
-  store assets at fixed pixel sizes, and they are not linked from anywhere, so they were left alone
-  rather than rebuilt on components whose height they do not control
-
-### Removed
-- The replica popup, the hero particle canvas, the league marquee, the feature grid, the step cards
-  and the settings preview: 9 components and 15 sections of stylesheet, about 800 lines
-- The chart subtitles, which were eyebrow labels restating the axis the chart already draws
-
-### Fixed
-- **The hero window grew sideways at some widths.** `aspect-ratio` with a `min-height` floor resolves
-  in both directions, so at a 1024px viewport the stage came out 1200px wide inside a 936px window
-  and drew a quarter of the video off the right edge. It is a plain height now
-- The popup was a child of the element that clips the video, which cut its bottom off at every width
-  below 1400px and badly below 992px, where it returns to the flow
-- Dates were formatted in the build machine's zone, so a date-only entry rendered a day early
-- **`/powerscore/` shipped unstyled cards.** `.feature-card` went out with the deleted feature grid,
-  on the assumption the grid was its only consumer. It is also on the five signal cards, the engine
-  explainer and the live PowerScore examples, none of which had a rule left
-- **The reduced-motion still frame showed a board the algorithm would not produce.** It jumped
-  straight to its resting tick, so the scorer saw a two-entry score history instead of nineteen and
-  four of the five cards under-reported by 18 to 31 points. Scoring is a pure function of the tick
-  now, so the same tick scores the same whether it was played through or jumped to
-- **The switch rule ran during the still frame**, overriding the tab it was meant to hold and
-  captioning a switch nobody saw. Turning the preference on mid-session also never stopped the
-  animation, because nothing cleared the flag the tick loop reads
-- **Social preview images were lost site-wide** when the blog post page moved onto the shared shell,
-  which declared `summary_large_image` and then supplied no image
-- **The hero's MLB game played a bottom of the ninth with the home team ahead**, which is a game
-  that would already be over. `npm run docs:validate-hero` now asserts rather than prints: two
-  switches, clocks that only run one way, scores that only go up and only by an amount the sport can
-  produce in one poll, and no impossible innings. It exits non-zero, and it catches all of the above
-- The popup demo was 24px wider than the frame clipping it below 360px; the site's two popup headers
-  shared one element id and left four keyboard-reachable controls that did nothing; `packages/ui`
-  imported `echarts` without declaring it
-
-## The landing page redesign existed only as screenshots in a chat log — 2026-08-18
-
-Several rounds of designs for a new `arenaswap.app`, and the reasoning behind them, lived nowhere anybody else could read it. Why the game card is white rather than dark, why the hero animation is scripted instead of live, why the league marquee has to go: all of it was argued once and then lost.
-
-`design/landing-redesign/` is that proposal as a page you can open. It is a document, not an implementation — nothing is wired into `apps/docs` and Turborepo does not build it.
-
-### Proposal
-- **A rebuilt landing page** in the existing palette and type: full-width bands, one benefit each, no feature grid and no marquee
-- **The blog retires into a release notes feed** generated from this file, with versions promoted to `#` headings so a parser knows what shipped together, and `### Tests` excluded from the public feed
-- **`/docs/` gets reserved now** so 2.1 writes content rather than doing a second redesign
-
-### Fidelity
-- **The game card, popup, charts and settings rows on the page are the shipped components**, reimplemented in plain CSS with their real values so the file runs standalone. `powerScoreColor()` is ported, so the PowerScore bar warms and cools exactly as it does in the popup
-- **The hero animation runs on twenty hardcoded frames** and never calls ESPN, so it works offline and in the off-season. The card on screen is whichever PowerScore is highest, which is the rule the switcher uses
-- The six settings groups use the shipped `setup.group*` strings rather than new copy, and the four chart titles use the shipped `detail.chart*` ones
-- The orange ring and `ON YOUR SCREEN` flag on the hero's active card are the only marks that are not product UI, and the page says so
-
-The scorer has always zeroed a frozen game: halftime, an intermission, a rain delay, and all five signals go to 0, because nothing is happening and a stopped game must never out-score a live one. The boosts never got the memo. They're added after the scorer runs, so a game sitting at halftime with a favorite team in it still collected its +10, and a postseason game at halftime collected that too — a PowerScore of 10 for a court with nobody on it, which is enough to beat a genuinely quiet live game and take the tab.
-
-The freeze is now one rule instead of two. `isPlayFrozen` is a single exported predicate covering intermission and delay, the scorer and the scoring-opportunity boost both read it, and the extension suppresses every boost while it's true — favorite, postseason, scoring opportunity, and the manual game boost as well. A frozen game is a hard 0, no exceptions.
-
-### Scoring
-- **Halftime, intermissions and delays score 0 no matter what boosts apply** — the favorite bonus, the postseason boost and a manual game boost are all held back until play resumes, then pay out again exactly as before
-- **The scoring-opportunity boost now respects intermissions**, not just delays; it already refused to pay for runners frozen on base during a rain delay, and an intermission freezes the situation the same way
-- The manual game boost is suppressed in the score but not forgotten — the stored value stays put, so the boost input still shows what you set and it takes effect again on the second-half tip
-
-### Detail view
-- The breakdown's game-boost row reads the applied boost rather than the stored one, so it shows `0` during a freeze instead of claiming a `+15` that the total below it doesn't include
-
-## One signal, two blues, depending on which screen you were looking at — 2026-08-15
-
-Lifting `$secondary` to `#3E9BD1` took momentum's blue with it, and it shouldn't have. Momentum isn't an accent — it's one of the five PowerScore signals, and that palette is a data palette: closeness green, late-game orange, momentum blue, lead-changes yellow, comeback pink. The breakdown card kept `#2274A5` because it's the popup's one light surface, so the component chart directly beneath it ended up drawing the same five signals in a different blue. Same number, same signal, two colours, four inches apart.
-
-The mistake was treating a hex as a token. `$secondary` and momentum happened to share a value; they were never the same job.
-
-### Colour
-- **The signal palette is back on `#2274A5` for momentum, everywhere it's drawn** — the component contribution chart and its legend, the settings signal dot, the walkthrough's signal diagram and its breakdown preview, and on the docs site the PowerScore explainer, the machine scene, the signals page and all four gradients
-- **`$secondary` stays `#3E9BD1`** and keeps doing the job it was lifted for: links, filled and outline buttons, focus rings, `.popup-settings-link`
-- **The brand rainbow is untouched** — `brandColors` and the Ludicrous Speed overlay cycle primary/secondary/danger/success/warning, which is the theme palette rather than the signal palette, so they follow the token
-- `_bootstrap.scss` now says out loud that `#2274A5` is not retired and that a signal blue must not be "fixed" to match the accent token, since that is exactly the mistake this entry is about
-
-## Twenty controls in one flat column, and none of them looked more important than any other — 2026-08-15
-
-The Switching tab was a single vertical run of twenty controls — three sliders, two number fields, eleven switches, a select and two buttons — every one at the same visual weight, separated only by three section rules. Standby Stream, the last thing on it, sat about two and a half screens below the first thing on it. Fifteen labels each carried an orange `text-primary` icon, competing with the orange range thumbs and the orange active tab; when the accent marks everything it marks nothing. Ten explainer paragraphs sat permanently on screen at 0.55rem, useful once and noise every time after.
-
-Settings is now an index. Six categories, each naming what it's for, each opening a focused page.
-
-### The settings index
-- **Six rows replace the two tabs** — Switching, Scoring, Leagues, Display, Standby Stream, Demo mode — each with its own icon and a description of what lives inside it, wrapped in full rather than truncated, since a description cut off mid-sentence is worse than no description
-- **Every page fits in one window.** Measured at 320×560: the index and all five non-league pages come out at exactly 560px of content, no scrolling. Leagues is 1,926px, which is 31 league switches and a reorder list, and is the only page that scrolls
-- **The back arrow is now two-level** — from a category it returns to the index, from the index it closes settings
-- **The icons are orange and the labels are not.** Six accents on six rows, instead of fifteen scattered down a column
-- The empty-leagues warning moved onto the Leagues row, where it points at the page that fixes it
-
-### Search
-- **A search field sits above the index**, matching setting names, category descriptions, and a per-setting keyword list — so "celsius" finds Temperature unit, "playoff" finds Postseason boost, "spam" finds Cooldown and Switch delay
-- **The keywords live in the locale files**, one `keywords*` string per setting, so every language gets synonyms a speaker of that language would actually type rather than translated English ones
-- Matching strips case and diacritics on both sides, so `prevision` reaches *Previsión*
-- **Category text is matched per category, never folded into each setting's haystack.** Mixing the two made "bonus" return all five PowerScore signals, because the word appears in the Scoring description. There's a spec pinning that
-- Tapping a result opens the category it lives in, and clears the query behind it
-
-### Explainers
-- **Every explainer string is kept, and none of them sit on screen any more.** They moved onto the existing tooltip control — the same `bi-question-circle` the PowerScore breakdown already uses — beside the label they explain
-- `signalTooltipIcon` is now `settingTooltipIcon`, since it no longer only explains signals, and `.setting-tooltip-btn` gained a dark-surface tone with the old light-card tone scoped under `.powerscore-breakdown`
-- `setup.tabSwitching`, `tabLeagues`, `optionsSection`, `bettingSection` and `weatherSection` are gone from all eight locales, along with `.setup-tabs`
-
-## The secondary blue was below the contrast floor on every surface we draw it on — 2026-08-15
-
-`#2274A5` on `#0d1117` is 3.70:1. Primary orange on the same background is 5.85:1. That gap was the whole problem: the blue sat under the 4.5:1 AA floor while the orange cleared it comfortably, so blue text read as disabled and blue beside orange read as a mistake. White on `#2274A5` — every `btn-secondary` back button in the walkthrough — was 4.11:1, also under.
-
-The blue had two jobs, though. As the Momentum signal it also draws on the `#f8fafc` PowerScore breakdown card, where `#2274A5` is a perfectly good 4.89:1. So the token split rather than moved.
-
-### Colour
-- **`$secondary` is now `#3E9BD1`** — 6.14:1 on the body background — across the extension, the docs site and the shared Tailwind tokens
-- **`$secondary-on-light` keeps `#2274A5`** for the one light surface in the popup, the breakdown card, where lifting the blue would have washed it out to 2.95:1
-- **Filled secondary buttons take dark labels instead of white.** Bootstrap's `color-contrast()` flips them automatically at the new lightness; `$color-contrast-dark` is set to `#0d1117` so the dark side stays on-theme rather than pure black
-- Momentum's dot, chart series, legend swatch and walkthrough diagram all move to the new blue; the light breakdown card does not
-- Team-colour fallbacks in `resolveTeamColorPair` keep `#2274A5` — they tint a poster background, not an accent, and the lighter blue would have taken white type down with it
-
-### Tests
-- `setupView.cy.tsx` rebuilt around the index: navigation in and out of every category, the search behaviours above, the leagues warning on its row, and the tooltip control replacing the inline explainers
-- The Cypress `#i18n` stub re-exports `GeneratedI18nStructure`, so the settings catalogue's message-key type checks in the component project too
-
-## The pre-game screen stopped reporting a game that hadn't happened — 2026-08-09
-
-Open a game before it starts and the screen led with a PowerScore breakdown reading `0/42`, `0/38`, `0/38`, `0/18`, `0/20` and a final score of `0 / 100`. Eleven rows of arithmetic about a game with no possessions in it. Underneath, four charts with no data. The screen was built for a live game and shown for a scheduled one.
-
-So the pre-game screen is now its own screen. It answers the two questions you actually have before a start time — *what is this matchup, and when* — and then offers the two things you can usefully decide in advance.
-
-**The live screen is untouched.** Breakdown, boost card, Game info, charts, in that order, exactly as before.
-
-### Pre-game
-- **A matchup poster** replaces the light matchup card, on the same card geometry as everything else on the screen — same left edge, same width, same 0.5rem corner — so it sits in the column rather than cutting across it. The two teams' resolved colours run left to right, meeting in the middle where the two teams do
-- **The countdown is the largest thing on the screen** at 2.3rem, white on the poster — the one number that changes while you wait
-- **Crests sit on a white disc tinted with their own team colour.** A navy crest on a navy half of the poster is invisible, and every league has at least one; the disc uses the same `28`-alpha wash the matchup card already uses for its team-colour gradients, so it reads as the same material rather than a new one
-- **White type is guaranteed readable by a dark scrim over the colours**, not by hoping the colours are dark. A pale team colour — and there are several — would otherwise take the team name with it
-- **Favourite stars moved onto the poster**, beside the record of the team they apply to, sharing the toggle with the game list so the two can't drift
-- **A "Get ready for…" card** carrying the tab picker and the game boost
-- **The boost is now available before the game starts**, which is where it always belonged: deciding a game matters to you is a thing you do in advance, not once it's already running
-- A postponement still surfaces on the poster. It's the one thing with something to say before the start time, so it isn't dropped with the rest of the status row
-
-### Internationalisation
-- **The card names what the countdown is counting down to, in the sport's own words** — tip-off, kickoff, puck drop, first pitch. Softball shares baseball's first pitch and soccer shares football's kickoff; anything else falls back to `Get ready for gametime` rather than borrowing another sport's word
-- Six new strings across all eight locales, including the sport terms each language actually uses: German's `Bully` for a puck drop, French's `mise au jeu`, Japanese's `プレイボール` for first pitch
-- The map is `as const satisfies Record<SportType, string>`, so adding a sport to `SportType` fails the typecheck until it has a phrase
-- Every locale's heading was measured against the card at 320px to confirm none wrap to a second line
-
-### Tests
-- New `pregameDetail.cy.tsx` — the breakdown's absence pre-game *and* its presence once live, the poster's alignment against the card below it, the horizontal gradient, the tinted crest discs, star state and toggling, the setup card's contents, all six sport phrases plus the fallback, and the delay line
-- **`tabAssignSelect` is no longer stubbed to `null` in component tests.** It touches no browser API, so the real control mounts — the stub had the card and pre-game specs measuring a layout with no tab picker in it, which is not a layout the extension ever renders
-- `gameBoostInput` gained a `bare` mode so the pre-game card hosts the real boost row instead of a second copy of it
-
-## Four dashed boxes explaining that the charts weren't there yet — 2026-08-09
-
-Open a game that hasn't started and the bottom of the detail screen was four dashed placeholders in a row, each one a sentence about a chart you couldn't see: PowerScore trend, score trend, win probability, component trend. Nothing to read, nothing to do, and 77px of screen telling you to come back later. A chart that isn't there is self-explanatory — the absence is the message.
-
-### Game detail
-- **The four chart empty states are gone.** Each chart now renders when it has data and renders nothing when it doesn't, so a pre-game screen ends at the last real thing on it
-- The `detail.chart*Empty` strings are removed from all eight locales, and `.game-detail-empty-state` from the stylesheet
-
-### Tests
-- **The Cypress chart stub now keeps the real card's structure and height** instead of collapsing to a bare title. The sticky-bar scroll specs were passing on page length the placeholders happened to provide — with the placeholders gone and a 176px canvas stubbed to a text node, the hero never scrolled out of view and the compact matchup never faded in. The stub was measuring a page the extension never renders
-- The sticky-bar specs supply a `powerScoreHistory` so the charts they scroll past actually exist
-
-## Venue, broadcast and odds were five centred lines nobody could scan — 2026-08-09
-
-With the chart placeholders gone, what the bottom of the detail screen actually ends on is the game's own information — and it was five centred lines floating on the dark background with no container: venue, `Watch:`, the odds, `Odds provided by:`, then the weather. 77px, four of the five lines in the *same* colour at 9.28–9.6px, and the largest text on the block (12px) spent on the weather, the least actionable thing there. The one line that answers "which tab do I open" was the smallest.
-
-Centred stacking also wasted the width it had: the longest line measured 198px inside a 296px column, so the block ran tall in a third of the room.
-
-### Game detail
-- **One titled `Game info` section**, taking the chart cards' treatment — hairline top rule, transparent background — rather than a third white card. Everything below the PowerScore maths now reads as one dark column of sections
-- **Rows are icon + label + value, left-aligned on a shared 46.4px label column**, using the same marker column width as the breakdown's factor icons so the two sections share a left edge
-- **Watch leads and is the only bright value on the block.** It's the row that causes an action; venue and odds sit a step back at `#b6c2cf`
-- **Weather rides inside the venue row** instead of claiming a line. Conditions are a property of the venue — a dome game has none. A neutral site that arrives with weather but no venue name still gets its own row, with the condition glyph as its marker
-- **`Odds provided by:` no longer spends a full row.** The provider sits dim at the end of the line it describes, with the wording moved to the element's `title`
-- **Before tip-off the panel moves above the PowerScore breakdown.** The breakdown is eleven rows of zeros until the game starts, while this panel is fully populated — the screen now leads with whichever of the two has something to say
-- Five lines became three rows; the block went 77px → 94.2px, all of it spent on the heading and row separation that made it a section instead of leftovers
-
-### Internationalisation
-- Five new `detail.info*` strings across all eight locales
-- **Every locale's labels were measured against the fixed label column**, not eyeballed: the widest is French `Regarder` at 38.5px against 46.4px. German went with `Ort` over `Austragungsort` for exactly this reason. Locked in by a spec that measures all four labels in all eight locales, so a future translation that would wrap the column fails the build instead of breaking the grid
-
-### Tests
-- New `gameInfoPanel.cy.tsx` — row composition, the weather-in-venue-row rule and its no-venue fallback, indoor games, attribution placement, betting-off, the render-nothing case, and the pre-game/live ordering flip
-- `gameDetailView.cy.tsx` drops its `.game-meta` ordering test, which the new spec covers for both arrangements rather than only the live one
-
-### Packages
-- `oddsSummary` and `OddsProvider` are exported from `packages/ui`'s `gameCardShared`. `GameMeta` itself is untouched — the list cards keep the compact centred layout, which is right for a 3-line card and wrong for a full screen
-
-## "2nd & 11" never said where the ball was — 2026-08-06
-
-The football card printed `shortDownDistanceText` and stopped there. A 2nd & 11 backed up on your own 9 and a 2nd & 11 on the opponent's 34 are not the same football situation, and the card showed them identically. ESPN has been shipping the yard line on the same scoreboard payload we already poll, in two forms: `possessionText` (`"ARI 34"`) and a pre-joined `downDistanceText` (`"2nd & 11 at ARI 34"`).
-
-Verified against a live payload rather than inferred — `possessionText` is present at halftime and between drives, while `possession` (the team id holding the ball) is not, so anything built on that field has to survive its absence.
-
-### Game cards
-- **The down & distance line now carries the field position** — `2nd & 11 at ARI 34`
-- **Joined through the locale files, not taken pre-joined from ESPN.** `downDistanceText` is English-only; reading the two halves and joining them keeps the line translatable, and Japanese needs the yard line *first* (`ARI 34で2nd & 11`) rather than an "at" spliced into the middle
-- Degrades to the bare down & distance when ESPN omits the field position, which it does between drives
-- **The line is ~2.5× wider than what it replaced** (8 characters to as many as 20), so it was measured rather than assumed. The score row above it is the widest thing in the centre column at **128.75px** — set by the 2.4ch-per-digit floor on `.game-score-value` — and the longest line football can produce, `3rd & Goal at WSH 50`, measures **99px** in 0.62rem Lekton. It sits inside the score row with ~30px to spare, so the card does not widen and no team column is squeezed. Locked in by a layout spec that mounts the card at the real 320px popup width with the real stylesheets
-
-### Demo mode
-- The football mock's field position **advances across midfield with the drive** instead of pairing a fixed yard line with a cycling down, so a goal-line down lands on a goal-line marker
-
-### Fixed
-- **`packages/ui`'s no-provider fallback string map was missing the new key**, which would have rendered a raw `gameCard.downDistanceAt` anywhere the components mount without a `TranslationContext` — the docs site included. Caught by the component tests, which mount unwrapped
-
-## The walkthrough gave every boost an icon; the breakdown gave them none — 2026-08-03
-
-The walkthrough teaches the six boosts and penalties one at a time, each with its own icon and color — an hourglass for the clock stall, a trophy for the postseason. The breakdown on the game detail screen kept the colors and dropped the icons, so the factors you had just been taught to recognize by shape arrived as six lines of plain text under five signal rows that each had a colored dot.
-
-### Game detail
-- **Every boost/penalty row now leads with its walkthrough icon**, in the walkthrough's color: hourglass (clock stall), pulse (volatility), star (favorite), lightning (game boost), bullseye (scoring opportunity), trophy (postseason)
-- Color and icon live in one table, so the two screens can't drift apart — the color was already duplicated between them, and the icon existed only in the walkthrough
-- The icons occupy the **same 17px marker column as the signal rows' dots**, and are centred on their labels to the pixel. Their labels start 4.4px right of the signal names, which is a 9.9px glyph against a 6px dot: closing that gap would mean either glyphs too small to read or glyphs touching the text, so the marker edges are what line up
-- `aria-hidden`, since every row's label already names its factor in words
-
-## A red-zone drive while up 31 was worth as much as one in a tie game — 2026-08-03
-
-`computeScoringOpportunityBoost` paid a flat +10 for any red-zone possession, with no reference to the score and no reference to the down. Backups grinding out a drive at the end of a 45-3 game collected the same bonus as 4th-and-goal from the 1 in a one-score game. The existing tests only ever exercised `isRedZone` true, false and undefined — never in combination with a score, which is why it survived this long.
-
-The gating isn't a third penalty on a blowout. Closeness and lateGame have already scored one correctly low; an unconditional +10 on top was undoing their work.
-
-### PowerScore
-- **The red-zone boost scales with the margin**, using football's existing `closenessMargins` (`[3, 9, 14]`) rather than a second definition of "blowout" invented for this one signal. Full value inside two scores, half in the fringe band, nothing past it
-- **And with the down.** A 4th-down snap decides possession; a 1st-down snap doesn't. `situation.down`/`distance` were already being parsed and thrown away — now `4th & Goal` is worth ×1.5, 4th down ×1.35, 3rd-and-short ×1.15, everything else ×1.0
-- **Down and goal-to-go are one combined lookup, not two multipliers that stack.** They describe the same situation, so multiplying them double-counts. Goal-to-go mostly raises the *odds* of a score — red-zone TD rate is ~61% overall against 70–95% on goal-to-go — where what makes a snap worth switching to is 4th down's binary stakes. A 1st-and-goal from the 3 is no more tense than 1st-and-10 from the 19
-- **The ceiling moves 10 → 15** for the highest-leverage snap in football. Left uncapped at the signal level, consistent with the overcomplete-ceilings design the rest of the file already uses — clamping back to 10 would have made 4th-and-goal indistinguishable from an ordinary red-zone snap, which was the point of building it
-- A missing down costs the boost its bonus, not the whole thing: between plays ESPN's situation block can arrive without one, and that falls through to ×1.0 rather than to zero
-
-## The World Cup final was never a postseason game — 2026-08-03
-
-Edge-case audit of how the scorer and the cards handle the strange corners of sport. Two of them turned out to be wrong in a way you could watch happen.
-
-`isPostseason` read `event.season?.type === 3`. That is ESPN's convention for the US pro and college leagues, and it is not the convention anywhere else. The 2022 World Cup final reports `type: 10948`. The 2024 Champions League final reports `type: 12082`. Liga MX, MLS, the NWSL and the World Baseball Classic each use their own per-tournament id, and none of them is ever 3 — so a Tuesday-night bowl game collected the postseason boost and the World Cup final did not, every tournament, every season, for as long as the check has existed.
-
-The Olympics are worse. A 2024 Paris Gold Medal Game reports `type: 2, slug: 'regular-season'` — identical to a group game. The only place the round survives is `competition.notes[0].headline`, a free-text field reading `"2024 Olympic Men's Basketball - Gold Medal Game"`.
-
-Separately, soccer has no overtime, and `formatPeriod` had been calling it that anyway. Extra time read `OT1`/`OT2`, and because ESPN encodes a penalty shootout as period 5, a shootout read **`OT3`** — a period of play that does not exist in the sport.
-
-### PowerScore
-- **Postseason detection now handles all three of ESPN's encodings.** `season.type === 3` still covers the US leagues; an explicit slug allowlist covers international soccer and the WBC; the Olympic leagues fall back to the headline field. Every slug in the allowlist was verified against a real payload rather than inferred, which is how the awkward ones surfaced — the Women's World Cup says `3rd-place` where the men's says `3rd-place-match`, the WBC says `semi-finals` and `finals` where every soccer competition says `semifinals` and `final`, and UCL/UEL added `knockout-round-playoffs` in the 2024-25 format change
-- **Liga MX, MLS and the NWSL generate a slug per tournament** — `apertura-2023---finals`, `playoffs--quarterfinals` — so those match on pattern rather than exact string. Checked against their regular-season slugs (`torneo-apertura`) and against the four domestic leagues, whose season-long slugs (`2023-24-english-premier-league`) contain nothing that could trip it
-- **The Olympic headline check is scoped to the five Olympic leagues**, not applied globally. It is editorial copy, and matching it everywhere would have swept in regular-season bracket events like college basketball's November invitationals
-
-### Game cards
-- **Soccer extra time reads `ET1` and `ET2`.** Keyed on sport rather than period format, so NCAA basketball's two halves keep their `OT1`/`OT2` numbering
-- **A penalty shootout reads `PENS`**, and anything past the second extra-time half resolves there too — nothing but penalties follows extra time, so there is no fourth label to guess at
-- **The shootout tally renders under the score.** ESPN freezes `score` at the 120-minute scoreline and puts the decider in `shootoutScore` on the same scoreboard payload we already poll, so the card would otherwise have sat on `1 – 1` while the tie was being settled. Shown as a secondary line rather than replacing the score, which everywhere else in the product means goals scored in the match
-- **The period label steps aside for the tally**, because `PENS` above `PENS 3–5` said it twice. Only visible by rendering the card — every assertion on the two strings individually passed. The tally line adds **1.6px** to the card at 320px wide, with 72px of horizontal headroom left even at a sudden-death `PENS 13–14`
-- Whether ESPN populates `shootoutScore` kick-by-kick or only once the shootout ends is **unconfirmed** — no shootout was live anywhere across 14 competitions during the audit. The line renders only when both tallies are present, so either way it degrades to showing nothing rather than to showing something wrong
-
-## Closing one tab could switch off auto-switching entirely — 2026-08-03
-
-Audit of the tab switching path. Nothing in the extension ever noticed a tab closing: `tabRegistry`, `standbyStreamTabId` and the muted-tab set were only ever pruned by hand, from the popup, and all three are mirrored into session storage so a dead tab id came back after every service-worker restart. Browsers never reuse a tab id, so those entries could only ever be wrong — and one of them was enough to stop the whole feature. A closed tab still won the switch selection whenever its game held the top PowerScore, `executeSwitch` found no such tab and returned, and nothing fell through to the runner-up. No notification, no log, no recovery until you reopened the popup and re-assigned tabs. Close the tab showing the best game and ArenaSwap went quiet for the rest of the night.
-
-### Switching
-- **A closed tab is forgotten the moment it closes.** New `tabs.onRemoved` handler drops the registration, clears `standbyStreamTabId` if that was the tab, and takes it out of the muted set — then persists all three and pushes the state to an open popup
-- **The registry is reconciled against reality on every worker start.** MV3 tears the service worker down whenever it goes idle, so tabs close with no listener alive to hear it; the rehydrated registry is checked against `tabs.query({})` before the first switch evaluation. An empty query result is treated as "cannot see the tab strip" rather than "every tab closed" — nothing legitimately reports zero tabs while the worker is running, and trusting it would wipe a perfectly good registry
-- **Selection skips tabs that no longer exist, so the runner-up gets the switch.** The belt to the reconcile pass's braces: a tab that vanished between two polls with no event is filtered out at decision time instead of stalling the switch on a tab that isn't there
-- **A closed standby tab no longer black-holes the feature.** `computeStandbyStreamDecision` kept answering `switchToStandby` for a tab that was gone, and that branch returns before any game is considered — so with every game under the threshold, switching was dead twice over
-- **A delayed switch re-targets when it fires instead of replaying the decision that queued it.** `switchDelaySeconds` could hold a switch for a minute and then take you to a game that had gone to a blowout — or ended — because the only thing re-checked was that the registration still existed. Both paths now resolve through one `resolveSwitchTarget`, so the switch that lands is the one the games justify at the moment it lands. If everything fell below the standby threshold during the delay, the queued switch is dropped and the next poll parks on the standby stream
-- **Standby is evaluated ahead of the pending-switch guard.** A queued switch used to freeze the standby state machine outright — `onStandbyStream` could not be updated in either direction while a switch was waiting. Standby taking over now clears the queue, which is stale by definition: the queued game is one of the ones that went quiet
-- **A tab you picked yourself starts the cooldown.** `tabs.onActivated` only re-synced mute state, so a deliberate manual switch to a quieter game could be overridden by the very next poll — 6 seconds later on a league in eager mode. A manual pick now gets the same protection as an automatic one, 45s by default
-- **Registering two tabs to the same game no longer switches you between them.** The tab already in focus wins its own game, rather than whichever registration happened to be first in the array
-- **A tab closing mid-mute-sync no longer aborts the poll.** The mute updates went out as one `Promise.all`, so a tab disappearing inside the query→update race window rejected the batch and took the switch evaluation that runs right after it down with it. Each tab settles on its own now, and the record of what we muted is written from what actually landed
-- Demo mode's tick is routed through `refreshScores`, so a slow tick can no longer overlap the next interval
-- **24 background tests, up from 12.** Every fix above is covered by a test verified to fail without it — the switch decision path had no direct coverage at all before this
-
-## Tailwind was never actually running in the extension — 2026-08-03
-
-The build had been printing four lightningcss warnings — `Unknown at rule: @theme` twice, then `@tailwind` and `@custom-variant`. They were not a minifier quirk to be silenced. lightningcss was reporting, accurately, that it had been handed Tailwind's uncompiled source and asked to minify it.
-
-`apps/extension/assets/global.scss` opened with `@import 'tailwindcss'` — in a **Sass** file, in an app with no `@tailwindcss/vite` plugin. Sass resolved it and inlined ~18KB of raw Tailwind v4 source as literal CSS, and nothing downstream ever compiled it. The shipped popup stylesheet contained two `@theme` blocks, a `@tailwind utilities`, and `--theme(…)` calls that browsers discard as invalid — and not one Tailwind utility. No `--tw-*` custom properties, no `@property` registrations, and no `.shrink-0` or `.min-w-0` rule despite 21 call sites across the popup. Every Tailwind class in the extension had been a no-op for as long as the import had been there. `apps/docs` was never affected; it wires `@tailwindcss/vite` into `astro.config.mjs` and imports Tailwind from a `.css` entry, which is why only the extension warned.
-
-### Extension styling
-- **Tailwind is out of the extension.** The import is gone, `tailwindcss` is dropped from `apps/extension/package.json`, and the popup stylesheet loses **21,463 bytes — 6.0%**, from 359,010 down to 337,547. Chrome, Firefox and Edge all build clean, with byte-identical CSS and zero lightningcss warnings
-- **Three Preflight rules were carried over by hand, because Preflight was the one part that *was* running.** It is plain CSS, so it survived being inlined even though the at-rules did not. Rather than guess which of its 52 rules mattered against unlayered Bootstrap, every one of the 144 component specs was re-run dumping 54 computed properties per element, and the two runs were diffed across **11,536 elements** — `tab-size: 4`, `img, video { max-width: 100%; height: auto }`, and `color: inherit` on form controls were the only rules with an effect. Bootstrap Reboot already covers the rest
-- Dropping the image rule would have been the expensive one: `max-width` went to `none` on **278 image elements** — league logos, team logos, the wordmark — all of which had been relying on Preflight to stay inside their container, since Reboot only sets `vertical-align` there
-- `color: inherit` matters for **564 form controls**, which fell back to the UA's black without it. `.form-check-input` and `.form-range` never get an explicit colour from Bootstrap, and the walkthrough's `.powerscore-progress-dot` paints its active state from `currentColor` — the progress dots would have gone black on a dark panel
-- Preflight's `border: 0 solid` was deliberately **not** carried over. It changes `border-style` on 9,026 elements and none of them render a border, because the widths are all zero; the only three project rules that set `border-width` either pair it with `border-style` themselves or inherit one from Bootstrap's `.spinner-border`
-- **`shrink-0` → `flex-shrink-0`** at 18 sites in 8 files. Bootstrap's utility is unlayered and `!important`, so unlike the Tailwind class it replaces it wins against Bootstrap's own component rules rather than losing to them — this is the one intended rendering change, and it is what the original markup had been asking for. 43 elements now compute `flex-shrink: 0` where they previously computed `1`
-- **`.min-w-0` is now a real rule** in `global.scss`. Bootstrap 5.3 ships `min-vw-100` but no `min-width: 0` utility, and the three places that use it need flex children to shrink below their content width for `text-truncate` to engage
-- Everything else in the before/after diff was animation sampling jitter — mid-transition `nav-link` colours, the `live-dot` pulse, spinner `transform` — confirmed by re-running the finished code against itself and getting the same categories back at the same magnitudes
-
-## The release pipeline stops fighting itself — 2026-08-03
-
-`zip:edge` had been failing with `ENOENT: ... .output/edge-mv3/entrypoints/popup/index.html` — a file that doesn't exist in a finished build, because WXT writes the popup there and then renames it to `popup.html`.
-
-### Build
-- **`zip:*` tasks now depend on their sibling `build:*` task.** `wxt zip -b edge` runs its own full build into `.output/edge-mv3`, and `build:edge` targets that same directory. Turbo saw no dependency between them and ran both at once, so one process globbed the file list while the other was mid-rename — the zip picked up the pre-rename `entrypoints/popup/index.html` and it was gone by the time it read it. Serializing them removes the shared-directory race
-- **`zip:*` tasks are no longer cached.** They declared no `outputs`, so Turbo cached them as log-only and reported `FULL TURBO` on a second run without producing a zip — a release step that quietly ships nothing is worse than a slow one
-- **`zip:firefox` builds MV3.** It was `wxt zip -b firefox` with no `--mv3`, so it emitted an MV2 extension into `.output/firefox-mv2` while `build:firefox` and `dev:firefox` both used MV3 — the artifact you'd actually upload to AMO was the one browser's build nothing else in the repo exercised, under a manifest declaring `strict_min_version: 109.0` and `data_collection_permissions`. All three zips now verify as `manifest_version: 3`
-
-## Team records on the detail card — 2026-08-03
-
-"Oklahoma City Thunder at Boston Celtics" tells you who is playing. It doesn't tell you whether that means anything. The detail screen now says how each side got here, on the line under its name.
-
-### Extension popup
-- **Each team's overall record sits directly below its name** in the detail hero — `59-53`, `38-24-6`, `9-3-5`, whatever format the league keeps. Read from `header.competitions[0].competitors[].record` on the ESPN summary response the screen was already fetching, so no new request for live games
-- Pre-game detail screens now fetch that summary too. There is no win-probability line to draw yet, but the records are the thing you actually want before a game starts, and it stays one request per screen opened
-- Records get a **grid row of their own** rather than being nested under the name. Tucked inside the label, a record would ride down with a name that wrapped to two lines and sit lower than the opponent's — the whole reason the matchup is a grid is to keep the two sides level
-- Matching is **by team id, not array position**: ESPN orders `competitors` by its own `order` field, which is not away-then-home in every sport. `homeAway` is the fallback for the leagues whose team ids we synthesize locally, where an id match is never going to land
-- Only the `total` entry is shown. ESPN sends home/road/vsconf splits in the same array, and an offseason `record: []` or a blank summary now reads as "no record" — the row is omitted rather than left blank
-- Only the `total` entry is shown, read from `summary` rather than `displayValue`. Swept all 31 supported leagues at in-season dates: the two fields are identical everywhere except the NHL, where `displayValue` appends the standings points — `28-28-10, 66 PTS` — which is a second statistic wearing the record's clothes at twice the width of the column it has to fit. An offseason `record: []` or a blank summary reads as "no record" and the row is omitted rather than left blank
-- Demo mode's simulated games carry canned records in each league's own format, so the toggle doesn't leave a hole where every real game has a number
-- The hero measures 144px tall with records against its 190px budget, and the PowerScore breakdown still starts at 151px against 200px — both asserted in the component tests rather than assumed
-
-## One PowerScore, and a league that can't vanish quietly — 2026-08-02
-
-Review pass over the 2.0 branch. Two things were wrong in ways you could have watched happen: the number on the detail screen wasn't the number the switcher used, and a single malformed row in an ESPN response could take a whole league off the board without saying so.
-
-### PowerScore
-- **The detail screen and the card now always agree.** Volatility was being computed a second time inside the popup and added on top of the engine's total, so a card reading 84 opened a screen reading 89 — and the auto-switcher had acted on 84. The win-probability line is now fetched by the background scorer, folded into the total once, and rendered verbatim everywhere. The detail view reads `winProbabilityVariance` off the result instead of deriving its own
-- As a consequence volatility finally **influences which game you get switched to**, rather than being a number the popup showed you after the fact
-- The 100-point ceiling now actually holds for automatic scoring. The popup's second addition could push an unboosted game to 105 and label it as manually boosted
-- `baseTotal` is no longer clamped to 100. It records the raw pre-cap signals sum (which the overcomplete ceilings let reach 156), so the breakdown's "before → after" clock-stall line agrees with the total it's explaining instead of reading `100 → 75` next to a final score of 100
-- Turning signals off no longer silently discards the clock-stall penalty or the volatility adjustment: the penalty rescales with the signals it was deducted from, and volatility carries over at full value
-- `computeWinProbVarianceScore` documents what it actually measures — mean absolute distance from 50%, not variance — including the known limitation that a line swinging 10%↔90% scores like a steady blowout
-
-### Core
-- **A malformed event no longer costs you the league.** `EspnScoreboardSchema` validated `events` as one array, so a single bad row — a TBD bracket slot, a score ESPN encoded as a number instead of a string — rejected the entire response. `fetchScoreboard` returned zero games, which is indistinguishable from "no games today", so the league was then demoted to dormant 2–3 minute polling with nothing anywhere to explain it. Parsing is per-event now: bad rows are dropped and counted, the rest come through
-- Scores and ids accept either encoding ESPN uses and normalize to strings, rather than one sport's convention rejecting the row
-- New `fetchWinProbability`, and `pollWinProbabilityMs` (60s) to pace it — one request per live game, deliberately far slower than the scoreboard poll
-
-### Extension background
-- **Failures are visible again.** Six `catch {}` blocks were swallowing fetch, storage and state-load errors outright, which left nothing to look at when the extension stopped switching. All of them route through a new shared logger, as does `prefsStorage`, which had been the only place still reporting anything
-- With no game tab in focus, the switcher required the best game to be worth watching before grabbing the tab. Every frozen game scores 0, so a league sitting at halftime could pull you off whatever you were actually doing
-- **Muted tabs are released after a service-worker restart.** The set of tabs ArenaSwap had muted lived only in memory, and MV3 tears the worker down whenever it idles — so the unmute-on-release behaviour stopped working within a minute of going quiet. It's mirrored into session storage alongside the tab registry now
-- Snapshot history keeps a hard 400-per-game count cap behind the time window, so a faster-than-expected poll can't grow the arrays without bound
-- Dropped a dead per-sport window lookup in history hydration: it ran before the first fetch, so the game it searched for never existed and the global window was always used
-
-### Extension popup
-- The game detail screen fetched ESPN's summary endpoint **on every score change** — a request per made basket. It fetches once per game now, with an `AbortController`, a response-status check, and state that resets when you open a different game instead of briefly showing the previous game's line
-
-### Build & tooling
-- Cypress specs are **typechecked** for the first time (`tsc --noEmit -p cypress` in the extension's `typecheck`). Wiring it up surfaced 76 errors: a missing `#i18n` path mapping, no stylesheet module declaration, `HTMLElement[]` where Cypress yields `JQuery`, a `UserPreferences` fixture missing `disabledSignals`, and a dead `@ts-expect-error`. All fixed
-- The docs app has a `typecheck` task covering its React components, which caught three real nullability bugs in `LivePowerScores` (`period` and `clockSeconds` are optional on `Game`). Full `.astro` checking still waits on `@astrojs/check`, which peers on TypeScript ≤6 while this repo is on 7 — noted in `tsconfig.typecheck.json` rather than forced
-- Removed `baseUrl` from the docs `tsconfig.json`; TypeScript 7 removed the option
-- **Turbo cache correctness**: `zip`, `zip:firefox` and `zip:edge` all declared `.output/*.zip` as their output, and the three `build*` tasks all declared `.output/**`, so six tasks claimed each other's artifacts and a cache restore could hand back the wrong browser's build. Each target now owns its own directory and zip filename, in a new `apps/extension/turbo.json`. The zip tasks also no longer depend on the sibling `build` — `wxt zip` builds its own target, so zipping Firefox was building Chrome for nothing
-- `packages/ui` has **tests** (25, covering the team-colour resolver, weather formatting, and the shared card formatters) — the shared library both apps render from previously had none. Deleted its unused `components/index.ts` barrel; every consumer deep-imports, which is also the only thing that works for the package's SCSS
-- Deduplicated `docs/settings.json` in `.gitignore`; corrected stale comments referencing the removed `otEdgeMax`, a "−10 to +10" volatility range that is ±5, and eval-based sourcemaps the Vite config never touched
-
-## The game detail screen stops repeating itself — 2026-08-02
-
-Tapping a game used to get you the same card again, bigger. The logos, the score, the clock, the venue, the broadcast, the odds, the weather and the PowerScore bar were all already on the card you just clicked, and the abbreviations were on screen three times. The top of the screen now says the things the card doesn't, and stays quiet about the things it does.
-
-### Extension
-- **Full team names** finally appear somewhere in the app. They've been parsed from ESPN since day one and rendered nowhere. Each name sits under the crest it belongs to, on a two-row grid so a name that wraps to two lines can't knock the two logos out of level with each other
-- The header carries **nothing but the Back button** while you're at the top — the card is right there. Scroll past it and a compact matchup fades in and pins to the top: both crests, both scores, centred on the card's axis, with the period pinned separately to the right so a longer status string can't drag the score off centre
-- The matchup card itself is about **a third shorter**. The base diamond moved between the scores instead of sitting on its own row, the series summary and its dots share one line rather than two, and the padding between everything came in
-- Upcoming games get a **live flip clock** under the scheduled date and time — `5h 13m 40s`, rolling on the second. Seconds only tick inside the final day; further out it steps once a minute, and the whole clock lives in its own leaf component so a tick re-renders three spans instead of the detail view and its four charts
-- Venue, broadcasts, odds and weather moved below the math. They were pushing the PowerScore breakdown off the bottom of a 560px popup; it now starts around 164px and fits on screen in every sport
-- The balls/strikes/outs count is centred under the matchup instead of hanging off the left edge
-- Intermissions say **"Halftime"** rather than showing a clock that has stopped meaning anything
-- **Volatility** applies whenever ESPN actually gives us a win-probability line to measure, and shows as its own row in the breakdown. Games without that data get no row and no adjustment, rather than a fabricated zero. The PowerScore reason line moved down to sit with the breakdown it explains
-- **Fixed**: playoff series dots were drawn in near-white on the light matchup card, so any team the API gives us no colour for was invisible
-- Retired ~220 lines of a compact-card stylesheet that shipped in every build and was never referenced by a single component, plus the synthetic win-probability code in the background that had been computing a value nobody read on every game on every poll
-- Translated for all eight supported locales, with the countdown and the pinned bar measured in each one
-
-## European Portuguese ships as `pt_PT` — 2026-08-01
-
-Every dev and build run has been printing `WARN Unsupported locales: [pt]` since the Portuguese locales landed. Chrome's extension i18n only recognizes `pt_BR` and `pt_PT` — bare `pt` isn't on the list, so the file was being emitted into `_locales/pt/` where no browser would ever look for it.
-
-### Extension
-- `locales/pt.json` renamed to `locales/pt_PT.json`, so European Portuguese now builds to `_locales/pt_PT/` and actually reaches users running Portugal locales
-- Build and dev output is clean of the unsupported-locale warning
-- No translation content changed — the file was already European Portuguese ("ecrã", "separador", pre-reform orthography)
-
-## A real countdown to tip-off — 2026-08-01
-
-"Starts soon" on the game detail card meant anything from four minutes to four days. Now it tells you exactly how long you've got, and keeps telling you.
-
-### Extension
-- Upcoming games on the detail card now read **"Starts in 2 days 5 hours 13 minutes"**, counting down live while the popup is open
-- Segments drop off as they empty out: inside a day it's hours and minutes, inside an hour it's just minutes, and the last minute before tip-off falls back to "Starts soon" rather than parking on "0 minutes"
-- The countdown gets its own full-width row under the matchup instead of the narrow column between the team pills — the longest string fits on one line in all eight languages, verified by a measuring test rather than by eye
-- Ticks on the minute boundary, not once a second, so a card sitting open costs one render a minute
-- Translated for all eight supported locales
-
-## Hero animation: raw data in, PowerScore out — 2026-08-01
-
-The hero background was a loop of gray dust that never really told you anything. Now it tells the whole ArenaSwap story in about seven seconds, once, and then leaves a permanent glow around the extension card.
-
-### Docs site
-- **RAW** — the page opens as a field of colourless gray dots: every live game out there, unread and unranked
-- **INTAKE** — the entire field spirals into the extension popup on a slow, eased curve. Nothing is discarded and nothing respawns; what gets pulled in is what comes back out
-- **CHARGE** — the swarm holds inside the card for a beat and fills with the five PowerScore signal colours, while a third of it spins back out into a bright accretion ring hugging the card so you can see the thing working
-- **BURST** — the scored data sprays across the entire viewport with a shockwave and per-particle motion streaks, spread wider than tall so it actually reaches the edges of a landscape screen
-- **SETTLE** — everything is dragged slowly home and ends up orbiting the card permanently, most of it hugging the card's edge with a light dusting left across the page
-- Rendering moved to pre-baked sprites and batched paths: no radial gradient or `rgba()` string is built at frame time, connection lines are stroked in three alpha buckets instead of one draw per line, and the ambient wash is a cached quarter-resolution blit
-- The canvas is now DPI-correct (capped at 2x), so dots are crisp on retina instead of upscaled blur, and particle count is density-matched to the viewport rather than a fixed 700
-- The loop parks itself when the hero scrolls out of view or the tab is hidden, and resizes rescale the scene in place rather than restarting the story
-- `prefers-reduced-motion` renders a single static frame of the resting state — the finished picture, no motion
-
-## Docs 404 page — 2026-07-31
-
-Any mistyped or dead URL on the docs site used to hand you GitHub Pages' default "There isn't a GitHub Pages site here" screen, which is neither ours nor useful.
-
-### Docs site
-- New `404.astro`, built to `docs/404.html` so GitHub Pages serves it for every unknown path under `/arenaswap/`. Full site nav and footer, so you're never stranded
-- The missing page is presented as a real `LiveGameCard` from `@arenaswap/ui` — the same component the extension ships — for a game between **404** and **YOU**, clock at 0:00, venue "The Void", broadcast on "Nowhere", PowerScore 0 / 100. Exactly the game ArenaSwap would never switch you to
-- Shows the path you actually requested, plus a Back to Home CTA and quick links to Features, How It Works, Leagues, Package Docs, and the FAQ
-- `noindex` on the page so search engines don't file the error screen as content
-
-## Reorderable league display order — 2026-07-31
-
-League sections on the main screen were locked to a built-in order, so a hockey-first fan still had every NBA section pinned above their NHL games with no way to change it.
-
-### Extension popup
-- Settings → Leagues now opens with a **Display Order** list of your enabled leagues. Drag a row by its grip handle, or nudge it with the ↑/↓ buttons, and the main screen's league sections follow that order
-- A "Reset to default order" link appears once you've deviated from the built-in order, and the whole section stays hidden until you have at least two leagues enabled
-- Your custom order is the primary sort key for both live and upcoming games, ahead of favorite-team pinning and PowerScore — day bucketing still wins for upcoming games, so tonight's games never get pushed below tomorrow's
-- Turning a league off and back on drops it beside its nearest default neighbour instead of dumping it at the bottom of your list, so re-enabling NBA doesn't cost you the arrangement you built
-- Extracted the shared `LeagueLogo` (with its initials fallback) out of `setupView` so the order list and the toggle grid render league art the same way
-
-### Core
-- `enabledLeagues` is now order-significant. `normalizeUserPreferences` preserves the stored order verbatim rather than re-sorting it, and dedupes repeated league ids
-- No new preference field and no migration — existing saved settings keep working and simply start out in the default order
-
-## Standby Stream tabs now mute like every other tab (#72) — 2026-07-28
-
-### Extension background
-- The standby stream tab is now muted whenever you're watching one of your game tabs. It was tracked separately from the game registry, so mute syncing skipped it entirely and it kept playing audio over the game you were actually watching
-- Parking on the standby stream now unmutes the standby tab and mutes every game tab, so exactly one tab is ever audible
-- Designating a standby tab mutes it immediately instead of leaving it blaring until the next poll
-- ArenaSwap now remembers which tabs it muted and unmutes them when they leave its control — turning Standby Stream off, picking a different standby tab, or disabling the extension no longer leaves a tab silently muted with nothing in the UI explaining why
-
-## Delayed games score 0 (#71) — 2026-07-28
-
-A suspended game used to keep the PowerScore it earned while it was live, so a rain-delayed thriller could out-score every game that was actually being played and pull your tab to a frozen stream — closes #71.
-
-### PowerScore
-- `computePowerScore` now returns a zeroed result for `delayed` games, exactly like it already did for halftime/intermission
-- `computeScoringOpportunityBoost` returns 0 for delayed games — a delay freezes the situation (runners stranded on base, offense parked in the red zone), so the boost would otherwise keep paying out while nothing can happen
-- Added `delayed` to the PowerScore `Game` type
-
-### Core
-- `computeLeagueIntervalMs` treats delayed games as frozen alongside intermission games: a league whose live games are all suspended backs off to the 40s intermission poll interval instead of polling eagerly for a score that cannot change
-
-## PowerScore caps at 100 unless manually boosted — 2026-07-27
-
-### Extension & core
-- The headline PowerScore now saturates at 100 for everything the engine computes on its own: the base signals plus the favorite-team bonus, scoring-opportunity boost, and postseason boost are summed and clamped to 100 before the total is shown
-- Only a manually-added per-game boost can push a score above 100 — a game boost is applied on top of the capped automatic total, so a maxed-out game with a `+15` boost reads `115` (previously any stacked automatic boost could drift a game past 100 on its own)
-- Exposed `scoreMaxTotal` from `@arenaswap/core` so the background scorer clamps against the single shared ceiling constant
-
-## Animated explainer on the docs site — 2026-07-22
-
-### Docs website
-- Added an auto-playing, looping explainer section to the landing page (just before the 30+ leagues section) that walks through the ArenaSwap engine in four beats: it watches every live game across your leagues, scores each one live, opens a game to reveal the full PowerScore breakdown (team logos, score, a live PowerScore trend graph, and the five signal bars), and switches your browser tab to the best game (issue #41)
-- The illustrative scenes (a radial network of every league we support and the tab switch) are built with SVG and CSS so logos keep their aspect ratio and the data wires fan out cleanly without crossing; the PowerScore trend is a real ECharts line graph
-- ECharts is imported modularly (only the line, grid, and canvas-renderer modules) and loaded lazily via `client:visible`, so it stays off the initial page load; the loop pauses while the tab is hidden
-- `prefers-reduced-motion` and no-JS visitors get a static "Watch · Score · Switch" three-card summary instead of the animation — no motion at all
-- Removed the older static "watch → score → switch" diagram from the Leagues section (the new animated explainer now tells that story); the scrolling league-logo marquee stays
-
-## Performance, accuracy & tooling pass — 2026-07-22
-
-A broad sweep for performance, correctness, dead code, accessibility, and tooling gaps across the monorepo. PowerScore scoring output and the extension visual design are unchanged (verified by the existing calibration tests and component tests).
-
-### PowerScore & core (scoring output unchanged)
-- Removed dead scorer tunables never read by the algorithm: `reasons.momentumRunPrefix`, `reasons.comebackBig`, `reasons.comebackModerate` (from both `constants.ts` and the `ScorerTunables` type)
-- `otPreBoostMax` now derives from a shared `lateGameCloseCeiling` constant instead of a duplicated magic `36`, so the tied-overtime pre-boost stays in sync with `closeCeiling` (value unchanged: 2)
-- Fixed the `PowerScoreResult.winProbabilityVariance` doc comment (said −10 to +10; the actual clamp is −5 to +5)
-- Corrected the scoring-opportunity comment (only football uses the flat red-zone value; there is no hockey path)
-- `isPowerScoreSnapshotLike` now validates `postseasonBoost`, consistent with the other optional boost fields
-- Demo simulator now advances a realistic baseball/softball count — walk on the 4th ball, strikeout on the 3rd strike, side retired on the 3rd out (was 3/2/2, so demo mode could never show a 3-2 full count or 2 outs)
-
-### Shared UI (`packages/ui`) — no visual change
-- Team and odds-provider logos retry when their URL changes: the components track the failed `src` instead of a boolean, so a transiently-broken logo no longer stays hidden for the life of a reused card
-- Empty team abbreviations now fall back to `?` (previously `??` let an empty string through)
-- Deduplicated the PowerScore color computation in the live card
-- The fallback translator now substitutes every occurrence of a placeholder and no longer misinterprets ` in substituted values
-
-### Extension popup — no visual change
-- Internationalized the error boundary (previously hardcoded English); added `errorBoundary.*` keys to all 8 locales
-- Added accessible names to the master auto-switch toggle, the game-boost input, and the standby-tab selector; added `main.enableToggleLabel` to all 8 locales
-- The ludicrous-speed overlay and footer now track and clear their ad-hoc timers on unmount (no setState after unmount)
-- Preferences persistence: a failed `storage.local` write no longer aborts the whole save and skips the `storage.sync` write — each store is caught independently
-- Removed the dead `buildScoreMarginOption` chart builder (never imported)
-
-### Docs website
-- Fixed the broken Chrome Web Store install links — 4 call-to-action buttons pointed at a malformed 27-character extension ID; they now use the canonical 32-character ID
-- League logos (featured grid + marquee) now declare explicit dimensions and use `loading="lazy"` / `decoding="async"`, cutting layout shift and deferring ~60 off-screen image loads
-- Below-the-fold PowerScore widgets hydrate with `client:visible` instead of `client:load`
-- Content is visible without JavaScript (a `<noscript>` fallback for `.reveal`) and now respects `prefers-reduced-motion`
-
-### Build & tooling
-- `packages/ui` is now typechecked and linted (added `tsconfig.json` + `typecheck`/`lint` scripts, removed the oxlint ignore) — the shared UI library previously had no static analysis
-- Unified TypeScript on `^7.0.2` across all packages; the extension, core, and powerscore declared `^6.0.3`, which had pulled three redundant nested TypeScript 6 installs
-- `powerscore/tsconfig.json` now extends the shared base config (adds `noUncheckedIndexedAccess`)
-- turbo: added `globalDependencies` for `tsconfig.base.json` and `.oxlintrc.json` so shared-config edits invalidate task caches
-- The docs deploy workflow now also triggers on `packages/ui`, `packages/core`, `packages/powerscore`, and lockfile changes (it renders components and the PowerScore algorithm from those packages)
-- Fixed a typo in the root package description ("30+w" → "30+")
-
-## Game Boost pregame guard (#60) — 2026-07-22
-
-Hides the manual Game Boost control for games that haven't started yet — closes #60.
-
-- `gameDetailView` no longer renders `GameBoostInput` when `game.status === 'pre'`
-- Boosting a pregame game previously triggered a state update that bounced the popup back to the main view; the control is now unavailable until a game is live, matching the expected behavior in the issue
-
-## Delay State (#59) — 2026-07-21
-
-Visual indicator for suspended games (rain delay, lightning delay, etc.) — closes #59.
-
-- Added `delayed` and `delayDescription` fields to the `Game` type in `packages/core`
-- ESPN status names matching `/delay/i` (e.g. `STATUS_RAIN_DELAY`) now populate these fields; description is taken from `status.type.description` (e.g. "Rain Delay")
-- `EspnCompetitionStatusSchema` extended to parse the `description` field from ESPN's status type object
-- Live game card shows a `⏸ DELAY` header row (amber, using `shade-color($warning, 40%)`) replacing the `● LIVE` row when a game is delayed
-- Scores and clock dim to 40% opacity to signal the game is frozen
-- A compact pill badge below the period shows the specific delay reason (e.g. "Rain Delay"); falls back to generic "Delay" if no description is available
-- Badge follows the existing `.gc2-status-chip` design pattern using the brand `$warning` (#F1C40F) color with `rgba` tints
-- New i18n keys `gameCard.delay` and `gameCard.delayFallback` added to all supported locales
-## PowerScore Rewrite (#62) — 2026-07-21
-
-Rewrites the PowerScore algorithm for sharper calibration across all sports — closes #62.
-
-### Signal ceilings (per-signal max raised, overcomplete design)
-- `scoreMaxCloseness` 40 → 42, `scoreMaxLateGame` 26 → 38, `scoreMaxMomentum` 30 → 38, `scoreMaxLeadChanges` 12 → 18, `scoreMaxComeback` 10 → 20
-- Overcomplete ceilings sum to well above 100; headline total is capped at 100 so exciting multi-signal games saturate while dull games stay low
-
-### Dynamic lateGame ceiling (replaces fixed `otEdgeMax`)
-- Per-closeness-tier ceilings: `closeCeiling=36` (tight/close games), `fringeCeiling=22` (fringe), `blowoutCeiling=15` (blowout)
-- Blowout games no longer earn near-max lateGame pressure regardless of margin
-- `otPreBoostMax = 2`: tied games earn 2 extra points ramping through the final minute toward the reserved OT max
-
-### Additive stall penalty (replaces multiplicative)
-- `stallPenaltySteps: [{ minPolls: 15, deduction: 25 }, { minPolls: 8, deduction: 15 }]`
-- Penalty is a flat deduction, not a fraction — same cut regardless of base score
-
-### Win probability history wired into background loop
-- `background.ts` now synthesizes per-game win probability histories (logistic function of score margin × game progress) and passes them to `computePowerScore` as the 4th argument
-- Enables `computeWinProbVarianceScore` to apply a ±5 boost/penalty based on win-prob contestedness
-
-### Calibration
-- Tied buzzer with no history → 80 (closeness=42 + lateGame=38)
-- 1-pt game final minute → ≥ 68 across basketball/hockey/football
-- Blowout final seconds → ≤ 8 (blowoutCeiling=15, zero closeness)
-
-### Simulator improvements
-- `--early-game` flag: skips main simulation, runs 8 representative scenarios × 3 history depths (0, 1, 3 snapshots) in a table
-- History-depth breakdown: samples bucketed into `0 / 1-2 / 3-9 / 10+` depths to surface early-game regressions
-
-### Test suite
-- Updated all `otEdgeMax` references → `closeCeiling`
-- Updated stall penalty assertions to flat-deduction form (`deduction` not `multiplier`)
-- Added calibration-target tests: tied buzzer ≥ 78, 1-pt final minute ≥ 63, stall = flat deduction, blowout lateGame < close lateGame, sport-agnostic hockey/football
-
-## German i18n (#51) — 2026-07-21
-
-Adds German (`de.json`) locale — closes #51.
-
-- Standard High German (Hochdeutsch), suitable for Germany, Austria, and Switzerland
-- Compound nouns used naturally throughout (e.g., "Wechselempfindlichkeit", "Spielstandverlauf", "Uhr-Stagnationsstrafe")
-- `loading.m31`: "Cheesesteak holen" → "Bratwurst holen" — culturally equivalent stadium-food swap
-- `loading.m45`: "tailgate party" → "Fangrillparty vor dem Stadion" — functionally equivalent German fan culture expression
-- `stepSettings.sensitivity6` / `sensitivity.level.l6`: "Trigger Happy" → "Abzugsfinger" — idiomatic German equivalent
-- `sensitivity.level.l7` / `stepSettings.sensitivity7`: kept as "Ludicrous Speed" (Spaceballs is known by the same title in German-speaking markets)
-- `ludicrousSpeed.*`: Spaceballs dialogue translated in a punchy, theatrical style matching the film's German dub spirit; `prelaunch.l12` rendered as "Den Gurt kannst du dir sonst wohin stecken!" for maximum comedic punch
-- `ludicrousSpeed.plaid`: "THEY'VE GONE TO PLAID" → "SIE SIND IM KAROMUSTER!" — accurate and funny
-- `bso.balls/strikes/outs`: preserved as B/S/O (universal baseball scorecard abbreviations)
-- `loading.m56`: "go birds" preserved exactly as-is (untranslatable Easter egg)
-- All `$1`, `{placeholder}` interpolation markers preserved in correct grammatical positions
-## French i18n (#52) — 2026-07-21
-
-Adds French (`fr.json`) locale — closes #52.
-
-- All 463 keys translated; zero keys missing, zero extras
-- Register: informal *tu* throughout, modern casual tone matching ArenaSwap's sport-fan energy
-- **Proprietary terms preserved untranslated**: ArenaSwap, PowerScore, Standby Stream, `go birds`
-- **BSO abbreviations**: B/S/O kept as single capitals (universal baseball scorecard convention)
-- **`sensitivity.level.l7`**: kept as "Ludicrous Speed" — the untranslated brand name carries the same punch in French
-- **`ludicrousSpeed.*`**: Spaceballs is released in France as *La Folle Histoire de l'espace*; dialogue translated in a natural, idiomatic French register that matches the film's irreverent humor (e.g. "Poule mouillée ?" for "Chicken?"; "Au diable la ceinture !" for "Oh, buckle this!")
-- **`ludicrousSpeed.signs`**: light/ridiculous translated ("VITESSE DE LA LUMIÈRE" / "VITESSE RIDICULE"); ludicrous rendered as "VITESSE LUDICROUS" to keep the proprietary speed-tier branding legible
-- **`loading.m45`** "tailgate party" → "barbecue d'avant-match" — culturally equivalent pre-game gathering term
-- **`footer.credit`**: "à Philadelphia & Boston par Ryan Mullin" — city names in English, framing words in French
-- **`noGames` humor**: "Même les arbitres font la sieste." for the refs joke; "Le vendeur de hot-dogs est parti." preserves the absurdist energy
-## Japanese i18n (#49) — 2026-07-21
-
-Adds Japanese (`ja.json`) locale — closes #49.
-
-- **Register**: Standard Japanese (標準語), polite-but-approachable です/ます form for UI text; casual register for humor strings (loading messages, noGames messages)
-- **Spaceballs quotes** (`ludicrousSpeed.*`): Translated as faithful adaptations of the Japanese theatrical dub register — punchy, dramatic, and fun. "Ludicrous Speed" rendered as「バカ速モード」(lit. "ridiculous fast mode") for maximum comedic energy; the speed signs escalate as 光速 → ありえない速さ → バカ速モード
-- **BSO abbreviations**: B/S/O preserved as-is — universally understood in Japanese baseball (野球)
-- **`sensitivity.level.l7`**: "Ludicrous Speed" → 「バカ速モード」— intentionally over-the-top translation matching the English's tongue-in-cheek humor
-- **`footer.credit`**: Rendered as「Ryan MullinがPhiladelphiaとBostonで作りました」— city names kept in Roman letters as is customary in Japanese for Western proper nouns
-- **`loading.m56`**: "go birds" preserved exactly as instructed (proprietary/untranslatable Easter egg)
-- **Sport terminology**: Standard Japanese used throughout — 野球, バスケットボール, アメリカンフットボール, サッカー, ホッケー, ソフトボール
-- **`standbySection` / `standbyGuide.title`**: "Standby Stream" preserved as proprietary feature name
-- **PowerScore signals**: Consistent naming across all three sections that reference them (detail, powerScore, stepGameDetail) — 接戦度 / 終盤 / 勢い / リード交代 / 逆転
-## Chinese Simplified i18n (#50) — 2026-07-21
-
-Adds Simplified Chinese (`zh_CN.json`) locale — closes #50.
-
-- Standard Mainland China sports vocabulary throughout: 篮球 (basketball), 美式橄榄球 (American football), 冰球 (hockey), 棒球/垒球/足球 (baseball/softball/soccer)
-- B/S/O scoreboard abbreviations preserved exactly — universally used in Chinese baseball broadcasts
-- Proprietary terms ArenaSwap, PowerScore, and Standby Stream left untranslated; `go birds` (loading.m56) preserved verbatim per spec
-- Spaceballs `ludicrousSpeed` dialogue adapted for natural humor without relying on film recognition — "荒唐速度" (ludicrous/absurd speed) lands the comedic energy in context
-- `sensitivity.level.l7` rendered as "荒唐速度" matching the film section's tone
-- `footer.credit` rendered as "Philadelphia 与 Boston，由 Ryan Mullin 打造" — city names kept in English per spec, surrounded by natural Chinese phrasing
-- Informal register (您-form for respectful but approachable tone consistent with the platform's style) used throughout
-- All `$1`, `{placeholder}` interpolation markers preserved exactly in their correct grammatical positions
-## Portuguese i18n (#48) — 2026-07-21
-
-Adds European Portuguese (`pt.json`) and Brazilian Portuguese (`pt_BR.json`) locales — closes #48.
-
-- **Regional vocabulary split**: European Portuguese uses "separador" (browser tab), "definições" (settings), "desporto" (sport), "basebol", "basquetebol", "telemóvel"-register vocabulary, and pre-2009 spelling reform orthography (e.g. "directo", "activo", "óptimo"). Brazilian Portuguese uses "aba" (browser tab), "configurações" (settings), "esporte" (sport), "beisebol", "basquete", and post-reform spelling (e.g. "ativo", "direto").
-- **Cultural loading message localization**: `loading.m31` — European PT localizes the cheesesteak to "bifana" (iconic Portuguese pork sandwich); Brazilian PT localizes it to "coxinha" (beloved deep-fried street snack). The hot-dog vendor (`loading.m6`, `loading.m58`) becomes "o tipo das bifanas" in PT and "o cara do coxinha" in pt-BR.
-- **Sport idiom for `noGames.m4`**: European PT keeps a neutral tone ("Até os árbitros foram descansar"); Brazilian PT goes colloquial ("Até os árbitros foram bater um bolão" — they went to play a quick pick-up game).
-- **`walkthrough.letsGo`**: European PT uses "Vamos lá" (measured enthusiasm); Brazilian PT uses "Bora!" (high-energy Brazilian slang).
-- **Ludicrous Speed (Spaceballs)**: Both locales render "ludicrous speed" as "velocidade absurda", which is unambiguously over-the-top in both variants. "THEY'VE GONE TO PLAID" becomes "FORAM PARA O XADREZ!" in PT and "FORAM PRO XADREZ!" in pt-BR (casual contraction typical of Brazilian speech). The prelaunch "Que se lixe o cinto!" (PT) vs. "Que se dane o cinto!" (pt-BR) captures the same expletive dismissal with regionally appropriate vocabulary.
-- **"Comeback"**: European PT uses "remontada" (also the standard Spanish term, widely understood in Portugal via football coverage); Brazilian PT uses "virada" (the dominant Brazilian Portuguese term for a comeback).
-- **Proprietary terms preserved untranslated**: ArenaSwap, PowerScore, Standby Stream, `go birds`, all `$1`/`{placeholder}` markers, BSO abbreviations (B/S/O).
-
-## Rewrite README (#28) — 2026-07-19
-
-Creates a clean, professional README from scratch in `.github/README.md`.
-
-- Dark/light mode logo via `<picture>` using SVG (dark) and transparent-background PNG (light)
-- 11 badges: version, license, Chrome/Firefox/Edge support, TypeScript, React, WXT, Turborepo, Node.js, npm
-- Three new demo screenshots from marketing assets shown side by side
-- Correct homepage URL, no trademarked taglines, concise feature list, dev setup table, and monorepo map
-
-## Spanish i18n cleanup (#53) — 2026-07-18
-
-Polishes the existing Spanish (`es.json`) translation for quality, consistency, and natural phrasing across all Spanish-speaking regions.
-
-- **Signal name consistency**: Standardized PowerScore signal names across all three sections that reference them (`detail`, `powerScore`, `stepGameDetail`). "Closeness" → "Igualdad" everywhere; "Late-game" → "Recta final" everywhere; "Lead changes" → "Cambios de ventaja" everywhere
-- **Sport-agnostic `noGames.m1`**: "saque inicial" (soccer-specific) → "pitazo inicial" (referee whistle — works across all sports)
-- **Livelier copy**: `stepAutoSwitch.revealBody` now uses "se puso al rojo vivo" instead of the flat "se puso emocionante"
-- **Tailgate localization**: `loading.m45` changed to "asado antes del partido" — culturally resonant equivalent of "tailgate party" across Latin America and Spain
-- **Gender-neutral copy**: `stepReAccess.body` changed "un amigo" → "alguien" for inclusive phrasing
-- **Lexical consistency**: `tooltipGameBoost` and `postseasonBoost.explainer` changed from "juego" → "partido" to match the rest of the file
-- **Energy fixes**: `walkthrough.letsGo` now correctly uses "¡Vamos!" (both exclamation marks); `proTip.general.t5` tightened to "mejora cuanto más tiempo lo dejas correr"
-
-## Expand walkthrough to 8 steps — 2026-07-18
-
-Implements #25. Adds three new walkthrough steps (game detail, leagues & favorites, and re-accessing the tour), expanding the total from 5 to 8 steps. Updates all step counters across existing steps and refreshes Cypress tests to cover the full 8-step flow.
-
-- **Step 6 — Dive into any game** (`walkthroughStepGameDetail.tsx`): Interactive mock game card the user taps to reveal a live PowerScore breakdown preview (Closeness, Late Game, Momentum, Lead Changes, Comeback bars), explaining that any game card opens a full detail view with signal history and a manual Game Boost slider
-- **Step 7 — Leagues & favorites** (`walkthroughStepLeaguesFavorites.tsx`): Two-tab panel (Leagues / Favorites) with interactive toggles and star controls. Leagues tab explains that enabling a league tells ArenaSwap to monitor that competition; Favorites tab shows that starring a team adds a PowerScore bonus to their games — not a filter, just a boost. A yellow hint banner appears once a team is starred
-- **Step 8 — Coming back here** (`walkthroughStepReAccess.tsx`): Shows a decorative mock of the main-view header with the `?` button highlighted and a callout arrow, explaining the tour can be replayed any time
-- Updated step counters in `walkthroughStepToggle`, `walkthroughStepPowerScore`, `walkthroughStepTabAssign`, `walkthroughStepAutoSwitch`, and `walkthroughStepSettings` from `X of 5` → `X of 8`
-- Updated `walkthroughView.tsx`: extended `walkthroughStep` type, added `next`/`back` cases for steps 6–8, and mounted all three new step components
-- Added `stepGameDetail`, `stepLeaguesFavorites`, and `stepReAccess` translation keys to `en.json` and `es.json`
-- Updated `walkthroughView.cy.tsx`: updated all step-counter assertions (`of 5` → `of 8`), added tests for steps 6–8 including the tap-to-reveal interaction on step 6, the tab-switcher on step 7, and the done-screen flow through all 8 steps
-
-## Tutorial UX polish — 2026-07-17
-
-PowerScore walkthrough visual improvements and demo game logos.
-
-- **Solid orbit dots**: Each PowerScore signal dot is now rendered as a solid filled circle (previously was a hollow ring outline with glow only) with a double box-shadow glow for extra pop
-- **Bloom-to-fullscreen animation**: Tapping the active glowing dot in the signal sub-steps triggers a circle-clip reveal that expands from the dot position, flooding the full popup in the signal's color; the overlay shows the signal name, max points badge, measurement explanation, and description with auto-contrasting text (black on light colors, white on dark); a "Got it" button collapses it back with a matching shrink animation
-- **Boost/penalty contrast fix**: The info cards for boosts and penalties now use an on-brand semi-transparent colored background (`color + 18` opacity) with proper light `#e6edf3` body text and muted `#8b949e` section headers instead of the previous illegible white text on a gray `bg-dark-subtle` card
-- **Demo game logos**: `walkthroughStepAutoSwitch` and `walkthroughStepTabAssign` now render real ESPN CDN team logos (Eagles, Giants, 76ers, Celtics) via `<img>` tags with a colored-circle fallback if the network request fails
-- **CSS additions in `global.scss`**: New `@keyframes psBloomIn` / `psBloomOut` using `clip-path: circle()` anchored to a CSS custom property `--bloom-origin-x/y`, plus supporting classes `.ps-bloom-overlay`, `.ps-bloom-content`, `.ps-bloom-dot-badge`, `.ps-bloom-label`, `.ps-bloom-max-badge`, `.ps-bloom-section-head`, `.ps-bloom-body`, `.ps-bloom-got-it`
-
-## PowerScore Tutorial Bloom and Description Boxes Update — 2026-07-17
-
-Streamlined the PowerScore tutorial visual overlays and automated the bloom animation cycles.
-
-- **Removed Description Boxes**: Stripped the long description heading, body text, and max points badge from the `BloomOverlay` inside `walkthroughStepPowerScore.tsx` to focus only on clean visual indicators. Also removed the textual info card section below the visual in the boosts/penalties phases.
-- **Automated Looping Bloom**: Programmed the signal dots to bloom automatically when active. The overlay blooms in, holds for 1.5 seconds, shrinks back down to a dot, pauses for 0.5 seconds, and loops repeatedly on its own.
-- **Navigation Safety**: Configured the loop to safely clear, reset, and stop when the user advances, backs up, or steps away from the slide.
-
-
-## PowerScore walkthrough introduction — 2026-07-17
-
-Implements #36. Introduces a comprehensive walkthrough step for PowerScore right after the initial toggle step. It walks the user through all five excitement signals (Closeness, Late-game, Momentum, Lead changes, Comeback) and six boosts/penalties (Clock stall, Volatility, Favorite teams, Manual boost, Scoring opportunity, Postseason) with a custom orbital animation, interactive progress indicators, and rich visual highlights.
-
-- Created new walkthrough step component `walkthroughStepPowerScore.tsx` with a step-by-step presentation, active highlighting of active signals, centered icons for adjustments, and interactive progress-dot navigation
-- Updated `walkthroughView.tsx` to handle 5 total steps, support transitions, and manage passing `initialSubStep` when going back from the tab assignment step
-- Shifted step numbering for subsequent steps (`walkthroughStepToggle.tsx`, `walkthroughStepTabAssign.tsx`, `walkthroughStepAutoSwitch.tsx`, `walkthroughStepSettings.tsx`) and updated their step translation parameters to match Step 3, 4, and 5 of 5
-- Appended custom CSS animation styles for the rotating orbital ring, pulsing highlighted signal dots, custom boost icons, and progress indicators to `global.scss`
-- Added fully translated strings in English (`en.json`) and Spanish (`es.json`) for the new walkthrough screens
-- Installed `@types/bootstrap` as a devDependency in `package.json` to fix type-checking errors
-- Updated Cypress component tests in `walkthroughView.cy.tsx` to cover the new 5-step flow, sub-step click navigations, and back-button behavior
-
-## i18n API cleanup — 2026-07-17
-
-Implements #54. Brings the i18n setup fully in line with the `@wxt-dev/i18n` spec.
-
-- Converted `locales/en.yml` and `locales/es.yml` to `locales/en.json` and `locales/es.json` — the module supports `.json` natively and no conversion step is needed
-- Removed the custom dev-mode Vite plugin from `wxt.config.ts` that bypassed `chrome.i18n.getMessage()` by reading YAML directly at dev-server startup
-- Removed the `yaml` import and all related helpers (`DEV_I18N_ID`, `buildDevI18nModule`, `devLocale`) from `wxt.config.ts`
-- Removed `dev:es` and `dev:firefox:es` scripts that relied on `ARENASWAP_LOCALE`
-- Updated the Jest and Cypress i18n stubs to load `en.json` directly via `JSON.parse` / Vite's native JSON import instead of YAML parsing
-- Fixed a YAML-to-JSON conversion artifact: the `switchDelay.off` key was incorrectly serialized as `false` (YAML 1.1 boolean coercion) — corrected to `"off"` in both locale files
-
-## Use native Astro Image component on docs website — 2026-07-16
-
-Implements #40. Replaces bare `<img>` tags with Astro's `<Image>` component across the docs site for all locally-served assets, unlocking build-time WebP conversion, automatic `width`/`height` inference, and `decoding="async"` + `loading="lazy"` defaults.
-
-- Moved `full_logo_white_on_transparent.svg`, `icon_white_on_transparent.svg`, `leagues/mlb.png`, `leagues/nfl.png`, and `128.png` to `src/assets/` so Astro can optimize them at build time
-- Updated `Nav.astro`, `Footer.astro`, `Hero.astro`, `Leagues.astro`, and all four screenshot pages to import assets and use `<Image>`
-- Above-the-fold images (nav logo, hero logo) set `loading="eager"` to avoid lazy-loading critical content
-- External URLs (ESPN CDN league logos, Wikipedia photos) and dynamic blog post images remain as `<img>` tags — these cannot be optimized without configuring a remote image service
-- Original assets retained in `public/images/` for URL-based references (favicons, OG meta tags, Notification API)
-
-## Normalization indicator in PowerScore Breakdown — 2026-07-16
-
-When one or more signals are disabled, the Signals Total row in the PowerScore Breakdown now shows the normalization effect visually: the raw enabled-signal sum (strikethrough, gray) followed by an arrow and the re-scaled value (e.g. ~~78~~ → 89). A brief note below explains the re-scaling, and a tooltip on the "Signals total" label describes the mechanism. Fully translated (English + Spanish).
-
-## PowerScore signal toggles — 2026-07-16
-
-Implements #34. Users can now turn individual PowerScore signals (Closeness, Late-game, Momentum, Lead changes, Comeback) on or off from Settings → Switching.
-
-- Added `disabledSignals: SignalName[]` to `UserPreferences`; persisted and synced across devices
-- New `applyDisabledSignals` helper in `@arenaswap/core/constants` zeros out disabled signals and re-normalizes the remaining ones to keep PowerScores in the 0–100 range
-- Background scorer applies signal filtering immediately after computing each game's base score, so tab-switching decisions reflect disabled signals
-- Settings UI: a new "PowerScore Signals" section with a toggle per signal; the last active signal's toggle is disabled to prevent turning off all signals
-- PowerScore Breakdown: disabled signals display greyed-out with an "Off" badge instead of a progress bar
-- Fully translated (English + Spanish)
-
-## Signal tooltips — 2026-07-15
-
-Implements #35. Users can now hover (or focus) any signal or boost/penalty row in the PowerScore Breakdown to see a plain-English explanation of what it measures.
-
-- Added `SignalTooltipIcon` component — a tiny Bootstrap 5 `Tooltip`-powered `(?)` button, initialized via `useEffect`, disposed on unmount
-- Tooltips wired up for all 5 signals (Closeness, Late-game, Momentum, Lead changes, Comeback) and all 6 boosts/penalties (Clock stall, Volatility, Favorite, Game boost, Scoring opportunity, Postseason)
-- New `.signal-tooltip-btn` CSS class for compact, unobtrusive icon styling
-- Fully translated (English + Spanish)
-
-## Date-range setting for upcoming games — 2026-07-14
-
-Implements #33. Users can now control how many days ahead the "Up Next" section looks for upcoming games (1–14 days, default 7). The setting appears in Settings → Switching below the "Show upcoming games" toggle — only when that toggle is on.
-
-- Added `upcomingGamesDays` preference (default 7, clamped to 1–14 on load)
-- Settings UI: range slider labeled "Days ahead" — gated behind the `showUpcomingGames` toggle
-- ESPN fetch window now respects the preference (previously hardcoded to 4 days); background re-fetches upcoming games when the value changes
-- "Show more" button in the Up Next section: initially shows up to 10 games, reveals the rest on demand to prevent excessive popup scrolling
-- Fully translated (English + Spanish)
-
-## Fix TypeScript 7 type errors — 2026-07-14
-
-Fixed three type errors in `ludicrousSpeedOverlay.tsx` introduced by the TypeScript 7 upgrade. The `introLines`, `prelaunchLines`, and `panicLines` arrays were annotated as `{ key: string; ms: number }[]`, but `i18n.t()` only accepts specific literal key types (not the broad `string`). TypeScript 7 correctly enforces this. Fixed by adding `as const` to each array so keys are inferred as their literal types.
-
-## Improve Cypress component test coverage — 2026-07-14
-
-Adds 5 new Cypress component test files covering UI surfaces that had no test coverage:
-
-- **`powerScoreBreakdown.cy.tsx`** (15 tests) — signal progress bars, stall penalty display, win probability variance labels (Volatility Boost / Penalty / neutral), favorite and game boost rows
-- **`gameBoostInput.cy.tsx`** (5 tests) — renders, displays current value, fires `onSetGameBoost`, clamps negatives to 0, uses game ID in the input `id`
-- **`postseasonBoostInput.cy.tsx`** (4 tests) — renders label and explainer, displays current value, fires `onChange`, clamps negatives to 0
-- **`walkthroughView.cy.tsx`** (13 tests) — full step navigation (1→2→3→4→done), back navigation, step 3 Next-button disabled until animation timer fires, done-screen completion callback, step 1 interactive toggle demo
-- **`setupView.cy.tsx`** (21 tests) — Switching/Leagues tab switching, standby stream threshold visibility, no-leagues warning badge, temperature unit toggle label, demo mode toggle
-
-Also adds a `ludicrousSpeedOverlay` Cypress stub and registers it in `cypress.config.ts` so `sensitivitySlider` (imported by `setupView`) resolves cleanly in the component test environment.
-
-## Fix series dots ordering — 2026-07-12
-
-Fixed a bug where series win dots were rendered in the wrong positions. The ESPN API returns series events with future (unplayed) games listed first and completed games at the end of the array. The dots component now sorts completed events to the front before rendering, so filled dots correctly appear on the left for each win earned so far.
-
-## PowerScore breakdown display fixes — 2026-07-12
-
-- **Clock stall penalty** now shows a signed number (`0` or `-X`) instead of "none"/"applied" text
-- **Volatility label** is now dynamic: "Volatility Boost" when positive, "Volatility Penalty" when negative, "Volatility" when neutral
-- **Favorite bonus** renamed to "Favorite Boost" for consistent boost/penalty language
-- Added `stallPenalty` field to `PowerScoreResult` and `PowerScoreSnapshot` types — the scorer now exposes the exact points removed by the stall penalty
-
-## Volatility boost/penalty reclassification — 2026-07-12
-
-Reclassifies the win probability variance modifier from a "signal" to a proper boost/penalty. The score calculation is unchanged; this is a UI, language, and visual style update. The breakdown now shows Volatility alongside other boosts (Favorite, Game boost, Scoring opportunity, Postseason) with a signed +/− value instead of a progress bar. Positive volatility is colored purple; negative (blowout penalty) is red.
-
-## Win Probability Variance boost/penalty — 2026-07-12
-
-Adds a new ±10-point PowerScore modifier that rewards games with volatile win probability swings and penalises one-sided blowouts. Closes [#32](https://github.com/hiteacheryouare/arenaswap/issues/32).
-
-### How it works
-
-ESPN's summary API returns the full win-probability history for a live game in a single call. The scorer computes the statistical variance of the `homeWinPercentage` array and maps it linearly from [0, `maxVariance`] → [−10, +10]:
-
-- **+10** — win probability is swinging wildly all game; neither team has a comfortable lead for long
-- **0** — neutral variance (the midpoint between a stable and a chaotic game)
-- **−10** — perfectly stable; one team has been dominant from the opening whistle
-
-The background service refreshes win-probability data every 60 seconds per live game (much less often than the scoreboard poll) and evicts stale entries when games go final.
-
-### What changed
-
-**`packages/powerscore/src/types.ts`**
-- `PowerScoreResult` — added optional `winProbabilityVariance?: number`
-- `ScorerTunables` — added `winProbabilityVariance: { maxVariance, minDataPoints }` config block
-
-**`packages/powerscore/src/constants.ts`**
-- `scoreWinProbVarianceMax = 10` — the ±10 cap exported for UI consumers
-- `scorerTunables.scores.winProbabilityVariance` — tunable `maxVariance: 0.10`, `minDataPoints: 5`
-
-**`packages/powerscore/src/scorer.ts`**
-- `computeWinProbVarianceScore(winProbHistory)` — new exported helper; returns a rounded integer in [−10, +10] or `undefined` when data is insufficient
-- `computePowerScore` — accepts optional 4th argument `winProbabilityHistory: number[]`; integrates the variance modifier into `rawTotal` and always emits `baseTotal`
-- `normalizePowerScoreResult` — normalises and passes through `winProbabilityVariance`
-
-**`packages/powerscore/tests/scorer.test.ts`**
-- 12 new tests covering `computeWinProbVarianceScore` (stable → −10, extreme → +10, neutral ≈ 0) and the integration with `computePowerScore` / `normalizePowerScoreResult`
-
-**`packages/core/src/apiClient.ts`**
-- `fetchWinProbabilityHistory(espnPath, gameId)` — hits ESPN's summary endpoint, extracts `winprobability[].homeWinPercentage`, returns `number[]`
-
-**`packages/core/src/constants.ts`** / **`packages/core/src/index.ts`**
-- Re-exports `scoreWinProbVarianceMax` and `computeWinProbVarianceScore` so consuming apps don't need a direct `powerscore` import
-
-**`packages/core/src/types.ts`**
-- `PowerScoreSnapshot` — added `winProbabilityVariance?: number` to match `PowerScoreResult`
-
-**`apps/extension/entrypoints/background.ts`**
-- `winProbabilityCache` map (keyed by game ID) — stores `{ data, fetchedAt }` and evicts finished games
-- `refreshWinProbability(liveGames)` — fire-and-forget refresh every 60 s; failures silently ignored
-- `computePowerScore` call now passes `winProbabilityCache.get(g.id)?.data ?? []` as the 4th argument
-
-**`apps/extension/entrypoints/popup/components/powerScoreBreakdown.tsx`**
-- New `winProbabilityVariance?: number` prop
-- Renders a purple `●` row between the five core signals and "Signals total" when data is present; shows the signed value (`+8`, `−4`) against a `/10` max and a proportional progress bar
-
-**`apps/extension/entrypoints/popup/components/gameDetailView.tsx`**
-- Extracts `winProbabilityVariance` from the active PowerScore result and passes it to `PowerScoreBreakdown`
-
-**`apps/extension/locales/en.yml`** / **`es.yml`**
-- `powerScore.signalWinProbVariance` added in English ("Win prob variance") and Spanish ("Varianza de prob. victoria")
-- `proTip.detail.t0` updated to mention win probability variance alongside the other five signals
-
-## Screenshot popup sizing + hero real-card swap — 2026-07-11
-
-Real game cards (from the ui package) are taller than the old hand-coded mockups. Scaled screenshot popups to 82% so they fit within the 1280×800 canvas, and replaced the hero section's hand-coded demo cards with real `LiveGameCard` components.
-
-### What changed
-
-**`apps/docs/src/pages/screenshots/_screenshot.scss`**
-- Added `transform: scale(0.82)` to `.popup-overlay .popup` and `.popup-float .popup` so card content fits within the canvas without overflow
-
-**`apps/docs/src/pages/screenshots/3.astro`**
-- Updated `.popup-large { transform: translateX(-50%) scale(0.82); transform-origin: top center; }`
-- Adjusted `.dropdown-menu-fake { top: 495px; }` (was 380px) to align with scaled card position
-
-**`apps/docs/src/styles/global.scss`**
-- Added `@import '@arenaswap/ui/src/game-card';` so game card CSS is available site-wide
-- Removed `height: 560px` from `.demo-popup` (popup auto-sizes to real card content)
-- Removed all hand-coded `.demo-card` / `.demo-matchup` / `.demo-ps-*` CSS (replaced by real component styles)
-
-**`apps/docs/src/components/HeroCard.tsx`** (new)
-- Thin wrapper around `LiveGameCard` for the hero section (same pattern as `ScreenshotCard.tsx`)
-
-**`apps/docs/src/components/Hero.astro`**
-- Added game data for BU vs NU (NCAAB) and KC vs BAL (NFL)
-- Replaced two `.demo-card` HTML blocks with `<HeroCard>` components
-
-## UI package refactor — 2026-07-11
-
-Extracted all game card components from `apps/extension` into `packages/ui` so they can be shared across all surfaces (extension and docs). Screenshot pages in `apps/docs` now render real extension components instead of hand-coded HTML mockups.
-
-### What changed
-
-**`packages/ui/src/components/`** (all new)
-- `colorUtils.ts` — `resolveTeamColorPair` and its private helpers extracted from `gameDetailChartOptions.ts`; now shared between game cards and charts
-- `i18nContext.tsx` — `TranslationContext` + `useT()` hook with default English strings; lets game card components work without WXT's `#i18n` virtual module
-- `gameCardTypes.ts` — `GameCardDisplayProps` interface (no WXT/browser deps); uses `tabSlot?: ReactNode` instead of tab-specific props
-- `gameCardShared.tsx`, `gameCard.tsx`, `liveGameCard.tsx`, `preGameCard.tsx`, `bsoIndicator.tsx` — moved from extension; use `useT()` and `tabSlot` pattern
-- `_game-card.scss` — all game card CSS extracted from extension's `bootstrap.scss`
-- `components/index.ts` — barrel exports for all moved components
-
-**`packages/ui/package.json`**
-- Added `peerDependencies: { react: ">=18", react-dom: ">=18" }` and `dependencies: { "@arenaswap/core": "*" }`
-
-**`apps/extension/`**
-- `app.tsx` — wraps popup in `<TranslationContext.Provider value={i18n.t}>`
-- `liveGameCard.tsx`, `preGameCard.tsx` — replaced with thin wrappers that inject `<TabAssignSelect>` as `tabSlot`
-- `gameCard.tsx` — real dispatcher using extension wrappers (not a re-export)
-- `gameCardTypes.ts` — re-exports shared types from ui; keeps extension-specific superset
-- `baseDiamond.tsx`, `flipScore.tsx`, `bsoIndicator.tsx`, `weatherUtils.ts`, `gameCardShared.tsx` — thin re-exports
-- `gameDetailChartOptions.ts` — removed duplicate color utilities; imports from `@arenaswap/ui/src/components/colorUtils`
-- `gameDetailView.tsx`, `seriesDots.tsx` — updated imports to use `@arenaswap/ui/src/components/colorUtils` directly
-- `bootstrap.scss` — removed game card CSS (now in ui package); imports `@arenaswap/ui/src/game-card`
-- `cypress/component/liveGameCard.cy.tsx` — updated import path; removed tab props; added `bettingPrefs`
-
-**`apps/docs/src/`**
-- `components/ScreenshotCard.tsx` (new) — React wrapper around `LiveGameCard` that accepts `tabLabel?: string`; works around Astro JSX-as-prop limitation
-- `pages/screenshots/_screenshot.scss` — replaced hand-rolled fonts/card styles with imports from ui package
-- `pages/screenshots/1.astro`, `2.astro`, `3.astro` — replaced mock HTML game cards with real `<ScreenshotCard>` components using typed mock data
-
-## Team color pair normalization — 2026-07-09
-
-Previously, each team's display color was resolved independently: pick the primary color, fall back to the alternate if the primary was too dark. This worked for solid borders but failed for matchup gradients and chart lines when two teams happened to share similar primary colors — both sides of the card blended into the same hue and chart lines were hard to distinguish.
-
-### What changed
-
-**`packages/core/src/types.ts`**
-- Added `alternateColor?: string` to the `Team` interface so both the primary and alternate colors survive the API parse and are available to rendering code.
-
-**`packages/core/src/apiClient.ts`**
-- Replaced `normalizeTeamColor` (returned one color, discarded the other) with `resolveTeamColors`, which returns `{ color, alternateColor }` spread directly onto the team object. When the primary is too dark for the UI the alternate is promoted to `color` and the original primary is kept as `alternateColor` so the pair-resolver can still try it (it will lighten it for charts).
-
-**`apps/extension/entrypoints/popup/components/gameDetailChartOptions.ts`**
-- Added `colorDistance` (Euclidean RGB distance), `isUsable` (luminance 3–95%), and `pickPair`.
-- `pickPair` tries all four primary/alternate combinations for the two teams and picks whichever pair exceeds the clash threshold (65) or, failing that, maximizes color distance. Falls back to the primary pair if no alternate combination improves things.
-- New exported `resolveTeamColorPair(away, home, awayFallback, homeFallback, lighten?)` wraps `pickPair` and optionally runs `resolveReadableSeriesColor` (now private) on the result for dark-background chart use.
-- Lowered the luminance brightening threshold from `0.34` to `0.10` — only genuinely near-black colors get mixed toward white; mid-dark colors like navy now pass through unchanged.
-- All three chart builders (`buildTeamScoreOption`, `buildScoreMarginOption`, `buildWinProbabilityOption`) updated to call `resolveTeamColorPair`.
-
-**`apps/extension/entrypoints/popup/components/gameDetailView.tsx`**, **`gameCardShared.tsx`**, **`seriesDots.tsx`**
-- All team color reads replaced with `resolveTeamColorPair` calls, so card gradients, border accents, chart legend dots, and series dots all use the same clash-aware pair.
-
-**`packages/powerscore/tests/polling-coupling.test.ts`**
-- Extracted `bballScoreAtT` helper; removed leftover `console.log` / `console.table` debug calls.
-
-## Fix poll-frequency / history-window coupling — 2026-07-07
-
-Previously, history was capped at a fixed snapshot count (`maxHistorySnapshots`). At fast poll rates (6s on exciting games), the window covered only ~3 minutes of real time — meaning a momentum run or comeback rally that started just outside that window became completely invisible to the scorer, even if its decay should still be contributing points. This created a negative feedback loop: high excitement → faster polls → narrower history → signals drop out → score deflates.
-
-### What changed
-
-Replaced count-based history trimming with **time-based windows** (`historyWindowMs`) set per sport at `4 × max(decayHalfLifeMs)`:
-
-| Sport | Before (count) | After (time window) |
-|---|---|---|
-| Basketball | 32 snapshots | 5 min |
-| Hockey | 30 snapshots | 16 min |
-| Baseball / Softball | 36 snapshots | 12 min |
-| Football | 32 snapshots | 12 min |
-| Soccer | 40 snapshots | 20 min |
-
-The `historyWindowMs` replaces `maxHistorySnapshots` on `SportTypeConfig`. The background service worker, both powerscore scripts, and all history trim sites now use `while (snapshots[0].timestamp < cutoff) snapshots.shift()` instead of a count cap.
-
-### Result
-
-Hockey goals scored 7 minutes ago produce the same momentum score (7 pts) at 6s polling as at 25s polling. Before the fix: 0 pts at 6s, 7 pts at 25s — an 11-point total gap.
-
-## Redesigned debug panel — 2026-07-06
-
-Replaced the minimal green-on-black key-value debug panel with a fully redesigned, sectioned debug panel that exposes deep runtime internals previously inaccessible from the UI.
-
-### New `GET_DEBUG_STATE` background message
-
-The background service worker now responds to `GET_DEBUG_STATE` with a `DebugState` payload covering:
-- **Per-league poll modes** (`eager` / `dormant`) from the `pollModeTracker`
-- **Clock stall map** — per-game stall counts and last-seen clock values
-- **Tab registry** — which tabs are assigned to which games
-- **Pending switch** — queued tab switch with reason
-- **Last switch timestamp**
-- **Demo mode flag**
-- **Game counts** (live / upcoming / total)
-- **Standby stream state**
-- **Current PowerScore results**
-- **Active sensitivity, cooldown, and switch delay preferences**
-- **Game labels** (away·home abbreviation pairs for display)
-
-### Debug panel UI (popupFooter)
-
-- **RUNTIME** — version, build mode, browser, MV, extension ID
-- **POLLING** — live/demo mode badge, per-league eager/dormant grid, last switch time, pending switch, sensitivity threshold, cooldown, delay
-- **GAMES** — live/upcoming/total counts, tab registrations, standby stream status
-- **CLOCK STALLS** — per-game stall counts with last clock value (hidden when none active)
-- **POWERSCORE** — top 5 live games ranked by score with block-character bar and stall indicator
-- **STORAGE** — key counts and key names for sync/local/session storage
-- Auto-refreshes every 5 seconds while open; shows last-refreshed timestamp
-
-### Styling
-
-Replaced flat monospace panel with Lekton-font sectioned layout using brand gradient accent colors per section, status badges, and block-character score bars. Panel scrolls internally at `max-height: 17rem`.
-
-**Files changed:** `packages/core/src/types.ts`, `apps/extension/entrypoints/background.ts`, `apps/extension/entrypoints/popup/components/popupFooter.jsx`, `apps/extension/assets/bootstrap.scss`
-
----
-
-## PowerScore-driven adaptive polling — 2026-07-06
-
-Replaces the flat 15-second eager poll interval with a continuous PowerScore-based schedule. The more exciting the live game, the sooner the league polls again — concentrating API budget on moments that matter without increasing total request volume.
-
-### Polling mode hierarchy
-
-| State | Condition | Interval |
-|---|---|---|
-| Eager | Live game, PowerScore 100 | ~6s |
-| Eager | Live game, PowerScore 50 | ~15.5s |
-| Eager | Live game, PowerScore 0 | ~25s |
-| Intermission | All live games in halftime/break | ~40s |
-| Dormant | 2 consecutive empty polls | 120–180s (unchanged) |
-| Error | Fetch failure | ~15s (unchanged) |
-
-Jitter now scales proportionally — fast (critical) polls stay tight (±500ms), slow polls spread more (±2s).
-
-**`packages/core/src/pollIntervalComputer.ts`** *(new)*
-- `computeEagerIntervalMs(score)` — linear interpolation from PowerScore (0–100) to interval (25s→6s)
-- `computeLeagueIntervalMs(liveGames, currentScores)` — picks the highest-scoring active game in the league to set the pace; returns `pollIntermissionMs` when all live games have `intermission === true`
-
-**`packages/core/src/constants.ts`**
-- Added `pollMinEagerMs = 6_000`, `pollMaxEagerMs = 25_000`, `pollIntermissionMs = 40_000`
-- `pollIntervalMs = 15_000` retained for initial stagger, demo mode, and error fallback
-
-**`packages/core/src/index.ts`**
-- Exports `computeEagerIntervalMs`, `computeLeagueIntervalMs`, and the three new interval constants
-
-**`apps/extension/entrypoints/background.ts`**
-- `tickLeague` replaces the hardcoded `pollIntervalMs + jitter` with a call to `computeLeagueIntervalMs` using the previous poll's `currentScores` (available in closure scope at reschedule time)
-- Dormant and error-fallback branches are unchanged
-
-**`packages/core/tests/pollIntervalComputer.test.ts`** *(new)*
-- 13 unit tests: boundary clamping, midpoint accuracy, intermission detection, multi-game max-score selection, empty-scores fallback, scores-exceeding-100 clamping
-
-**Marketing & docs**
-- `apps/extension/marketing/desc_long.md`, `short_summary_chrome.txt`, `short_summary_edge_ff.txt` — replaced "every 15 seconds" with adaptive-polling copy; frames "as often as every 6 seconds during tense moments" as a feature
-- `apps/docs/src/content/blog/introducing-v2.mdx` — updated polling section and table to reflect the three-tier hierarchy
-- `apps/docs/src/components/LivePowerScores.tsx` — removed hardcoded "every 15 seconds" from the no-games copy
-
-## Add @arenaswap/ui shared design-system package — 2026-07-06
-
-Created `packages/ui` as the single source of truth for the ArenaSwap brand tokens, eliminating duplication of colors, Bootstrap overrides, and font declarations across the docs site and browser extension.
-
-**`packages/ui` (new)**
-- `src/_bootstrap.scss` — shared Bootstrap 5 variable overrides (colors, dark theme, font stack, form controls); import before `@import 'bootstrap/scss/bootstrap'` in each app
-- `src/_fonts.scss` — parameterizable `@font-face` declarations for DM Sans and Lekton; configure `$font-base-url` before importing to set the right font path per app
-- `src/tailwind.css` — Tailwind v4 `@theme` tokens mapping all brand colors and typography to Tailwind utilities
-
-**`apps/docs`**
-- `global.scss`: replaced duplicated Bootstrap overrides + font-face block with imports from `@arenaswap/ui`; docs-specific accordion/navbar/link overrides remain
-- `tailwind.css`: now imports from `@arenaswap/ui/src/tailwind.css` instead of re-declaring the `@theme` block
-- `components/LivePowerScores.tsx`: fixed anti-pattern import from `../../../../packages/powerscore/src/...` — now imports from the `powerscore` package API
-- `package.json`: added `@arenaswap/ui: "*"` and `powerscore: "*"` as explicit workspace dependencies (Turborepo requires declared deps to build the graph correctly)
-
-**`apps/extension`**
-- `assets/bootstrap.scss`: replaced duplicated Bootstrap variable block with import from `@arenaswap/ui`; extension-specific sizing/form-control overrides remain
-- `assets/global.scss`: replaced duplicated `@font-face` declarations with import from `@arenaswap/ui/src/fonts`
-- `package.json`: added `@arenaswap/ui: "*"` workspace dependency
-
-**Root**
-- `package.json`: fixed `"lint": "turbo lint"` anti-pattern → `"turbo run lint"` (shorthand is for interactive terminal use only, not scripts)
-
-## Move betting and weather settings under Options — 2026-07-05
-
-Consolidated the Betting and Weather section headings into the Options section in setup view, removing two separate headings and placing the toggles alongside the other option toggles.
-
-## Add postseason boost to PowerScore — 2026-07-05
-
-Adds a flat, user-tunable PowerScore bonus for any game ESPN classifies as postseason (`season.type === 3`), covering playoffs, tournaments, and knockout rounds across all leagues. Defaults to +5 points.
-
-**`packages/core/src/espnSchemas.ts`**
-- Added `EspnSeasonSchema` (`year`, `type`, `slug`)
-- Added `season?: EspnSeason` field to `EspnEventSchema`
-
-**`packages/core/src/types.ts`**
-- Added `isPostseason?: boolean` to `Game`
-- Added `postseasonBoostPoints: number` to `UserPreferences`
-- Added `postseasonBoost?: number` to `PowerScoreSnapshot`
-
-**`packages/powerScore/src/types.ts`**
-- Added `postseasonBoost?: number` to `PowerScoreResult`
-
-**`packages/powerScore/src/scorer.ts`**
-- Normalizes `postseasonBoost` through `normalizePowerScoreResult`
-
-**`packages/core/src/apiClient.ts`**
-- Parses `isPostseason: event.season?.type === 3` in `parseEvent`
-
-**`packages/core/src/constants.ts`**
-- Added `defaultPostseasonBoostPoints = 5`; wired into `createDefaultUserPreferences` and `normalizeUserPreferences`
-
-**`apps/extension/entrypoints/background.ts`**
-- Computes `postseasonBoost` from `prefs.postseasonBoostPoints` when `game.isPostseason` is true
-- Applies it additively alongside `favoriteBonus`, `gameBoost`, and `scoringOpportunityBoost`
-- Persists `postseasonBoost` in PowerScore history snapshots
-
-**`apps/extension/entrypoints/popup/components/postseasonBoostInput.tsx`** *(new)*
-- Numeric input component for configuring postseason boost points
-
-**`apps/extension/entrypoints/popup/components/setupView.tsx`**
-- Renders `PostseasonBoostInput` below `FavoriteTeamBonusInput`
-
-**`apps/extension/entrypoints/popup/app.tsx`**
-- Wires `onPostseasonBoostChange` to persist `postseasonBoostPoints` preference
-
-**`apps/extension/entrypoints/popup/components/powerScoreBreakdown.tsx`**
-- Adds "Postseason boost" row to the breakdown display
-
-**`apps/extension/entrypoints/popup/components/gameDetailView.tsx`**
-- Reads `postseasonBoost` from active PowerScore result; passes to breakdown; included in `totalBeforeBonuses` calculation
-
-**`apps/extension/locales/en.yml` / `es.yml`**
-- Added `postseasonBoost.*` and `powerScore.postseasonBoost` keys
-
-## Add Game Condition (weather) display — 2026-07-05
-
-Shows outdoor game weather on pre-game cards and the detail view, sourced from ESPN's scoreboard endpoint at zero extra API cost.
-
-**`packages/core/src/espnSchemas.ts`**
-- Added `EspnWeatherSchema` (`temperature`, `highTemperature`, `conditionId`)
-- Added `weather` field to `EspnEventSchema` (event level, not competition level)
-- Added `indoor` field to `EspnCompetitionVenueSchema`
-
-**`packages/core/src/types.ts`**
-- New `GameCondition` interface: `{ temperatureF, conditionLabel }`
-- Added `weather?: GameCondition` to `Game`
-- Added `temperatureUnit: 'F' | 'C'` to `UserPreferences`
-
-**`packages/core/src/constants.ts`**
-- Default `temperatureUnit: 'F'`; normalize handles `'C'` from stored prefs
-
-**`packages/core/src/apiClient.ts`**
-- `parseWeather()` maps `event.weather` to `GameCondition`
-
-**`apps/extension/entrypoints/popup/components/`**
-- New `weatherUtils.ts`: Bootstrap icon map for condition labels + `formatTemperature()`
-- Pre-game card: weather chip at top-right (Bootstrap icon + temp)
-- Detail view: dedicated weather row (icon + condition label + temp)
-- Setup view: Weather section with °F / °C toggle button
-
-**`apps/extension/assets/bootstrap.scss`**
-- `position: relative` on `.game-card`
-- New: `.pre-game-weather`, `.game-detail-weather`, `.game-detail-weather-sep`, `.temperature-unit-toggle`
-
-**`apps/extension/locales/en.yml`, `es.yml`**
-- New `setup.weatherSection`, `setup.temperatureUnit`, `setup.temperatureUnitF`, `setup.temperatureUnitC`
-
----
-
-## SCSS refactor: mixins, loops, and nesting — 2026-07-05
-
-Improved all three SCSS source files by leveraging SCSS features where they reduce repetition without sacrificing readability.
-
-**`apps/docs/src/styles/global.scss`**
-- `@mixin woff2-face` replaces 6 identical `@font-face` blocks (42 lines → 16)
-- `@for` loop generates `.reveal-delay-1` through `-5` (uniform `0.1s * $i` pattern)
-- `@for` loop generates `.hero-word-1` through `-4` (base `0.1s + ($i-1)*0.12s` stagger)
-- `$ps-signal-colors` map + `@each` generates `.ps-signal-card-green/orange/blue/yellow/pink`
-- `@for` loop generates `.lv-logo-delay-1` through `-5` (`($i-1)*0.8s`)
-- Combined `@for` generates both `.lv-track-*` and `.lv-track-out-*` in one pass
-- `.accordion-button::after` and `:not(.collapsed)::after` deduplicated into one nested rule
-
-**`apps/extension/assets/global.scss`**
-- `@mixin woff2-face` replaces 6 `@font-face` blocks (48 lines → 16)
-
-**`apps/extension/assets/bootstrap.scss`**
-- `@for` loop generates `.sensitivity-tick-0` through `-6` using `percentage($i / 6)`
-- `.game-detail-back-button:hover` nested into `.game-detail-back-button`
-- `.game-detail-shell .game-meta-*` descendants nested inside `.game-detail-shell`
-
-## Hero canvas: data labels + spread fix — 2026-07-05
-
-Overhauled the hero particle animation's drift phase with two major improvements.
-
-**Anti-clustering spread:**
-- Replaced toroidal wrap with wall bounce — particles now visibly collide with the screen edges and scatter back, breaking up corner clusters
-- Reduced explosion velocity (max ~22 px/frame → ~13 px/frame) so fewer particles slam simultaneously into the same edge
-- Added inter-anchor-node repulsion during drift (O(N_ANCHOR²) ≈ 3,160 checks/frame) to actively push the large visible nodes apart
-- Removed mouse repulsion from drift phase
-
-**Data label overlay:**
-- 16 real matchup labels (NFL, NBA, NCAAB, MLB, EPL, UCL, NHL, MLS) appear and fade during drift, each with a gray "context" line (raw data) and an orange "signal" line (POWERSCORE, CLOSENESS, COMEBACK, etc.) — visually reinforcing the raw data → insight transformation narrative
-- Labels connect to the nearest anchor particle with a dashed orange line
-- Up to 4 labels on screen at a time; each fades in (480ms), holds (2.2–4s), fades out; new ones spawn every 2s
-
-## Replace logo PNGs with SVGs — 2026-07-05
-
-Replaced raster logo images with vector SVGs across the extension popup and docs site for crisper rendering at any resolution.
-
-- Created `full_logo_white_on_transparent.svg` and `icon_white_on_transparent.svg` from the new vectorized source SVGs (white fill, transparent background)
-- Updated 6 extension popup components (`errorBoundary`, `mainView`, `onboardingView`, `onboardingTabControl`, `walkthroughView`, `walkthroughStepToggle`) from `.png` to `.svg`
-- Updated 5 docs components/pages (`Nav`, `Footer`, `Hero`, `Leagues`, and screenshot pages 1–3) from `.png` to `.svg`
-- Source SVGs (`full_logo_black.svg`, `icon_black_on_white.svg`, `full_logo_white_on_black.svg`, etc.) are preserved unmodified
-
-## Show "Watch:" broadcast networks on live game cards — 2026-07-02
-
-Live game cards now display the "Watch: ESPN • NBC" line beneath the score, matching the behavior already shown in the game detail view. Upcoming (pre-game) cards continue to hide broadcasts as before. Single-line fix: removed the `hideBroadcasts` prop from `GameMeta` in `liveGameCard.tsx`.
-
-## Easter egg: Ludicrous Speed warp tunnel — 2026-07-02
-
-When the sensitivity slider is cranked to max (level 7), the rainbow "Ludicrous Speed" label becomes clickable. Clicking it hijacks the popup with a full-screen warp tunnel: the speed ramps through LIGHT SPEED → RIDICULOUS SPEED → LUDICROUS SPEED, then fires the entire Spaceballs Colonel Sandurz dialogue while the tunnel accelerates past all reason. At "THEY'VE GONE TO PLAID!" the star colors cycle through PowerScore colors at ludicrous rate. "STOP!" decelerates everything and closes the overlay. Click anywhere to skip.
-
-## Fix: Spanish dev server named substitution bug + i18n adapter refactor — 2026-07-02
-
-Fixes two broken Spanish translations in dev mode and cleans up the Spanish dev server implementation.
-
-### Bug fix
-The dev-mode i18n adapter (`ARENASWAP_LOCALE=es wxt`) wasn't applying named substitutions — calls like `i18n.t('sensitivity.valueLabel', { label, gap })` and `i18n.t('detail.totalLabel', { total, max })` returned the raw template string with `{label}`, `{gap}`, `{total}`, `{max}` unexpanded. Root cause: the adapter's `t()` loop only handled `number` and `Array` args, silently dropping plain objects. Added a `namedSub` branch (matching the production `@wxt-dev/i18n` behavior) and passed it to `_sub()` ahead of the positional `sub`.
-
-### Refactor
-Replaced the old "write temp file → alias to it" mechanism with a Vite virtual module plugin (`enforce: 'pre'`, `resolveId` / `load` hooks). The adapter code is now generated inside a proper `buildDevI18nModule()` function rather than as an escaped inline string. No temp file is written; the Chrome profile setup (needed for macOS locale forcing) is unchanged.
-
-## Internationalization: Spanish support for the popup — 2026-07-02
-
-First step toward serving sports fans outside the US market: the extension popup is now fully localized and ships with a Spanish translation, auto-selected from the browser UI locale.
-
-### Framework
-- Added the [`@wxt-dev/i18n`](https://wxt.dev/i18n) module (registered in `wxt.config.ts`) and set `manifest.default_locale: 'en'`. WXT compiles `locales/*.yml` into the standard extension `_locales/**/messages.json` at build time.
-- Message files live in `apps/extension/locales/en.yml` (source of truth) and `apps/extension/locales/es.yml` — 339 keys each, structurally aligned.
-- Strings are accessed via `i18n.t('key')` from the generated `#i18n` module, with `$1` positional / `{named}` substitutions and `0`/`1`/`n` plural forms where needed.
-
-### Scope
-- Every user-facing string in the popup — onboarding, walkthrough, game cards, PowerScore breakdown, settings, standby-stream guide, empty/loading/error states, toasts, pro tips, and the 73 flavor loading messages — now resolves through the locale files. Sport/team data from the ESPN API is left untranslated.
-- Language is auto-detected from the browser; no in-app switcher in this pass. Store metadata and the docs site are intentionally out of scope for now.
-
-### Dev scripts
-- `npm run dev:es` and `npm run dev:firefox:es` launch the dev browser with its UI language forced to Spanish (via the `ARENASWAP_LOCALE` env var). When set, `wxt.config.ts` generates a self-contained JS adapter at startup and aliases `@wxt-dev/i18n` → that adapter via Vite's `resolve.alias`. The adapter inlines the parsed YAML data and implements the same `createI18n()` API — completely bypassing `chrome.i18n.getMessage()`, which is unreliable for locale selection on macOS in dev. Aliasing the npm package (rather than the virtual `#i18n` module) guarantees the adapter wins over any WXT-generated alias. Unset → the real `@wxt-dev/i18n` module and Chrome's UI locale.
-
-### Tooling / tests
-- Added `#i18n` path mappings to `tsconfig.json` and `tsconfig.jest.json`; disabled declaration emit in the extension's leaf tsconfig (it's bundled by WXT, not `tsc`).
-- New `tests/stubs/i18n.ts` (Jest) and `cypress/stubs/i18n.ts` (Cypress) stubs load `en.yml` and reimplement `i18n.t` (substitutions + plurals) so tests exercise real message resolution against the `#i18n` module. All 101 unit + 16 component tests pass.
-
-## Fix: game detail matchup card centering — 2026-06-27
-
-The teams row in the game detail card (logo / score / logo) was visually shifted slightly to the right due to sub-pixel rounding when `justify-content: space-between` distributed leftover space across fixed-width team wraps and a fixed `min-width` center div. Replaced `min-width: 116px` on `.game-detail-center` with `flex: 1` so the center absorbs all remaining space exactly, guaranteeing symmetric gaps and perfect score centering.
-
-## Scoring opportunity boost — 2026-06-27
-
-Automatic PowerScore boost that activates when live game state signals an imminent scoring threat.
-
-### How it works
-- **Baseball / softball** — scales with runners on base: 1 runner +3, 2 runners +6, bases loaded +10.
-- **NFL / NCAAF / UFL** — red zone possession (ESPN `isRedZone` flag) adds +10.
-- Boost is additive, applying on top of the existing favorite team bonus and manual game boost.
-- Only fires for in-progress games (`status === 'in'`); has no effect pre- or post-game.
-
-### PowerScore breakdown UI
-- New **Scoring opportunity** row in the PowerScore breakdown card on the game detail view, showing the active boost value or `0` when the situation has cleared.
-
-### ESPN data
-- `isRedZone` was already present in the ESPN situation schema but not exposed on the `Game` type; it is now parsed and forwarded for all football sports.
-- Investigated NHL power play data — ESPN's scoreboard `situation` object is always empty for hockey (power play state exists only in the play-by-play endpoint, which would require a separate per-game poll). NHL support deferred.
-
-### Tests
-Added **10 new unit tests** in `packages/powerscore/tests/scorer.test.ts` covering `computeScoringOpportunityBoost`: non-live guard, baseball with 0/1/2/3 runners, softball runner scaling, football with and without red zone, and non-applicable sport types.
-
-## Live game context — 2026-06-27
-
-Four new data points surfaced from the ESPN scoreboard API, a reorganized game detail card, and full demo-mode support for all of it.
-
-### Win probability chart
-- Game detail view now shows **Win Probability** as a simple double-line chart — one line per team in their team color — replacing the score margin chart.
-- Both lines are independent (no stacking); their values always sum to 100%, so a crossing of the lines clearly marks a momentum shift.
-- Tooltip shows a colored `●` bullet with team abbreviation and percentage for each team.
-- Empty state shown when the game is not yet live ("Win probability loads when the game is live.").
-
-### BSO indicator (baseball / softball)
-- Live game cards and the game detail center column now show a **Balls / Strikes / Outs** indicator for in-progress baseball and softball games.
-- Each category renders as Bootstrap icon circles (`bi-circle-fill` / `bi-circle`): green for balls (max 3), orange for strikes (max 2), red for outs (max 2).
-- Each B / S / O label is grouped with its dots so sections are clearly separated.
-- Sourced from `situation.balls`, `situation.strikes`, `situation.outs` in the ESPN scoreboard response; only populated for live games.
-
-### Down & distance (gridiron football)
-- Live game cards and the game detail center column now show a **down & distance** string (e.g. "3rd & 7") for in-progress NFL, NCAAF, and UFL games.
-- Uses `shortDownDistanceText` from the ESPN situation when available; otherwise builds from `down` / `distance` fields, with "Nth & Goal" when distance is 0.
-- `down = 0` (between-play state) correctly returns `undefined` — no label shown.
-- Confirmed via ESPN core API (`/v2/sports/football/leagues/nfl/events/{id}/competitions/{id}/situation`) which returns `down`, `yardLine`, `distance`, `isRedZone`.
-
-### Series dots (baseball, basketball playoffs, hockey playoffs, softball)
-- Game detail card shows a row of **series progress dots** for sports that play multi-game series.
-- Filled dot = game played; team color indicates the winner. Empty dot = game not yet played.
-- Basketball and hockey only show series when ESPN returns a `seasonseries` entry with `type: 'current'` — this naturally excludes regular-season games.
-- Uses a single `summary` endpoint request per game detail open (no per-card polling).
-- Rendered using Bootstrap icon circles (`bi-circle-fill` / `bi-circle`).
-
-### Game detail card reorganization
-- Series dots now appear **between the teams row and the PowerScore bar** — game context before the excitement metric.
-- Removed the dividing line (`border-top`) that previously separated series dots from the card body.
-- Watch/broadcast line hidden from live game cards via a new `hideBroadcasts` prop on `GameMeta`; preserved on the game detail view.
-
-### Demo mode
-- All four new features work in demo mode:
-  - mock-4 (PHI vs NYM, MLB) and mock-16 (HOU vs LAD, MLB) start with realistic BSO counts that cycle on every tick.
-  - mock-5 (PHI vs DAL, NFL) starts with `downDistance: '3rd & 7'` that rotates through a pattern of downs on each tick.
-  - `useSummaryData` detects `mock-` game IDs and returns deterministic LCG-generated win probability curves instead of calling ESPN.
-  - Hardcoded playoff series data shown for mock-4 ("PHI leads 2-1"), mock-14 ("BOS leads 3-2"), and mock-16 ("Series tied 2-2").
-  - Post-game reset zeroes out BSO and resets downDistance to "1st & 10".
-
-### Tests
-Added **23 new unit tests** across three files:
-- `packages/core/tests/apiClient.test.ts` — 5 BSO parsing tests (live MLB gets `bso`; defaults strikes/outs to 0; undefined for no-balls situation, pre-game, non-baseball) and 8 downDistance tests (all four ordinals; `shortDownDistanceText` precedence; `& Goal` when distance=0; undefined for down=0, down>4, pre-game, non-football).
-- `packages/core/tests/mockGames.test.ts` — 4 BSO simulation tests (initial field, range bounds, deep-copy, post-game reset) and 4 downDistance tests (initial field, non-football undefined, cycles on low random, stable on high random, post-game reset).
-- `apps/extension/tests/gameDetailChartOptions.test.ts` *(new)* — 10 tests for `buildWinProbabilityOption`: empty input, two series, no `stack`, y-axis 0–100, home+away values sum to 100, rounding, team name labels, `showSymbol: false`, tooltip format (colored bullet + `%`), downsampling for large inputs.
-
-## Betting & Odds — 2026-06-22
-
-Added a **Betting & Odds** section to Settings (Switching tab). When enabled, game cards and the detail view show the spread, over/under, and odds provider logo sourced directly from the ESPN scoreboard — no extra API calls required.
-
-### Settings added
-- **Show betting & odds** — master toggle (off by default)
-
-## 19 new leagues + US audience audit — 2026-06-20
-
-### New leagues added (21 originally, 2 removed after US audience audit = 19 net)
-
-**Baseball & Softball**
-- `cbase` — NCAA Baseball (`baseball/college-baseball`)
-- `csoft` — NCAA Softball (`baseball/college-softball`) — introduced a new `softball` sport type with 7-inning late-game calibration (vs baseball's 9) so regulation pressure fires at the correct innings
-- `olybb` — Olympic Men's Baseball (`baseball/olympics-baseball`)
-- `wbbc` — World Baseball Classic (`baseball/world-baseball-classic`)
-
-**Football**
-- `ufl` — United Football League (`football/ufl`) — 4×15-min quarters, same calibration as NFL/NCAAF
-
-**Hockey**
-- `olymih` — Olympic Men's Ice Hockey (`hockey/olympics-mens-ice-hockey`)
-- `olywih` — Olympic Women's Ice Hockey (`hockey/olympics-womens-ice-hockey`)
-
-**Basketball**
-- `olybkm` — Olympic Men's Basketball (`basketball/mens-olympics-basketball`) — FIBA uses 10-min quarters (600s); using NBA's 720s would fire late-game pressure too early
-- `olybkw` — Olympic Women's Basketball (`basketball/womens-olympics-basketball`) — same FIBA spec
-
-**Soccer**
-- `olysocm` — Olympic Men's Soccer (`soccer/fifa.olympics`)
-- `olysocw` — Olympic Women's Soccer (`soccer/fifa.w.olympics`)
-- `laliga` — La Liga (`soccer/esp.1`)
-- `bundesliga` — Bundesliga (`soccer/ger.1`)
-- `seriea` — Serie A (`soccer/ita.1`)
-- `ligamx` — Liga MX (`soccer/mex.1`)
-- `ucl` — UEFA Champions League (`soccer/uefa.champions`)
-- `uel` — UEFA Europa League (`soccer/uefa.europa`)
-- `nwsl` — NWSL (`soccer/usa.nwsl`)
-- `fifawwc` — FIFA Women's World Cup (`soccer/fifa.wwc`)
-
-### New sport type: `softball`
-Added `softball` as a distinct `SportType` (previously would have fallen back to `baseball`). The key difference is `regulationInnings: 7` in `lateGameCurve`, with `regulationStartInning: 5` and `extraInningsStartInning: 8` — using baseball's 9-inning config would misfires late-game pressure in the 5th/6th innings of a softball game. Added `softball: { normalScoreProb: 0.07, streakScoreProb: 0.25, offScoreProb: 0.03, scoreValues: [1, 2] }` to `mockGames.ts` sportParams.
-
-### TypeScript fix: `leagueLogoFallbacks`
-Changed `leagueLogoFallbacks` in `packages/core/src/constants.ts` from `Record<LeagueId, string>` (exhaustive — requires every ID) to `Partial<Record<LeagueId, string>>`, and updated `resolveLeagueLogoUrl` to use `?? ''` null-coalescing. This prevents stale dist caches on stacked branches from breaking the TypeScript build when the core package has fewer league IDs than powerscore.
-
-### US audience audit
-Each new league was evaluated against two criteria: (1) can it be watched in the USA via cable or a mainstream streaming service, and (2) is it popular enough in America to warrant tracking? Two leagues were cut:
-- **CWHOC** (NCAA Women's Hockey): not available on mainstream US streaming and niche audience
-- **Ligue 1** (French football): only on beIN Sports, smallest US following of the added European leagues
-
-All other 19 leagues survived — Olympic sports on NBC/Peacock, European leagues on ESPN+/Paramount+, Liga MX on Univision/TUDN, NWSL on Paramount+/CBS Sports.
-
-### Tests
-Added 12 new test cases covering: baseball & softball league configs, softball sport type config (7-inning curve, no OT boost), UFL league config, new hockey league configs, Olympic basketball FIBA spec (600s quarters), and a parameterized `it.each` across all 10 new soccer leagues. Total: **72 passing** unit tests in `packages/powerscore`.
-
-### Marketing
-All marketing surfaces updated to reflect 31 leagues: docs site carousel, README badge and league table, Chrome/Edge/Firefox store descriptions, short summaries. Removed CWHOC and Ligue 1 entries from all surfaces.
-
-## Cypress component testing — 2026-06-15
-
-### Replace Jest component tests with Cypress Component Testing
-- Replaced `jest-environment-jsdom` + `@testing-library/react` component tests with Cypress Component Testing, which runs in a real browser (Electron) and gives a more accurate rendering environment for the popup UI.
-- **Removed packages:** `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jest-environment-jsdom` — none are needed now that the component project is gone from Jest.
-- **Added:** `cypress@15.17.0` as a dev dependency.
-- `jest.config.cjs` — removed the `component` project; only the `unit` project (Node environment, `.test.ts` files) remains.
-- `tsconfig.jest.json` — dropped `@testing-library/jest-dom` from the `types` array since the package is no longer installed.
-- New `cypress.config.ts` — Vite + React dev server; string/regex aliases redirect workspace packages (`@arenaswap/core`, `powerscore`, `wxt/browser`) to source files; a custom `enforce: 'pre'` Vite plugin intercepts relative component imports and redirects them to stub doubles, mirroring what Jest's `jest.mock()` did.
-- New `cypress/support/component-index.html` — HTML template with `data-cy-root` mount point required by `cypress/react`.
-- New `cypress/support/component.ts` — registers `cy.mount()` from `cypress/react`.
-- New `cypress/tsconfig.json` — Cypress-specific TypeScript config with Cypress types and matching path mappings.
-- New `cypress/stubs/*.tsx` — 8 minimal stub components (flipScore, baseDiamond, tabAssignSelect, gameCard, popupFooter, proTip, emptyGameState, reviewPromptBanner) that mirror the original Jest mocks and expose the `data-testid` attributes the specs assert against.
-- New `cypress/component/liveGameCard.cy.tsx` — 4 component specs equivalent to the deleted `tests/liveGameCard.test.tsx`.
-- New `cypress/component/mainView.cy.tsx` — 12 component specs equivalent to the deleted `tests/mainView.test.tsx`.
-- `package.json` scripts: `test:component` now runs `cypress run --component`; added `cypress:open` for interactive mode.
-- `.gitignore` — added `cypress/screenshots/` and `cypress/videos/`.
-- **Result:** 87 Jest unit tests ✓ + 16 Cypress component tests ✓, all green.
-
----
-
-## OXLint (agent-only linting) — 2026-06-15
-
-### Strict linting wired for AI agents, invisible to human devs
-- `oxlint@^1.70.0` added as a root devDependency (backed by Voidzero Inc / Evan You).
-- `.oxlintrc.json` at repo root — auto-discovered by all workspaces.
-- `lint` script added to all 4 workspace packages and root `package.json` (`turbo lint`).
-- `lint` task in `turbo.json` with `cache: true` and **no `dependsOn`** — never fires during `build`, `test`, or `dev`. Agents call `npm run lint` explicitly; human devs never encounter it.
-- Rules enabled: `correctness` + `suspicious` → error; `no-var`, `prefer-const`, `no-debugger` → error; `no-console` → warn. Plugins: `react`, `typescript`, `jsx-a11y`, `unicorn`.
-- Disabled: `typescript/no-explicit-any` (pragmatic `any` is fine), `react/display-name` (arrow components), `react/react-in-jsx-scope` (React 19 auto JSX runtime), `jsx-a11y/prefer-tag-over-role` (Bootstrap spinner pattern), `no-new` (Notifications API side-effect usage).
-
----
-
-## Soccer clock fix — 2026-06-13
-
-### Correct late-game scoring and notification clock for soccer
-- **Root cause:** ESPN reports soccer's `displayClock` as a continuous total-game elapsed time (e.g. `56'` = 3360 s), not a per-half clock. The scorer's `periodDurationSecs` for soccer is 2700 (45 min), so 3360 clamped to 2700 → `secsRemaining = 0` for the entire 2nd half — making late-game pressure read 26/28 from the opening of the half and notifications say "0:00 left" on every FWC game.
-- **Fix:** Added `clockIsFullGameElapsed?: boolean` to `SportTypeConfig`. When set, `getClockSecondsRemaining` subtracts `(period − 1) × periodDurationSecs` from the raw clock before clamping, giving the correct within-period elapsed time.
-- `clockIsFullGameElapsed: true` applied to the soccer sport config; affects all three soccer leagues: MLS, EPL, FIFA World Cup.
-- Notification messages now correctly reflect actual time remaining (e.g. "34 min left" at 56').
-- Test suite updated: period-2 soccer clock values now use full-game elapsed times matching ESPN's wire format; `toClockSeconds` helper updated accordingly.
-
----
-
-## Guided walkthrough — 2026-06-13
-
-### Opt-in interactive tutorial at the end of onboarding
-- After completing the 3-step onboarding (leagues + teams), users land on a new choice screen: **"Take the tour"** or **"Jump right in"**.
-- The walkthrough is a self-contained 4-step experience that only appears once, as part of the onboarding flow. Preferences are saved before it launches so the main extension is ready when the tour ends.
-- **Step 1 — On/Off toggle:** Simplified header replica with an interactive toggle (try it). A live status line inside the card updates between "ArenaSwap is active" and "Auto-switching paused" as you flip it.
-- **Step 2 — Tab assignment:** Mock Eagles vs Giants game card (with team color circles, gradient background, and PowerScore bar) showing a functional tab dropdown with fake options. Explains that ArenaSwap only touches tabs you register.
-- **Step 3 — Auto-switch demo:** Two live game cards (Eagles + 76ers). After ~0.8s the 76ers PowerScore animates from 31 → 89, a flash simulates the tab switch, and "Did you see that? 👀" explanation appears. Next button is disabled until the animation completes.
-- **Step 4 — Settings:** Interactive sensitivity and cooldown sliders (drag to explore). Descriptions use the real label copy from the extension. League badges shown inside the settings box.
-- **Done screen:** Brand-colored confetti burst (`canvas-confetti`, lazy-loaded) in orange, blue, pink, green, and yellow. Subtext: "Ready to always watch the best game?"
-- New files: `walkthroughView.tsx`, `walkthroughStepToggle.tsx`, `walkthroughStepTabAssign.tsx`, `walkthroughStepAutoSwitch.tsx`, `walkthroughStepSettings.tsx`
-- Modified: `onboardingView.tsx` (step 4 choice screen, `onStartWalkthrough` prop), `app.tsx` (`walkthroughActive` state, `WalkthroughView` render branch)
-- Dependency added: `canvas-confetti`
-
----
-
-## Popup section heading polish — 2026-06-10
-
-### Visual hierarchy for section labels
-- Section titles ("Active Live Tabs", "Other Live Games", "Up Next") reworked: DM Sans, larger bold text, with a 3px `$primary` orange left accent bar. No longer plain centered text.
-- League headers (`popup-section-label`) bumped to 0.875rem DM Sans — no longer fine print.
-- Removed redundant `fw-bold text-uppercase` Bootstrap classes from `LeagueSectionHeader` JSX; SCSS handles weight and case.
-- First section at the top of the popup now uses a reduced `marginTop` (0.25rem) to avoid the awkward gap that appeared when nothing preceded it. Subsequent sections keep the full 1rem breathing room above them.
-
----
-
-## Ludicrous Speed animation — 2026-06-10
-
-### Sensitivity slider level 7
-- Renamed "Overkill" to "Ludicrous Speed" (Spaceballs reference).
-- When the slider hits level 7, the label animates with a rapid fire/electric color cycle — orange → gold → white → cyan → magenta — with a matching glow and a hair-thin shake, looping every 0.5s.
-
----
-
-## Switch threshold fixes — 2026-06-10
-
-### Score-0 games are now reachable at max sensitivity
-- When the active tab is not a registered game (nothing is "on"), ArenaSwap will now switch to the best available game even if its PowerScore is 0. Previously, the min threshold of 1 blocked any switch when all games scored 0.
-- Level 7 (Ludicrous Speed) threshold corrected to 1 with a `>=` comparison — label now accurately reads "gap ≥ 1" instead of the misleading "gap ≥ 0".
-- Tie-switching is still blocked for active registered games; the score-0 bypass only applies when no registered game is currently being watched.
-
----
-
-## Playful empty state — 2026-06-06
-
-### No-games empty state
-- Replaced the static "No games right now 💔" copy with a pool of 7 rotating messages, each with a distinct title + subtitle, picked randomly on each render.
-- Messages match the loading-screen brand voice: sports-native, lightly self-aware, with the occasional PowerScore reference and a mandatory "go birds."
-- `noGamesMessages` array and `getRandomNoGamesMessage` helper added to `popupHelpers.ts` alongside the existing `loadingMessages` pattern.
-
----
-
-## UI refresh — 2026-06-06
-
-### Live game cards
-- Replaced the expandable inline PowerScore breakdown with a Bootstrap `.progress` bar at the card bottom. Bar fills proportionally to `total / scoreMaxTotal` using the existing dynamic colour gradient; `PowerScore X / 100` label sits to the right.
-- Removed the collapsible breakdown button and `showPowerScoreDetails` state entirely.
-- Tab-assignment dropdown moved to a consistent footer on both live and pre-game cards.
-- `● LIVE` status row restored as a clean top-of-card indicator; reason string removed from card surface (detail view only).
-
-### Game detail view
-- Matchup card restructured to `flex-direction: column`: teams row on top, PowerScore bar + reason caption at the card bottom.
-- Removed the coloured `PowerScore: X/100` badge that lived inside the matchup card; replaced by the same bar treatment.
-- Reason text shows as a quiet muted caption below the bar, capitalised at display time. Buried `"Headline reason:"` row removed from the breakdown section.
-
-### PowerScore reason strings
-- `"tied"` → `"it's tied"`, `"tied — OT in sight"` → `"tied — overtime looming"`, `"heating up"` → `"on a roll"`, `"back and forth scoring"` → `"trading leads"`, `"comeback"` → `"big comeback"`, `"rallying"` → `"making a run at it"`, `"Top game right now"` → `"best game available"`.
-- Fixed grammar: momentum run strings now correctly use "an" before 8, 11, 18 (`"LAL on an 8-0 run"`).
-
-### Settings page — Switching tab
-- Switching tab restored to its original layout: `popup-section-label` headings with icon + bold text, plain `mt-2` toggle rows with no separators, and all slider/input components back to the original inline label+value format.
-
-### Settings page — Leagues tab
-- League toggles reorganised into a 2-column CSS grid.
-- Each cell is a small dark card with a stacked layout: logo + toggle on the top row, full-width league name on the bottom row. Eliminates truncation for long names (NCAAB, NCAAF, etc.).
-- League logo shape changed from circle to rounded square (36 × 36 px) for better brand mark legibility.
-- Sport group headings use the original `fw-semibold text-body-secondary` label + all/none button row — no horizontal rules.
-
-## Onboarding page — 2026-06-06
-- Made the logo smaller, matching the width of the logo on the error page
-
----
-
-## Game detail view improvements — 2026-06-06
-
-### Header
-- The "Game Detail" title now shows the actual matchup — e.g. `BOS @ NYK` — instead of the generic label.
-
-### PowerScore breakdown
-- The five signal rows (Closeness, Late-game, Momentum, Lead changes, Comeback) now render as Bootstrap progress bars with a colored dot matching the chart legend, making the relative contribution of each signal scannable at a glance.
-- Each bar uses the same color as the corresponding series in the PowerScore components chart.
-
-### Score margin chart (new)
-- Added a fourth chart below "Game score over time" showing the point differential over time (`awayScore − homeScore`).
-- Uses two clamped series — away team color fills above zero, home team color fills below zero — with a tooltip that reads e.g. "BOS +7" or "Tied".
-- No `visualMap` used; the split-series approach avoids the ECharts crossing-zero hang.
-
----
-
-## Dev tooling — 2026-06-04
-
-### Zod validation
-- Added Zod v4 to `@arenaswap/core` for runtime schema validation at external API boundaries.
-- Created `espnSchemas.ts`: Zod schemas for all ESPN API response types (`EspnScoreboardSchema`, `EspnTeamsResponseSchema`). The hand-written TypeScript interfaces they replaced are removed; types are now inferred via `zod.infer<>`.
-- `fetchScoreboard` and `fetchTeamsForLeagues` now use `safeParse` — a malformed ESPN response degrades gracefully to an empty-events result instead of silently passing a mistyped object.
-- Created `backgroundSchema.ts`: `BackgroundStateSchema` wraps the existing background-state normalization helpers as Zod transforms, giving a schema-driven parse at the background-worker→popup boundary.
-- `normalizeBackgroundState` in `popupHelpers.ts` is now a one-liner that delegates to `BackgroundStateSchema.parse()`.
-- All `z` import aliases renamed to `zod` for readability (`import { z as zod } from 'zod'`).
-
-### PowerScore dev scripts
-- Replaced `vite-node` (transitive, not directly installed) with a `rolldown` pre-bundle followed by `node` in `powerscore:simulate` and `powerscore:validate-live`. `rolldown` is a declared root devDependency, so the scripts no longer rely on a package nothing asked for.
-- Compiled `.cjs` artifacts added to `.gitignore`.
-
----
-
-## PowerScore v2 — 2026-06-04
-
-### Scoring algorithm
-- **Full-range scale.** Signal ceilings now deliberately stack past 100 and the headline is capped at 100, so a genuinely exciting game climbs into the 80s/90s and a dull one stays low — previously every game compressed into roughly the bottom two-thirds (~0–72).
-- **Scores build with the game.** State signals (closeness, comeback) start near a small floor and ramp up on a concave progress curve, instead of sitting at a flat 20–30 baseline from the opening tip.
-- **Near-linear late-game pressure** spread across the whole final period (no final-seconds spike), and it now only counts when the game is close — a blowout in the final minute no longer reads as exciting.
-- **Overtime anticipation.** Tied games get a ramping pre-boost through the final minute so likely-OT games stand out.
-- **Live-action decay.** Momentum, lead changes, and comeback spike on a score and then fade on sport-scaled half-lives, so even low-scoring sports keep a moving graph instead of flat lines.
-- Rebalanced signal ceilings to Closeness 30 / Late-Game 28 / Momentum 28 / Lead Changes 18 / Comeback 14.
-- Recalibrated tab-switch sensitivity thresholds for the new score distribution.
-
-### Demo mode
-- Realistic per-sport scoring cadence (hockey/soccer score sparingly, basketball constantly, etc.).
-- Fixed demo team logos that showed the wrong team; all now use ESPN's official logo URLs.
-
-### Tooling & docs
-- Added a simulation + live-ESPN validation harness: `npm run powerscore:simulate` and `npm run powerscore:validate-live`.
-- Expanded the test suite (progress scaling, decay, near-linear late-game, overtime boost, edge cases).
-- Updated the README, package page, website, and store listing to match the new model.
-- Updated zip scripts to use native WXT bindings instead of custom shell scripts
+## The site is published in twelve languages, and following a link stays in yours — 2026-09-05
+
+ArenaSwap's own popup has shipped in twelve languages for a long time. The website that sells it
+shipped in one. Someone reading a German store listing, clicking through, and landing on English
+copy is being told the product is not really for them, whatever the listing said.
+
+The site is now published at `/arenaswap/` in English and at `/arenaswap/de/`, `/arenaswap/pt-BR/`
+and nine more besides. English keeps the root, so no URL that has ever been published moved, and no
+store listing, backlink or bookmark broke. The other eleven take one path segment.
+
+### One page file, twelve pages
+
+`src/pages/[...locale]/` is a rest parameter that resolves to nothing for English and to the locale
+code for everyone else, so a single `faq.astro` produces all twelve FAQ pages rather than twelve
+near-identical files drifting apart. `localeRoutes` maps the twelve, and `localeRoutesFor` crosses
+them with a page's own parameters for the trees that have several pages under them.
+
+`Astro.currentLocale` is derived from the URL by Astro's own routing, which is what keeps the
+navigation, the footer, the install button and the language switcher from having a locale threaded
+down through them as a prop. It is read through one validating helper rather than trusted directly,
+so exactly one place decides what happens when it is missing.
+
+### The strings, and the ones that are not really strings
+
+`src/i18n/strings/<locale>.json` holds about 260 keys a locale: the navigation, the footer, all five
+landing bands, the FAQ, the 404, the PowerScore page and all five legal pages.
+
+A `ui` namespace inside each of those mirrors `apps/extension/locales/` key for key. The site's
+demonstrations are not pictures of the popup — they are the popup, the same components out of
+`@arenaswap/ui`, so the German page has to say what the German extension says rather than a second
+translation of the same idea. Those values are copied from the extension's files, never reworded.
+An island cannot read Astro frontmatter, so the flattened map is handed to it as a prop and put on
+the `TranslationContext` the shared components already read.
+
+**A sentence with a link in the middle of it cannot be substituted into**, because what goes in the
+hole is markup rather than text. Splitting on the placeholder works right up until a language puts
+two holes in the other order — which is not hypothetical, it is what the privacy notice's "requests
+crests from `a.espncdn.com`, and the PowerScore page scores games" sentence does in half the
+languages that have it. `tokenize` breaks the template into an ordered run of literal text and named
+slots, and the call site renders each slot wherever the translation put it.
+
+**A bundle that drifts from `en.json` fails the build.** A missing key already threw, because the
+translator throws rather than rendering the key. What it could not see was a list that came back one
+item short, and three of them are read by position — the landing page's steps, the five PowerScore
+signals, and the spelled-out numerals. The guard compares every bundle's shape against English and
+names what is missing or extra. It caught a real drift within a minute of being written.
+
+### Four strings that needed a different shape
+
+The PowerScore hero rotates through league abbreviations and then settles on the word for a score:
+"The score behind every NFL score." becomes "The score behind every score." That is a pun in English
+and a different sentence in every language, so it is four separate keys — the words before the
+token, the words after it, and what each becomes when the rotation lands — rather than one template
+with a hole in it. Japanese, Korean and both Chinese locales set the resting token to an empty
+string, which reads correctly: 「あらゆるNFLスコアの裏にあるスコア。」 becomes 「あらゆるスコアの
+裏にあるスコア。」 The first Spanish attempt baked the article into the prefix and settled into "the
+score behind every score of the score"; the article moved into the resting token, which is ours to
+control and does not have to agree with whatever gender the next league abbreviation implies.
+
+The install button is filled in by the browser, so `Add to {browser}` is a template the client-side
+detection substitutes into rather than a string assembled from two halves — several languages do not
+put the name last.
+
+### Following a link used to change the language under you
+
+The documentation and the release notes are not translated, and the first pass left them on English
+URLs only. So the Docs link in a German navigation pointed at `/arenaswap/docs/`, and following it
+changed the navigation, the footer and the language switcher to English all at once, with the
+switcher then only able to offer the German home page. A review caught it, and it is the worst thing
+this feature could have done: it makes the localized site feel like a veneer that falls off.
+
+Both trees are now built once per locale. The chrome is in the reader's language and the article is
+in English, above a Bootstrap alert saying so — a statement of fact rather than an apology, and it
+names what *is* translated so nobody assumes they have fallen off the localized site entirely.
+
+Those pages point their canonical at the English URL and emit no `hreflang` alternates, because an
+alternate announces a translation and there is none to announce. The translated pages emit all
+twelve plus `x-default`, in the head and in the sitemap.
+
+That took the build from 128 pages to 346, which widened a race nobody had hit before: `astro sync`
+and `astro build` both write `.astro/`, and turbo was free to schedule `typecheck` and `build`
+together. One would regenerate the type files out from under the other. Same shape as the e2e server
+and `wxt zip` fighting over `.output/chrome-mv3`, and fixed the same way — an ordering edge, so they
+cannot overlap.
+
+### The switcher, and two Bootstrap gaps it found
+
+A globe-and-language button in the navigation, and a plain list in the mobile drawer, because a
+dropdown inside a dropdown is a menu you have to open twice. Every entry names its language in that
+language, since a switcher written in English is only readable by someone who already reads English.
+There is no automatic redirect: guessing from `navigator.language` gets bilingual readers wrong and
+makes the English page hard to reach on purpose.
+
+Flags sit beside the names. A flag names a country and a locale names a language, and the two only
+line up because each of these happens to have one place it is most read — `es` takes Mexico rather
+than Spain because the Spanish that ships is Latin American. Windows has no colour flag glyphs and
+renders them as boxed letter pairs, which is why the name beside it is doing the actual work.
+
+Adopting Bootstrap's dropdown turned up the same class of bug the Up Next day pager found in the
+popup, twice. `$dropdown-link-hover-bg` is built from `--as-tertiary-bg`, which this theme never
+overrode, so hovering an item put `#e6edf3` text on the light default `#f8f9fa`. And
+`$dropdown-link-active-color` is a flat white that reaches 3.22:1 on `$primary` — buttons escape
+this by running the colour through `color-contrast()` and a dropdown does not. Both are fixed
+through the Sass variables rather than re-specified on the component, so every future dropdown on
+the site inherits the fix.
+
+The same gap bit the alert on the untranslated pages. Bootstrap 5.3 computes two sets of the
+`-bg-subtle` tokens, a light pair on `:root` and a dark pair under `[data-bs-theme=dark]`, and this
+site's darkness comes from a hand-picked `$body-bg` rather than from Bootstrap's colour-mode switch.
+Setting `data-bs-theme=dark` would fix it and drag `--as-body-bg` and the rest onto Bootstrap's own
+greys, undoing the theme, so the two variants the site actually renders take Bootstrap's dark values
+and nothing else moves. The warning alert on the PowerScore page had been a pale yellow slab on
+`#0d1117` this whole time.
+
+### The store listings and what the browser calls the extension
+
+`apps/extension/marketing/<locale>/` carries the listing title, both short descriptions and the full
+description in eleven languages. The rule lines, the sport emoji and the section order are identical
+to the English file in every one, because the store renders that layout verbatim.
+
+The manifest's `name` and `description` are `__MSG_` placeholders now, resolved out of two new
+top-level keys in `apps/extension/locales/`. They have to be top-level: `@wxt-dev/i18n` flattens
+nested keys with an underscore, so anything namespaced would arrive as `meta_extName` and stop
+matching what the manifest asks for. The English strings are byte-identical to what shipped, so the
+live listing did not move.
+
+`name` caps at 75 characters and `description` at 132, counted in characters rather than bytes,
+which is the thing most likely to be got wrong next — a CJK title has far more room than its byte
+length suggests. French landed at exactly 75 after a rewrite; it had come in at 77.
+
+Keywords and the five permission justifications stay English on purpose. Keywords need to be
+researched against a market's own search behaviour rather than translated, and justifications are
+read by store reviewers working in English.
+
+### What is not translated
+
+The fifteen documentation articles, the release notes and the ISC licence text. The licence is only
+the licence in the words it was granted in. The legal pages *are* translated, and each one opens
+with a line saying the English text is the version that governs — a translated privacy notice
+quietly presenting itself as authoritative is the one way this could cost somebody something.
+
+`card.reason` on the live PowerScore page is still English: it is composed inside the `powerscore`
+package from the game state, and translating it means translating something published on npm on its
+own.
+
+The 404 is English and single. GitHub Pages answers every unknown URL under the base path with that
+one file, so there is no per-locale copy for it to serve — it is the only page left where the
+language switcher falls back to offering a home page.
+
+### Coverage
+
+The site had no test harness at all, which is why none of this could have been caught. It has one
+now: `apps/docs/cypress.config.ts` and a static server that takes the base path and strips it, so a
+spec visits the same URL GitHub Pages will serve rather than a rewritten one, over the real
+`astro build` output rather than a dev-server rendering of it. `test:e2e` depends on this package's
+own build for that reason, the same way the extension's does.
+
+46 checks in it, measuring what only a browser can answer. The navigation's three groups are
+asserted not to collide at 992px and 1280px in all twelve languages, and no link is allowed to wrap
+— which is how Spanish and both Portuguese locales were caught overflowing, having expanded FAQ to
+"Preguntas frecuentes". Eleven walk a translated visit three hops deep, from the home page into the
+documentation hub, into an article, and across the side navigation, asserting the locale survives
+every one; each was confirmed failing against the English-only docs tree before the fix went in. The
+install button is measured for wrapping in every locale. The dropdown's hover and active colours and
+the alert's background are read off the computed style rather than trusted to the stylesheet, since
+the whole class of bug there is a stylesheet that looks right and resolves to a light default.
+
+## The switch cooldown goes down to off — 2026-09-05
+
+The slider stopped at 15 seconds, so there was no way to say you wanted none of it. The switch delay
+sitting directly under it has offered an Off since it shipped, and the two controls are the same
+shape: a wait measured in seconds that some people do not want.
+
+Zero was already a legal stored value — `normalizeSecondsPreference` floors at 0 rather than at the
+slider's own minimum — so nothing about storage or the preference shape had to move. The slider was
+simply never offering the bottom of the range it already supported.
+
+The word is each locale's existing one. Every locale file already carries `switchDelay.off`, so
+`cooldown.off` takes that same translation rather than a new coinage, and Off reads identically on
+both sliders in all twelve.
+
+### One millisecond where off did not mean off
+
+The gate is `Date.now() - lastSwitchTime <= cooldownSeconds * 1000`, and against a cooldown of zero
+that is only ever blocking when the two instants are equal — a poll evaluating in the same
+millisecond the user landed on a game tab, which is a real event ordering rather than a
+hypothetical, since a manual activation starts the cooldown itself. It is guarded explicitly now, so
+the arithmetic is not what makes off work.
+
+### The onboarding copy of the control
+
+The walkthrough draws its own cooldown slider, decorative and going nowhere, and it had its own copy
+of the step list and its own formatter. It imports both from the real slider now rather than keeping
+a third list in step by hand, which is how it would have quietly kept a 15 second floor. Its resting
+position is still 30 seconds.
+
+### The docs named the old floor
+
+The settings reference and the switching article both named 15 seconds as the floor, so both say
+Off now, and the cooldown row on the settings table reads the same range as the switch delay row
+directly under it.
+
+### Coverage
+
+Two background tests: an off cooldown switching on the very next poll, and the same-millisecond case,
+which was confirmed failing without the guard. Three on the slider: the bottom of the range sending 0
+rather than 15, the value reading Off instead of `0s`, and every locale's Off measured on one line
+beside the setting name at 320px.
+
+Driving a range input turned up something worth recording. React keeps its own note of an input's
+last value on the element and discards a change event whose value it thinks it already has, so
+neither `cy.type` with arrow keys nor a jQuery `val()` reaches the handler — arrow keys because
+Cypress synthesises the key events without the browser's native range behaviour, and `val()` because
+it writes straight past the tracker. The value goes in through the native setter the tracker patched,
+which is the one route it notices.
+
+## The FAQ at the foot of a docs article stopped drawing rows that are not there — 2026-09-05
+
+The block reads as a list of collapsed questions. Above the first one and below the last one it was
+also drawing an empty band, which read as one more question with nothing in it.
+
+Both were the same mistake made twice. `.faq-item` draws a rule above every row and one below the
+last, so the list already opens and closes itself. `.docs-faq` was adding a section rule of its own
+2rem above the first row's, and `.docs-adjacent` was adding another 5rem below the last row's. Two
+identical 1px lines with nothing between them is exactly what an empty row would look like.
+
+The wrappers give the rules up. `.docs-faq` keeps its top margin and loses its border, so the first
+row's own rule is what separates the list from the article. `.docs-adjacent` keeps its border
+everywhere except directly after a FAQ block, where the list's closing rule serves instead and the
+nav takes the 1.5rem of clearance that rule would have given it.
+
+Nothing else moves. An article with no `faq:` frontmatter renders no block at all and its prev/next
+nav is untouched, and the standalone `/faq` page never had a wrapper drawing a second rule.
+
+## The upcoming window is picked in your day and asked for in ESPN's — 2026-09-05
+
+One data path carried three different day boundaries. The window was built in UTC, ESPN resolved it
+as US Eastern, and the popup grouped and labelled the answer in local time. The exposed edge was the
+*start* of the window, since the end is days out and absorbs the skew, so what went missing were the
+games nearest the front of the slate.
+
+### ESPN files by Eastern, and that is checkable rather than assumed
+
+`dates=20260903` on the MLB scoreboard answers with nine games running from 2026-09-03T16:35Z to
+2026-09-04T02:10Z. The last of those is a 10:10pm first pitch in Los Angeles, filed under the
+previous UTC day. The boundary is Eastern midnight, and the AFL scoreboard files the same way.
+
+### It was never only a problem for viewers east of Eastern
+
+Eastern is UTC-4 in the summer, so 8:00pm there is already tomorrow in UTC. `toQueryDate` read the
+UTC date, which means that from eight o'clock every evening the window opened on tomorrow and left
+tonight's not-yet-started games to whatever the date-less scoreboard happened to be carrying. That
+request only reliably surfaces active and recent events, which is the entire reason the range query
+exists. A viewer three hours behind Eastern hit this nightly; twelve hours ahead was never a
+requirement.
+
+### One boundary: the days the popup is going to label
+
+The popup groups and labels in the viewer's own calendar day, and that is the right thing for it to
+do. So the window is chosen there now as well. It opens at the start of the viewer's today, closes
+on the final millisecond of the local day the rolling cutoff lands in, and those two instants are
+translated into the Eastern dates ESPN files under.
+
+The range then widens by exactly what the zone asks for and by nothing else. An Eastern viewer on a
+seven day setting is asked for eight dates. Tokyo is asked for nine, because a Tokyo day opens
+mid-morning Eastern on the day before. Padding a day onto each end would have covered the same
+ground while leaving three boundaries in place, one of them hidden.
+
+Ending on the local day's midnight instead of its last millisecond costs an Eastern viewer a whole
+extra date, midnight being the first instant of the next day rather than the last of this one. It is
+a dull thing to get wrong, so it has a test of its own pinned at exactly 00:00:00.000 Eastern.
+
+Puerto Rico is UTC-4 the year round, which makes its midnight 04:00Z in both seasons: midnight
+Eastern in July, and 23:00 the previous evening in January. A fixed -4 or -5 gets one of those
+wrong. The translation runs through `Intl.DateTimeFormat` with `timeZone: 'America/New_York'`, so
+there is no offset table for anyone to maintain, and both seasons are asserted.
+
+### No test could have caught any of it
+
+`process.env.TZ = 'UTC'` at the top of `jestSetup.ts` never did anything. Jest hands each test file
+a copy of `process`, so the assignment lands in the copy and never reaches the setter Node uses to
+tell V8 to drop its cached zone. The variable changes and the clock does not. Both suites had been
+running in whatever zone the machine happened to be in, and the one test that pinned the old
+behaviour recomputed the same UTC expression it was testing, so it passed in every zone and proved
+correctness in none.
+
+The pin moved into `jest.config.cjs`, which is read in the real process before any worker forks.
+That fixes the zone and cannot vary it per test. Varying it needs a test environment, because an
+environment class is loaded in the worker's own context where `process` is the real one, so
+`timeZoneEnvironment.ts` hands the sandbox a `setTimeZone` that works.
+
+Both suites moved off the machine's zone and onto UTC on the way past, and nothing in either of them
+noticed.
+
+### Coverage
+
+Ten tests on the window, nine of them written out as literal date ranges rather than recomputed from
+the arithmetic under test: Eastern, UTC, Tokyo, Auckland, a Los Angeles evening, a one day setting
+straddling two Eastern dates, the exact-midnight case, both Puerto Rico seasons, and a range
+crossing the end of September. The tenth drives the real scoreboard request under a pinned Tokyo
+clock and reads the `dates=` parameter back off the URL.
+
+Nine of them were confirmed failing against the old builder before the fix went in. The two that
+pass either way are the cases the old code already got right, an Eastern viewer and Puerto Rico in
+July, which is where the two boundaries happen to agree.
+
+## Favorite teams can be picked from settings, not only on the way in — 2026-09-05
+
+The full team picker only ever existed inside onboarding. After that the one way to change a
+favorite was the star on a game's detail screen, which needs that team to have a game on the slate
+you are looking at — so following someone new in the offseason, or dropping a team you stopped
+watching, meant reinstalling the extension.
+
+Settings has a **Favorite teams** group now, third in the list, and the favorite team bonus moved
+into it out of Scoring. The picker and the number saying what a favorite is worth were two halves of
+one idea kept in different rooms.
+
+### The picker is the list, not the chrome around it
+
+The onboarding version had its chrome baked in: a "step 3 of 3" counter, Back, Skip, Done. None of
+that is true in settings, which saves on each star and leaves by the same back arrow as every other
+page. So the list itself — the search box, the league-grouped rows, the loading and error states —
+is `teamPickerList` now, and each caller wraps it in its own chrome.
+
+It returns a fragment rather than a wrapper. Onboarding's column pins its footer against the
+scrolling list, and a `div` around the two would have broken that relationship to no purpose.
+
+The error state is the one place the two genuinely differ, and it is a prop rather than a copy:
+onboarding offers "Skip for now" because there is somewhere to skip to, and settings does not,
+because there isn't.
+
+### Your favorites sit above the leagues
+
+The pinned section at the top lists every team you have starred. It repeats teams that also appear
+in their league group below, which is deliberate — until now nothing anywhere in the extension
+answered "who am I actually following", and the answer is worth more than the duplication costs.
+
+It is also the only way to reach a favorite in a league you have since switched off. Those are kept
+rather than pruned: a favorite is a fact about you, not about which leagues are on this week, and
+re-enabling the league brings it straight back. So the picker fetches the enabled leagues **plus any
+league holding a favorite**, and marks the latter "not tracked" under the team's name. The league is
+fetched to name the team and for nothing else — it is never offered as a group to star from.
+
+The league list is fixed when the page opens rather than derived on each render. It only changes
+when the leagues do, and recomputing it as teams are starred would refetch every roster on every
+click.
+
+A stored key with no team behind it — a league whose fetch failed, a team ESPN has dropped — is left
+out rather than rendered as its raw id, which would name nothing anybody could act on.
+
+Searching takes the section away rather than filtering it. Filtered, it moved the league groups up
+and down on every keystroke, and a starred team answering the search twice — once here and once in
+its own league — read as a duplicate rather than as a shortcut. Clearing the search brings it back.
+
+### Every crest sits on a disc it tinted itself
+
+A navy or black crest on the dark popup is a silhouette, and a list of two hundred of them is where
+that hurts most. Each one now sits on the same white disc the pre-game poster uses, washed with the
+team's own colour — so `crestBacking` moved out of `detailPosterHero` and into `colorUtils`, where
+both callers read one formula.
+
+The colour is **sampled from the crest the row already drew**, not fetched. ESPN does send `color`
+on its teams endpoint and the schema was dropping it, but taking that route would have meant a wider
+parse for a decorative wash. Instead the loaded image is drawn into a 24x24 canvas and its pixels
+read back, which costs no field and no request: the browser had already decoded that image to paint
+it.
+
+Reading pixels back needs two things. The image has to be requested with `crossOrigin`, or the
+canvas is tainted and `getImageData` throws — so `Crest` takes it as an opt-in prop rather than
+setting it everywhere, since a host answering without CORS headers would then fail to load at all
+rather than merely fail to be sampled. Every team logo we serve is on `a.espncdn.com`, which answers
+`Access-Control-Allow-Origin: *`. And the read is wrapped anyway: a tainted canvas leaves the disc
+plain white, which is the state it degrades to regardless.
+
+Picking the colour is the part with a judgment in it. **Greys, white and black are rejected by
+chroma rather than by lightness**, so a crest on a white plate tints with its mark instead of with
+its plate, and a genuinely monochrome crest tints with nothing at all rather than with a muddy grey.
+Colours are bucketed five bits to a channel before being counted: finer than that and a gradient
+splits its own colour across enough buckets to lose to a flat one covering less of the crest.
+
+The disc under a crest that never loaded is plain white, so the placeholder initials take a dark ink
+rather than the shared grey — that white disc would otherwise be the one unreadable state the disc
+was added to remove.
+
+`onLoaded` hands back the element rather than firing a bare callback, and the cache is keyed on the
+image's own `currentSrc`. Keying it on the prop instead would have meant rebuilding the handler
+whenever the logo changed, and a ref callback that changes identity makes React detach and reattach
+the image on every render.
+
+### The search box stays put
+
+Every other settings page is short enough to scroll as one block. This one runs to a few hundred rows
+once a college league is on, and a search box that scrolls away with them is what makes a list that
+long unusable — onboarding already knew this and gave its own picker an inner scroll region.
+
+The settings shell hands this page the column to do the same. Bootstrap has no `min-height: 0`
+utility, and a flex child that is not itself a scroll container keeps `min-height: auto` and refuses
+to shrink, which puts the scrollbar on the whole page instead of on the list inside it. `.min-h-0`
+sits next to the `.min-w-0` that exists for the same reason on the other axis.
+
+The bonus input scrolls with the list rather than sitting above the search. Pinned, it cost 110px of
+a 560px popup permanently and left five team rows visible.
+
+### Two things this turned up
+
+**`fetchTeamsForLeagues` throws when every league it asked about comes back empty**, rather than
+returning an empty list. A test stub answering with a zero-team envelope is therefore a failed load,
+not a bare one — and the failure was hiding the bonus input, which had been rendered inside the same
+block the roster is gated on. It has nothing to do with whether ESPN answered. The scroll region is
+always mounted now, and the bonus survives a fetch that doesn't.
+
+**`parseFavoriteTeamKey` is exported from core** rather than reimplemented. Working out which leagues
+hold a favorite means reading the `leagueId:teamId` format, and a second reader of that format
+outside the module that writes it is the way the two drift apart.
+
+### Strings and coverage
+
+Six keys across all twelve locales: the group's label and description, the search-result label, its
+keywords, the pinned heading and the not-tracked line. Each locale reuses its own established
+vocabulary rather than new coinage — the existing noun for a favorite team, and the verb already used
+for a tracked league.
+
+Three of them are measured. The group name and the pinned heading are each asserted on one line at
+320px in every locale, and the not-tracked line is measured carrying the longest league label we
+ship, "Olympic Women's Ice Hockey", asserting the row never widens past the popup. That one is free
+to wrap; what it must not do is push the star off the right edge.
+
+21 unit tests on the pure helpers, including a favorite whose league is off pulling that league
+into the fetch, a malformed stored key being ignored, an unresolvable favorite dropping out, the
+untracked rows sorting last against a league order that would otherwise put them first, and the
+colour picker refusing a crest that is only white and black.
+
+21 component tests: 13 on the page, 4 on the group and 4 on the row. The colour is proved by mounting
+a four-pixel PNG of a known green as a data URI and reading the tint back off the computed style,
+which is a thing only a real browser can answer. The scrolling one was confirmed failing with the
+column removed before the layout went in, which is the only way to know it measures the fix rather
+than the default.
+
+Three existing assertions pinned the settings index at six rows and now pin seven, and the scoring
+page's bonus test asserts the favorite bonus is no longer there, so the move is caught in both
+directions.
+
+## A live football game draws the field it is being played on — 2026-09-05
+
+Under the score on the detail screen, where the baseball base diamond sits, a football game now
+draws its own field: grass in mown bands, yard lines and hash marks, painted numbers, both end zones
+in their teams' colours, the home crest on the 50, and on top of all of it the line of scrimmage,
+the line to gain, the ground the current drive has taken and the ball itself. The reference is the
+Apple Sports strip. The field markings come from the NFL and NCAA rulebooks by way of the sports
+analyst, and several of them are not what they look like.
+
+### Which way is downfield
+
+ESPN's `situation.yardLine` is an absolute field coordinate rather than the yard marker it prints
+beside it, and which end it counts from is the whole feature. Measured against fourteen drives of
+UTEP at Oklahoma it is unambiguous: `"OU 24"` arrives as 24, `"UTEP 3"` as 97, `"UTEP 25"` as 75.
+**Zero is the home team's own goal line and 100 is the away team's**, whoever is holding the ball,
+which means the home offense always drives toward 100 and the away offense toward 0.
+
+That is not a guess about a convention. It balances against ESPN's own arithmetic: Stanford at home
+went 25 to 94 under a drive it described as "11 plays, 69 yards", and Fresno State away went 75 to
+76 under "1 play, -1 yard". Both only work one way round.
+
+The field draws the away end zone on the left, which puts each team's territory under the crest that
+owns it — the matchup card already washes away-colour left and home-colour right — and leaves the
+away offense moving left to right. `possessionText` cannot do this job on its own, because it names
+the side of the field rather than the team: in Apple's own screenshot the ball is on NC A&T's 29 and
+Georgia State has it.
+
+`possession` is the field that says who, and it was being deleted before the parser ever saw it —
+the same Zod strip-mode failure that ate the venue address and the pre-game competitor fields. It is
+declared now, along with `lastPlay.drive.start`, and neither costs an extra request.
+
+### The ball is not always on the field
+
+Two states arrive looking exactly like a snap and are not, and both were caught against live games
+rather than reasoned about.
+
+A **college kickoff** sends `down: 1, distance: 10` and a real yard line. Nothing in the numbers
+separates it from a first down; the only tell is that ESPN nulls every text field. The NFL sends
+`down: 0` for the same play, so the down cannot carry the gate either, and the mapped
+`possessionText` does it instead.
+
+**After any score** both leagues send `down: -1` alongside a yard line that is simply wrong: one home
+field goal reported 35 and the touchdown before it 65 for what is the same spot.
+
+The opposite problem is a dead ball. A timeout, the two-minute warning and the end of a period all
+clear the down and the yard marker while the ball sits exactly where play will resume from, and a
+timeout is one of the moments somebody is most likely to be looking at the popup. So the last good
+frame is held rather than dropped, and what tells a timeout from a score is whether the yard line
+moved: it held at 62, 84, 6 and 75 through timeouts and jumped 6 to 65, 83 to 35 and 97 to 65 after
+scores.
+
+### The drive, and the two ways it lies
+
+The ground the offense has covered on this drive is a bar in its own colour, running back from the
+ball to where the drive began, which is what makes the direction of travel legible in a still
+screenshot rather than only in motion.
+
+It rides the ball's own line, and the two alternatives are both worse. A full-depth wash reads as a
+stain on the turf rather than as movement. Moving the bar down to the foot of the field makes every
+drive visible regardless of length, and turns it into a separate gauge that happens to sit under a
+football pitch — the connection to the ball is what the bar is for. So it runs into the ball, and
+the cost is that a drive shorter than the marker is wide disappears under it. That is about six
+yards at this scale, and it is the case where the bar has least to say: the caption above the field
+already reads "2nd & 7", which is the same three yards stated in words.
+
+It takes a white casing for the same reason the end zones need a goal line — a bottle green bar on
+grass is otherwise not there at all. At 2.2 units it fits between the professional hash rows, which
+are the closest pair of markings it has to sit between.
+
+`lastPlay.drive` still describes the **previous** team's drive for the one poll after a change of
+possession, and a punt leaves it pointing tens of yards backwards. Every one of those stale reads is
+negative in the new offense's direction, so ground is only drawn where it was actually gained —
+which also drops the bars too narrow to see.
+
+That guard does not catch the second one. ESPN publishes `drive.start.yardLine: 0` as a placeholder
+on a drive it has only just opened, under a description that reports the real yardage: three live
+games carried it at once, one of them "1 play, 5 yards" against a coordinate that would have drawn a
+bar forty yards long. It inflates the gain rather than inverting it, so a goal line is rejected as a drive start
+outright. A real drive begins at a touchback spot or a recovery, never on the paint.
+
+### The field is a field
+
+The viewBox is `0 0 120 32` — 120 yards of length at true scale, and the 53⅓ yards across squashed
+into 32 so the whole thing fits in 77px inside a 320px popup. Every x is a real down-field
+measurement and every y is a real cross-field one put through the same squash. Strokes carry
+`vector-effect: non-scaling-stroke`, which is doing more work than it looks: at this size a 4-inch
+painted line is 0.27 of a device pixel, so every line weight on the field is a deliberate
+exaggeration and only their *ratios* are honest.
+
+- **Hash marks run lengthwise**, parallel to the sideline, straddling each yard rather than crossing
+  it. They were drawn as little crossing ticks first, which is more legible and simply not what a
+  field looks like: 24 inches of paint on a 36-inch pitch leaves a gap of a foot, so a hash row
+  reads from above as a nearly solid dashed line. They are one `path` of 160 segments rather than
+  320 elements, they skip the yard lines because a mark painted on a line is just the line, and they
+  stop at the goal lines because both rulebooks scope them to the field of play
+- **The two codes disagree about where those rows go**, and it is the only geometric difference
+  between them worth drawing. The NFL sets its hashes 70'9" from each sideline, leaving them 18'6"
+  apart — exactly the width of the uprights, which is why a snap from either hash gives the same
+  angle. College hashes are 60' from each sideline and 40' apart. An unknown league falls back to
+  the professional pair rather than losing its hash rows
+- **The goal line is double the weight of a yard line**, which is the rulebook's own ratio: 8 inches
+  against 4. It is also the only thing keeping a dark team colour off dark grass, which matters
+  more now that the end zones are not lightened
+- **Mown bands are 10 yards with their edges on the 10-yard lines.** Five is the authentic pitch and
+  turns the field into a barcode at 12px a band. They are a fill difference rather than an edge, so
+  they are the one marking here that physically cannot alias
+- **Numbers are painted on the field in two rows**, mirrored about the centre line and four times
+  over-scale, since a 2-yard numeral would render under 3px. A real field points the top of each
+  numeral at the centre of the field, which from above means one row upside down; both rows are
+  upright here, which is the same simplification Apple makes. Directional arrows would be 2.3 by 0.7
+  pixels and are not drawn
+- **Each end zone is its team's real colour**, unaltered. An earlier pass lifted both toward white
+  to clear 3:1 against a dark slab, which is the wrong problem now that the slab is grass — the
+  goal line does the separating instead, and `readableFillOn` is deleted rather than left unused
+
+**The line of scrimmage is blue and the line to gain is yellow**, which is not a decorative choice.
+Sportvision put those two colours on ESPN in September 1998 and every broadcast since has kept them,
+so a football fan reads blue-to-yellow as the distance to go without being told. The scrimmage line
+was the offense's own colour first, which is more informative and collides: the Steelers and the
+Packers would each paint a second yellow line beside the real one.
+
+The ball is the 🏈 emoji. It is the platform's own glyph, so it brings its own colours and looks
+different on every OS, and it is the one marker on the field that is self-labelling at a size where
+nothing else is.
+
+The line to gain moves between polls by transitioning `x`, which is a CSS geometry property. The
+ball cannot: `x` on a `<text>` is a coordinate list rather than a geometry property, so the ball and
+the scrimmage line ride a translated group instead and move together for free. A browser without
+either lands on the same positions with no tween — the same thing `prefers-reduced-motion` asks for.
+
+The caption above the field is in the sans face rather than Lekton. Lekton is for figures scanned
+down a column and this is a sentence about one snap — and its ampersand closes up at caption size,
+so "3rd & 5" was rendering as "3rd 6 5".
+
+### Not drawn, and not on the cards
+
+It was on live game cards too for a while, as a field with the numbers stripped out. It is off them
+now. A card answers "should I switch to this", and where the ball is on the field is not part of
+that answer; it is what you want once the game is already open.
+
+The red zone is not marked. There is no painted convention to borrow — it is a statistical region
+rather than a marking — and `isRedZone` is not stable enough to bind anything to: it drops to false
+during a timeout while the ball is still sitting on the opponent's 16.
+
+Timeouts remaining are not drawn either. They belong to the team rather than to the field, which is
+why Apple hangs them off the scoreline instead, and that is a different change.
+
+### Coverage
+
+39 unit tests on the geometry, including the college kickoff, the post-score yard line, both
+placeholder drive starts, the dead-ball hold in both directions, an assertion that the hold is
+idempotent since the component writes it back into a ref during render, and the hash path checked
+for its 160 marks, its 24-inch length, and for staying out of the end zones and off the yard lines.
+
+Eight parser tests, every situation transcribed off the live college-football scoreboard, including
+the dead-ball fallback from `possession` to `lastPlay.team` and a possession id belonging to neither
+competitor.
+
+Fifteen component tests measuring what only a browser can answer: that 120 yards of viewBox put the
+ball on the yard marker ESPN named, that all eighteen painted numbers sit on the lines they label in
+two rows mirrored about the centre, that the end zones carry the teams' exact hexes, that the
+college hash rows come out more than twice as far apart as the professional ones, that the midfield
+crest stays inside its 13-yard cap and clear of the numbers, and that no field is drawn on a list
+card.
+
+The demo football game carries a full drive, every line to gain landing on PHI 35 and then DAL 38,
+so the yellow line holds still across a set of downs instead of following the ball.
+
+## The lights go back on the scorebug, and the leaf pile is made of leaves — 2026-09-03
+
+### The frame was in the way
+
+Running the string around all four sides put bulbs across every row of text on the screen. The two
+side columns were the problem: they cross the full height of the content, where the horizontal runs
+only cross the back bar and the foot of the page. It is back to one sagging run of nine bulbs
+draped over the matchup card, pinned under the sticky back bar, which is where it started and where
+FOX puts it.
+
+The whole content inset goes with it. `--gd-inset` survives, because the back bar and the drift both
+bleed by it and one variable is better than three literals, but nothing moves it off 0.75rem any
+more. Two tests now assert the lights cost the column nothing: one measures every text leaf with the
+lights off and on and fails on any change at all, the other pins the matchup card to exactly the
+width it has without them.
+
+### The lights flash a favourite's colours when it scores
+
+A followed team scoring turns the string that team's colours and takes the twinkle from a 3.4s
+shimmer to a 0.5s flash, for five seconds. It is the confetti's job done by the only decoration this
+screen has.
+
+The detection is its own module rather than a condition inside the effect: the extension's Jest runs
+in a node environment with no DOM, so anything buried in a component cannot be tested. It takes both
+of a team's colours where ESPN sends two, so the string alternates rather than reading as one flat
+wash, and it accepts them with or without the leading hash because ESPN sends both. A score going
+down does not fire it, which is what a correction looks like. The first pass after mounting seeds
+the comparison and fires nothing, so opening a screen mid-game is not a goal.
+
+### The leaf pile is leaves now
+
+The previous one drew a brown mound and scattered leaves on top of it, and the mound read as exactly
+what it was: a wash of colour behind the leaves.
+
+There is no mound. The pile is about 850 individual leaves at full depth and nothing else, so the
+gaps between them are the popup's own background rather than mud. They are placed against a squared
+distribution, which packs them solid along the floor and thins them to individual leaves at the top
+edge — a uniform spread reads as leaves scattered on the ground rather than piled on it — and
+against a cosine profile across the width, so the heap is deepest down the middle. They are drawn
+highest first so the near ones cover the far ones, and each leaf now carries two ribs off its midrib,
+which is what stops a fallen leaf reading as a petal. The only thing drawn over them is a shadow
+gradient in the deepest half.
+
+The snow pile is unchanged. Both depths come from the same `accumulationDepth`, which never learns
+which kind is falling: it grows through a period and resets to zero at the break, with a ceiling of
+`period / regularPeriods` so each period ends deeper than the last. Walked end to end, an NFL game
+reads 0.25 at the end of the 1st, 0.5 at the end of the 2nd, 0.75 at the 3rd and 1.0 at the 4th, and
+0.000 at the top of every one of them.
+
+### Two things removed
+
+The Rømer credit line is gone. The sweep on the button is the whole reveal now, and a test asserts
+the popup never names Rømer at all. One key out of twelve locales.
+
+The standby test card is gone entirely — component, spec, styles and four keys across twelve
+locales. The threshold value at 0 and at 100 is plain text again.
+
+## The decorations, rebuilt: a light frame, real piles, and snow for every sport — 2026-09-03
+
+Four things were wrong with the first pass.
+
+### Snow reached one sport in demo, and only one
+
+The rule was already right: snow is gated on the weather reading and nothing else, so any sport can
+get it. What was wrong is that the NFL fixture was the only demo game carrying snow, which made a
+sport-agnostic rule look like a football rule. Two of the four outdoor demo games snow now, across
+football and soccer, and the other two are clear. Neither the gate nor the containment is visible
+from a single fixture. A test asserts snow on four sports and none on a clear game of each.
+
+### The pile followed you down the screen
+
+The drift was drawn on the same viewport-fixed canvas as the falling snow, so it sat at the foot of
+the *window* and slid down the page as you scrolled. Snow settles on the ground, and the ground is
+the foot of the page.
+
+It is its own element now, last in the flow, bleeding the shell's padding to reach both edges. The
+falling stays on the fixed canvas, because weather does belong to the window. Splitting them also
+took the landing-line arithmetic out of the animation loop: flakes now reset at the bottom of the
+screen rather than against a mound in a coordinate system they no longer share.
+
+### Both piles looked like mush
+
+A gradient with a wavy top edge is fog, not snow, and a brown one is mud rather than leaves.
+
+The snow drift is a crown of overlapping lumps, filled solid, white along the top and cooling into
+blue at the foot, with contour strokes clipped inside it so the lumps read as volume. Snow is lit
+from above and its shadows are blue; a white-to-transparent gradient has neither of those and that
+is exactly why it read as fog.
+
+The leaf pile is leaves. Up to about 180 of them depending on depth, drawn back to front so the near
+ones overlap the far ones, each with a midrib — without it a leaf at this size is an almond, and a
+heap of almonds is the mush we started with. The only thing under them is a shadow dark enough that
+the gaps do not show the page through. Both piles are laid out from a seeded pseudo-random so the
+arrangement does not reshuffle itself on every poll.
+
+### The lights framed the scorebug, not the popup
+
+They run all the way round now, top, bottom and both sides, with every bulb hanging inward off the
+wire so the cap stays against the popup edge. Horizontal runs sag between their bulbs; the vertical
+runs are drawn straight, since a wire hanging down its own length does not bow sideways.
+
+The content moves in to make room. `--gd-inset` is one variable on the detail shell that drives both
+the shell's own padding and the negative margin the sticky back bar uses to bleed back out to the
+edge, so the two cannot drift apart. It goes from 0.75rem to 1.1rem when the lights are up, which
+takes 11px off the content column.
+
+Positioning the frame took three attempts, and the two failures are worth recording.
+
+`position: fixed; inset: 0` is sized against the window, so its right edge lands under the scrollbar
+and slices that entire column of bulbs in half.
+
+A zero-height sticky wrapper fixes the width, since sticky elements are laid out in the content box
+and the content box excludes the scrollbar. But sticky cannot lift an element above its own flow
+position, so at scroll zero the frame sat `--gd-inset` low and its bottom run fell off the screen
+until you scrolled. It only looked correct because the first screenshot of it was taken scrolled
+down.
+
+The frame is measured now: `clientWidth` and `clientHeight` of the scroll container are exactly the
+box it wants, excluding the scrollbar and including the padding the bulbs sit in. It reads them in a
+layout effect, before the paint that would otherwise show one frame of a mis-sized string.
+
+A third thing turned up while measuring. An SVG with a viewBox carries an intrinsic aspect ratio, so
+a frame given three offsets and no explicit height derives the fourth from the other side: at 305px
+wide it came out 534px tall against a 560px popup, and the bottom run was simply in the wrong place.
+Both dimensions are set explicitly.
+
+### Checking the narrower column
+
+A narrower column is where a label that fitted on one line quietly becomes two, so a test measures
+every text leaf on the screen with the frame off and again with it on and fails on anything that
+grew. Nothing does at 1.1rem. A second test pins the bite at more than 4px and at most 16.
+
+Writing it turned up two things about the harness, both of which had quietly made earlier tests
+lie.
+
+A `cy.mount` nested inside a `.then` replaces the root while the surrounding chain still holds the
+old, detached nodes, so every measurement comes back from a screen that is no longer on screen.
+Both mounts are enqueued at the top level instead.
+
+And a second `cy.clock` in the same test does not re-arm, so a test that mounts twice renders the
+first date both times and the December mount had no lights in it at all. The date is a prop on the
+detail view already, for demo mode, so the spec passes it directly and mocks no clock anywhere.
+
+24 component tests on the decorations now, up from 17.
+
+## Demo mode can borrow a date, so the decorations are reachable in September — 2026-09-03
+
+The holiday decorations were only visible when the world cooperated: a game ESPN reports snow at,
+or the actual week of Thanksgiving, or the actual month of December. That makes two of the three
+unreachable for ten months of the year, including while they are being built.
+
+Demo mode now carries a "Pretend it is" select — the real date, Thanksgiving week, or December —
+which only moves the date the decorations are resolved against. Nothing else in the popup shifts.
+
+Borrowing a date rather than forcing a decoration matters. A switch reading "force snow" can put the
+screen in a state the real rules would never produce, and then it is testing itself rather than the
+feature. Picking December and opening a snowy game gives snow and lights together because that is
+what December and snow actually mean, which is also the most common real combination and the one
+worth looking at.
+
+Thanksgiving is computed for whatever year it currently is rather than pinned to a date, so this
+cannot rot. The December stand-in is the 14th, comfortably inside the month at either end.
+
+The demo games had no weather at all, so there was nothing to snow on. The NFL game at the Linc is
+snowing at 26°F now. The college football game at the same stadium and the MLS game at Subaru Park
+are deliberately clear — the weather belongs to a game rather than to the popup, and two outdoor
+games in different conditions is the only way to see that from the inside.
+
+The control is only rendered while demo mode is on, and it is stored next to `demoMode` in
+`storage.local` rather than in user preferences, since the background never needs to know about it.
+An unrecognised stored value falls back to the real date.
+
+Six keys across all twelve locales. 14 new tests: 6 on the date resolver, including one asserting
+the borrowed December date puts a snowy football game at lights plus snow plus full depth and the
+borrowed Thanksgiving date turns that same game over to leaves, and 4 component tests covering the
+control's absence while demo mode is off and a September session seeing both decorations at once.
+
+## The standby threshold at either end asks for something impossible — 2026-09-03
+
+Drag the Standby Stream threshold to 100 or to 0 and the value beside the label becomes a control.
+Click it and the popup loses the signal and comes back as a broadcast test card: seven SMPTE colour
+bars, the inverted strip under them, and PLEASE STAND BY set in Lekton over a black band.
+
+Both ends are absurd, in opposite directions, and the copy is the same sentence twice. At 100 you
+have asked to sit out any game that scores below 100, and none of them do, so standby is where you
+live now. At 0 you have asked to sit out any game that scores below 0, and none of them do either,
+so the standby tab you picked will never once be shown to you.
+
+This is the Ludicrous Speed shape, which is the bar #108 sets: a control pushed to its limit, and a
+real thing behind it rather than a joke string. A test card is what the Standby Stream is for, so it
+is the one overlay in the popup that is also an explanation.
+
+The trigger has to be findable without being advertised, so the value is styled exactly as the plain
+text it replaces apart from a dotted underline and a help cursor. Same weight, same size, same
+colour. Bootstrap gives a `<button>` the keyboard affordance for free, so it is in the tab order
+without a hand-placed `tabIndex`.
+
+The overlay opens with a 0.32s scale from a bright horizontal line, which is an old set finding its
+picture, and a slow bright band rolls up the frame every 6.5s the way an untuned analogue signal
+does. Click anywhere or press Escape to go back. Both animations sit behind
+`prefers-reduced-motion`, which leaves the card itself perfectly readable.
+
+Four keys across all twelve locales. The heading is the string with no room to grow into, since it
+is the only one on the card at a fixed size in a monospace face, so a test measures each locale's
+heading on one line at 320px. The body copy is free to wrap.
+
+Nine component tests: the value stays plain text anywhere in the middle of the slider, goes live at
+both ends, carries the right sentence for the end it came from, draws fourteen bars across two
+strips, covers the popup at exactly 320x560, and closes on both a click and Escape.
+
+## It snows on the detail screen when it snows at the game — 2026-09-03
+
+The game detail screen decorates itself. Snow falls on a game ESPN reports snow at, leaves fall on
+football through the week of Thanksgiving, and coloured lights hang off the back bar all December
+for every sport regardless of weather. It is contained to the one game you have open, so a snowy
+Buffalo game and a clear Miami one do not both get weather.
+
+The reference is the FOX scorebug, which drapes a string of bulbs over the bar itself rather than
+over the field. Ours hangs immediately under the sticky back bar, which puts it across the top of
+the matchup card, and it stays pinned there while the rest of the screen scrolls under it. Nine
+bulbs on a sagging wire, in ArenaSwap's own five PowerScore colours rather than a generic red and
+green, twinkling on a 3.4s cycle that never takes one fully dark.
+
+### The pile deepens through a period and resets at the break
+
+Snow and leaves accumulate along the floor of the popup, and how deep depends on how far through
+the current period, quarter, half or inning the game is. Every period ends deeper than the one
+before it, so a 4th quarter buries the bottom of the screen and a 1st barely dusts it, and each
+break wipes it back to nothing. Four builds of escalating drama instead of the same one four times.
+
+None of that needed new data. `leagueConfigs` already carries `regularPeriods` and
+`periodDurationSecs` per league, so an NHL game builds in thirds and an NCAAB game in halves without
+either being a special case, and overtime holds at the regulation maximum instead of piling past it.
+The ceiling is `period / regularPeriods` and the depth is that times the progress through it.
+
+Soccer needed the one adjustment. Its clock is total elapsed rather than per-half, so a second half
+runs 45:00 to 90:00 and the offset has to come back off before the fraction means anything. Stoppage
+time clamps rather than running past a full half.
+
+The inning sports have no clock to read at all, and `periodDurationSecs` is 0 for exactly those
+leagues — so "does this sport have a clock" is a property of the data rather than a list of league
+ids somebody has to maintain. Progress comes off the outs instead: six to an inning, three to a
+half, which makes each out a sixth and the half change the midpoint. Base runners were considered
+and dropped, because a pile that shrinks when a runner is thrown out at second is a strange thing to
+ship. The side effect is that the snow visibly stalls during a long rally, since an inning where
+nobody is retired sits at zero for as long as it lasts.
+
+### What falls, and when
+
+Leaves take the Thanksgiving week off snow. Snow gets the whole rest of the winter, and Thanksgiving
+is four days a year, so the rarer one wins the overlap — which is a real collision most years, not a
+hypothetical, given where the late-November NFL slate is played. Leaves are football only, so a
+snowy hockey game that week still gets snow.
+
+The Thanksgiving window is the full Monday-to-Sunday week around the fourth Thursday of November, so
+Tuesday and Wednesday college football are in. Lights run the whole of December and come down on the
+1st of January.
+
+Snow matches on the word rather than an exact set, because ESPN varies the wording a lot: "Snow",
+"Light Snow", "Snow Showers/Wind" and "Flurries" all count, and so does sleet. Freezing rain does
+not, since it does not settle as snow.
+
+Nothing settles before the first pitch and everything has by the final, so a pre-game screen gets
+falling weather with a clean floor and a finished game gets the full pile.
+
+### Settings
+
+A "Holiday decorations" parent in the display group with snow, lights and leaves under it, all on by
+default, the sub-switches hidden while the parent is off. It is in the settings search under
+christmas, snow, lights, leaves and thanksgiving. Six keys across all twelve locales.
+
+The lights sit behind `prefers-reduced-motion`, and so does the falling: reduced motion draws the
+accumulated pile and skips the animation entirely, rather than dropping the decoration altogether.
+
+### Coverage
+
+25 unit tests on the resolver, which takes `now` as an argument rather than calling `new Date()`
+inside — that is what makes December and Thanksgiving week plain unit tests instead of clock
+mocking. 13 component tests on the rendering, including the canvas covering the popup at exactly
+320x560 with `pointer-events: none`, the light string still pinned 40px down after scrolling to the
+bottom, and every locale's four labels measured on one line beside their switches.
+
+Two things turned up while writing those.
+
+Cypress reports the light string as not visible even when it is drawn, pinned and 305px wide.
+Asserting its rect is both more precise and true; `be.visible` on an SVG with a negative bottom
+margin is not.
+
+And the string measures 305px rather than 320 because the detail screen's scrollbar takes 15 of
+them. It bleeds the container's padding the same way the back bar does, so it starts flush at the
+left edge and stops short at the right, which is where the scrollbar already is.
+
+## A third temperature unit nobody asked for — 2026-09-03
+
+The temperature setting has a Rømer scale now, and no way to reach it from the settings list. Seven
+clicks on the °F/°C toggle inside three seconds and the button lands on °Rø, where it stays as a
+permanent third stop in the cycle.
+
+Ole Rømer built the scale in 1701 with brine freezing at 0 and body heat somewhere near 22.5, and
+Fahrenheit built his own by multiplying Rømer's numbers by four. So a warm August game reads about
+23°Rø. There is no reason to want this.
+
+Seven, in a rolling three-second window, is the ten-click heart in the footer scaled down. The
+toggle was the only control in that row, so pushing it to its limit means pushing it repeatedly, and
+someone flipping between Fahrenheit and Celsius to compare two numbers trips it without meaning to.
+Every one of those seven clicks still cycles the unit, so the button flickers °F °C °F °C and then
+lands on °Rø, which is more satisfying than a button that ignores you six times.
+
+Two problems had to be solved before a stored preference would survive a restart.
+
+`normalizeUserPreferences` read `candidate.temperatureUnit === 'C' ? 'C' : 'F'`, which is a
+whitelist by omission: anything it does not recognise silently becomes Fahrenheit. That is the right
+default for untrusted storage, and it would have eaten a Rømer preference on every popup open. It
+now runs through `normalizeTemperatureUnit`, which knows three values.
+
+The unlock is its own boolean rather than being implied by the unit, because the cycle has to stay
+two-wide until it is found. That opens a state where the two disagree, so a stored `Ro` counts as
+proof the unlock happened. Nobody can be stranded on a unit their button will not advance past.
+
+Rømer degrees are nearly twice the size of Fahrenheit ones, so `formatTemperature` keeps one decimal
+and drops a trailing zero. Whole numbers would round freezing from 7.5 to 8 and throw away the half
+degrees the whole scale is built on. Water still boils at exactly 60, which is a test.
+
+The reveal is a 1.2s sweep on the button, warm through cold to frost and back to an ordinary outline
+button, with a one-line credit to Rømer under the row that fades itself out after six seconds. It is
+the thermometer's own journey, and it is the only place in the popup that says what you found.
+Both animations sit behind `prefers-reduced-motion`.
+
+`settingsCatalog` gets nothing. Searching the settings for "romer" returns the empty state, which is
+the point.
+
+Two keys across all twelve locales. `°Rø` is a symbol and stays identical everywhere; the credit
+line is translated, and the decimal separator follows each locale rather than the formula.
+
+Nineteen tests. Five on the cycle, three on normalization, four on the conversion, and seven
+component tests including one asserting six clicks do nothing and one asserting the settings search
+never names Rømer before it is found.
+
+## Coming back from a game keeps your place in the list — 2026-09-02
+
+Open a game card, come back, and the popup dumped you at the top. On a busy slate that meant
+scrolling down again to reach the game you had just been looking at, and it took the Up Next day
+page with it, so a Thursday you had paged to was a Wednesday again on the way back.
+
+Both came off the same line. `app.tsx` renders the view shell as `<div key={view}>`, and a changed
+key tells React the old view is a different thing entirely, so it unmounts. The day page was
+`useState` inside the view and went with it. The scroll offset is not React state at all: `scrollTop`
+lives on the `.popup-container` element, which React has no model of and therefore cannot preserve.
+Nothing warned about either one.
+
+The key stays. It is what replays the slide-in on `.popup-view-shell`, and the animation is worth
+keeping. What moved is the state. `selectedDayKey` is now held in `app.tsx`, and the offset is parked
+in a ref the app owns, so both outlive any single mount of the view.
+
+Because the offset belongs to the app rather than to the game screen, it is not the game screen
+specifically that restores it. Settings and the tab suggestion sheet return you to your place too,
+which falls out of where the ref lives rather than being three separate cases to keep in step.
+
+`useRestoredScroll` restores in a layout effect rather than an effect. Both run after React commits
+the DOM, but only a layout effect runs before the browser paints. With a plain effect the user sees
+one frame at the top of the list and then a jump, which is worse than the bug it replaces.
+
+The offset is captured twice, and both halves earn their place. A scroll listener covers the ordinary
+case. A read during cleanup covers the frame the view is left in, because scroll events are
+dispatched asynchronously and a scroll immediately before a click never reaches the listener. That
+one is real rather than theoretical: it is what made the settings round trip fail while the game
+screen passed. The cleanup read is guarded on `isConnected`, since a detached node reports 0 and
+would overwrite a good offset with a bad one.
+
+Restoring an offset the list has outgrown needs no guard. Assigning past the maximum clamps silently,
+so you land at the bottom instead of throwing, and reading the value straight back records the
+clamped number. A day whose games have kicked off while you were away cannot leave a saved offset
+pointing into empty space.
+
+Five tests on the hook, one on the day page and three end to end. The day page test was confirmed
+failing with the state moved back inside the view before the fix went in.
+
+Two things about the popup turned up while writing those tests, both worth recording because they
+will bite the next layout test.
+
+Bootstrap Icons is a webfont, and every game card measures two pixels shorter once it lands. Chrome's
+scroll anchoring then nudges the offset to compensate, which reads as the restore being four pixels
+out. `document.fonts.ready` is not enough on its own, since it resolves before a face nothing has
+painted yet is ever requested. The spec forces every declared face in before it measures anything.
+
+And `cy.get` resolves once while `should` retries against that same element. Querying the scroller
+before the list is back pins the assertion to the detached container, which reports `scrollTop` 0 for
+the whole four second retry window and looks exactly like the bug. Both round trip tests wait on the
+list first.
+
+The pro tip still re-rolls on every mount, so returning from a game can still insert or remove a
+two line alert. At a five percent chance per mount that is rare enough to leave alone for now.
+
+## Up Next pages by day instead of cutting the slate at ten — 2026-09-01
+
+"Show 10 more" could hide half of one day. On a full MLB day you saw eight of fifteen games, with
+the rest of that same date behind the button and a date divider above them claiming to head the lot.
+
+The cut ran before the grouping. `mainView` sliced the flat, already-sorted list at a hardcoded 10
+and `groupByDate` only ran afterwards, on whatever survived, so the cut point was wherever game ten
+happened to fall. Nothing about that has to do with a date boundary.
+
+Up Next now shows exactly one day. Grouping runs first and the section renders a single group, so a
+day cannot be split — not by a smarter limit, but because there is no longer a number to get wrong.
+
+The control is Bootstrap's `.pagination`, which was already compiled into the popup's CSS and unused.
+It replaces the date divider rather than sitting under the list: the divider and a pager naming the
+same date would have said it twice on any light day, and a pager at the foot of a fifteen-game list
+leaves you at the bottom of a fresh day after every press. The arrows take the slack and the day
+keeps its natural width, so both controls get a real hit area without stretching the active page
+into a full-width bar of `$primary`.
+
+Adopting it turned up a gap in the theme. Bootstrap 5.3's pagination is entirely CSS-variable
+driven, so it picked up `--as-body-bg` and `--as-border-color` for free — but its disabled and hover
+fills come from `--as-secondary-bg` and `--as-tertiary-bg`, which this theme never overrode and
+which are therefore still Bootstrap's light defaults, `#e9ecef` and `#f8f9fa`. Nothing in the popup
+had asked for them before. Rendered, the arrow at the end of the range was a white slab on a
+`#0d1117` popup, and a focused arrow flashed white. They are set to popup colours here rather than
+on `$body-secondary-bg`, so nothing else in the extension has to move.
+
+`$pagination-active-color` goes to `#0d1117` for the same class of reason: Bootstrap picks the
+active page's label with `$component-active-color`, a flat white that reaches only 3.22:1 on
+`$primary`. Buttons escape this because they run the colour through `color-contrast()`; pagination
+does not. And `$pagination-font-size` drops to 0.72rem, since this pagination heads a section rather
+than closing a page of results, and `$font-size-base` is 15px.
+
+None of the three light-default bugs were visible to a test that only asked what was in the DOM.
+They were caught by rendering the popup at 320x560 and looking at it, and each now has an assertion
+on the computed colour.
+
+The pager renders on a one-day slate too, with both arrows disabled, because it is the only thing
+naming the day now and that day would otherwise be unheaded.
+
+The page is held as a date key rather than an index. The day list is rebuilt on every poll — games
+kick off and leave the `pre` list, the range setting moves, midnight rolls the labels forward — and
+an index survives all of that still pointing at whatever now sits in that slot. Store `2` and a day
+dropping off the front moves you to Thursday without saying so. Store Wednesday and you are on
+Wednesday for as long as there is one.
+
+When there is no longer one, the pager snaps to the first day rather than hunting for the nearest
+surviving date. Landing somewhere real beats landing somewhere clever, and the case it costs you is
+narrow: the day you were reading has to empty out entirely while you sit on it, which in practice
+means its last game kicked off and the day you wanted is now live.
+
+`main.showMoreUpcoming` is gone from all twelve locales, replaced by three keys the pager needs.
+All three are accessible names: the nav's label and the two arrows, which are chevrons with no text
+of their own. The visible text is the date, which comes from `toLocaleDateString` and not from our
+locale files at all — so its length is not something a string audit can bound, and the width test
+measures a German date rather than reading one out of the JSON.
+
+Nine tests on the pager, five on the section and four on the resolver. The first section test
+mounts a twelve-game day and asserts all twelve render, which is #103 stated directly and fails
+against the old slice.
+
+One existing test changed shape rather than being deleted. `sorts upcoming games by day before
+league priority` read two cards out of one flat list, and there is no longer a flat list spanning
+days. The invariant still matters — day-first sorting is what lets `groupByDate` build its groups in
+a single pass — so it is now asserted as page order instead of row order, which also pins the days
+into chronological order on the way past.
+
+## The empty state stopped shuffling its own message — 2026-08-30
+
+With nothing live and upcoming games turned off, the popup shows one of seven written "no games"
+lines. It was visibly flipping through several of them before settling, most often right after a
+refresh.
+
+The roll was sitting in the render body. Render is meant to be a pure function of props and state,
+so React is free to run it as often as it likes, and `mutate` re-renders the popup more than once as
+it settles. Every one of those passes drew a new message. It only looked intermittent because seven
+options means a one-in-seven chance of drawing the same line twice and hiding the seam.
+
+Moving the roll into `useState` was most of it, but not all of it. `EmptyGameState` renders
+unconditionally and returns `null` internally, so it never unmounts, and a `useState` at the top of
+it would have frozen one message for the whole time the popup stayed open. A slate that emptied,
+filled and emptied again would have shown the same line both times. The `noGames` branch is its own
+file now, `noGamesMessage.tsx`, rendered only while the empty state is up. React mounts it when the
+state appears and unmounts it when games arrive, so the message lasts exactly as long as the thing
+it captions.
+
+The initializer is passed to `useState` rather than called into it. `useState(getRandomNoGamesMessage())`
+also fixes the flicker, since React ignores the argument after the first render, but it leaves two
+`i18n.t` lookups running on every pass for a result that gets thrown away.
+
+The issue asked for a fresh message once a refresh completes. That one was dropped on purpose. SWR
+reports `isLoading` only when it has no cached data, so a manual refresh over an existing slate never
+flips it, and honouring the request would have meant threading a refresh counter from `App.tsx` down
+through `mainView` for the sake of re-rolling a joke. Holding the message steady through a refresh is
+closer to what the bug was complaining about anyway.
+
+Three component tests. One asserts the message survives twelve re-renders, which a re-rolling render
+body clears about once in thirteen billion runs, and it was confirmed failing against the old code
+before the fix went in. One takes the empty state away and brings it back twenty times and asserts
+more than one message appears, which is the mount boundary doing its job rather than a `useState`
+that simply never re-runs. The third checks the text is one of the seven lines we actually wrote.
+
+## The series dots went missing when the postseason did — 2026-08-30
+
+A pre-game screen drew no series dots at all. The scoreboard had started carrying both teams'
+records, which left the summary endpoint with nothing to answer for a game that has not started
+except the dots themselves, so the request was gated off — and the gate asked for a postseason game.
+Every regular-season series went dark. Baseball plays a three-game set roughly every three days
+from March to September, so this was most of the year.
+
+The gate now asks only whether the sport draws dots at all. Football and soccer pre-game screens
+still skip the request, which was the saving worth having; baseball, basketball, hockey and
+softball make it again.
+
+Restoring the request was most of it. The other half was that `seasonseries` is an array and the
+entry wanted is not reliably its first element — a `preseason` entry can sit in front of the one
+that matters — so the lookup is by name now rather than by index.
+
+Only `current` counts. ESPN mints that entry once a series is actually underway and keeps it there
+through the pre-game hours before each remaining game, which is exactly the window the dots are
+for: MIA at WSH, four hours from first pitch, reads `current`, "WSH leads series 2-1", four games.
+A series that has not started has no `current` entry at all, only a `season` one holding the whole
+head-to-head — and PHI at ARI, opening a series tomorrow, carries "ARI leads series 2-1" from their
+last meeting in June. Captioning an unplayed series with the result of a previous one is worse than
+saying nothing, so a series opener draws nothing.
+
+The summary beside the dots was set in Lekton, which is the face this project reserves for figures
+that change in place: the game clock, the scores, the records. "WSH leads series 2-1" is a caption,
+not a column, and it reads as a sentence in sans at its own casing. It needed `line-height: 1` to
+sit on the dots' optical centre, the row being centred against circular icons.
+
+Separately, `test:e2e` had been failing on the full verification run and passing on its own. Cypress
+serves `.output/chrome-mv3` for the length of a run, and `wxt zip` deletes and rebuilds that same
+directory as part of its own build. Turbo had no edge between the two tasks, so it scheduled them
+together and the server lost its files mid-run. Worse, the abort left the directory half-written,
+which broke the next run before it started and made the whole thing look like a missing build. The
+e2e build takes its own `outDir` now, and the two tasks stop sharing a directory.
+
+## The venue named the building but not the city — 2026-08-28
+
+The venue line read "Xfinity Mobile Arena". Which is in Philadelphia, though the popup never said
+so, and neither did "Rocket Arena" or "Daikin Park" — buildings that have all been renamed inside
+the last three years and carry no city in their names at all.
+
+ESPN had been sending the address the whole time. `EspnCompetitionVenueSchema` declared three keys,
+and Zod's strip mode deleted `address` before the parser could look at it — the same failure as the
+pre-game competitor fields, two entries up. The schema keeps `city`, `state` and `country` now, and
+the popup finally names the city.
+
+The state is passed through exactly as ESPN sends it, which means the NFL and NHL read "Inglewood,
+CA" while MLB reads "Chicago, Illinois". Normalising that would mean owning a state-and-province
+lookup table forever to win nothing but tidiness. `country` only stands in where there is no state,
+so an English fixture reads "London, England" and a domestic game never reads "Inglewood, CA, USA".
+
+It shows on the detail screen and nowhere else. The building takes bold and the city sits under it
+at normal weight, so weight does the separating and no punctuation, colour change or second size is
+needed to tell them apart.
+
+The cards were tried both ways first — stacked, then run onto one line — and neither earned the
+room. A card exists to answer "should I switch to this", and the city is not part of that answer;
+it is what you want once you have already opened the game. So the cards name the building and stop,
+at the weight of the meta around them. The same run took the odds attribution off its own line and
+moved it to the end of the line it describes, which leaves the live card at 208px, twelve pixels
+shorter than before any of this.
+
+The attribution's first attempt was a bare `title` attribute, which turned out to be a tooltip in
+name only: a second of hover delay, no cursor change, nothing drawn, and 8.6px of text to find it
+on. It is a real Bootstrap tooltip now, on the same themed styling the settings explainers use,
+with a dotted rule and a help cursor to say there is something there. The trigger is a `button`
+rather than a span, which puts it in the tab order without a hand-placed `tabIndex` and means the
+card's own click handler already ignores it — `isInteractiveCardTarget` has skipped anything inside
+a button since long before this. The provider's name rides in the tooltip text too, because that
+string ends in a colon it used to introduce a visible name with.
+
+Bootstrap arrives on a lazily imported chunk so the marketing site, which renders these cards but
+never an odds line, does not pay for it. Two things fell out of that. Tearing the tooltip down while
+it was still shown threw from inside Popper once React had removed the element, which surfaced as a
+test failing roughly half the time in a completely unrelated assertion; `animation: false` plus an
+explicit `hide()` before `dispose()` fixed it. And any test that fires the hover before the chunk
+lands passes only because a previous test warmed the module, so both now wait on
+`data-bs-original-title` first.
+
+Ten parser tests, every address taken verbatim from a live ESPN response, plus a card spec whose
+fixture carries a location throughout precisely so that the cards can be caught rendering it.
+
+## A shared city stops standing in for two teams — 2026-08-27
+
+Manual testing turned up a suggestion that should never have been made: an Xfinity tab streaming
+**Dodgers at Braves** was offered, pre-checked, as **Rams @ Chargers**.
+
+The cause was the rule that lets two faint reads count as one firm one — the thing that stops a tab
+titled "Boston Globe" surfacing every Boston game. It assumed the two reads were independent. They
+are not when both teams share a city: the single `Los-Angeles` in that URL was scored once for the
+Rams and again for the Chargers, then collected the both-teams bonus on top. Eighteen plus eighteen
+plus twenty-five is sixty-one, which clears the pre-check gate. One coincidence, billed twice.
+
+A weak match whose text the other team has already claimed is now dropped, so a shared city cannot
+be evidence for both sides of the same game. `Ohio State vs Michigan` is unaffected — those are two
+different mentions — and the all-Los-Angeles game still matches the moment either nickname appears.
+The same fix covers Chicago, New York, and every other shared market for free.
+
+Six tests, five of them built from the URLs that exposed it. Worth recording that the correct game
+scored 103 on that same tab throughout: the matcher had always read the URL, and had the Dodgers
+game been eligible it would have won on merit.
+
+## The pre-game screen was throwing away the answer — 2026-08-27
+
+A pre-game game gave you two crests, "vs", a start time and an odds line. For a baseball game the
+single most useful thing you could know in advance — who is pitching — was not on the screen, and
+neither was any team context at all.
+
+It was never a missing request. `EspnCompetitorSchema` declared five keys, and Zod's default strip
+mode silently deleted every other field on a competitor before the parser ever saw it. The probable
+starters, the team records and the statistical leaders were all in the payload we already fetch, and
+were discarded on every poll. Declaring them costs no additional ESPN calls; the detail screen now
+makes one fewer.
+
+### What the survey turned up
+The first pass sampled a single day, 2026-08-27, which put the NHL and the NBA in their offseason
+and made it look like they send none of this. Re-sampled at in-season dates, three things changed
+the shape of the work:
+
+- **Probables are not baseball-only.** Hockey sends `probableStartingGoalie` on every in-season
+  competitor sampled, with an empty record string and an `expected` / `confirmed` status baseball
+  never sends. Matching the shared `probableStarting` prefix covers both sports with one rule and
+  leaves room for a third
+- **The overall record is not consistently keyed.** It is `type: 'total'` in most leagues, `'ytd'`
+  in the NHL and `'standingsoverall'` in the AFL, so a lone `find` on `'total'` returns nothing at
+  all for hockey. Resolution is a preference chain ending in a positional fallback, since index 0
+  held the overall record in every league sampled
+- **Leaders change meaning with the event state.** The same MLB category reads `27` before a game,
+  `0-0` during it, and `"1-4, HR, 4 RBI, 2 R, BB"` after — that game's box line, repeated
+  identically across every category. Gating leaders on the pre-game state is correctness, not
+  economy
+
+Community documentation was no help: `probables` is undocumented in every public reference, and the
+one gist that describes `records[].type` lists a value that does not exist.
+
+### On the screen
+- **Probable starters mirror the poster**, away left and home right, each under the crest it belongs
+  to, with the player's headshot ringed in the team's colour. A game with only one side named leaves
+  the other half empty rather than re-centring the name it has — 14 of 98 upcoming games were
+  one-sided, and a lone centred name reads as belonging to neither team
+- **A pitcher's numbers say what they are.** ESPN pre-formats them as `(3-1, 4.23)`, which is two
+  numbers and no indication of what either one is. They are split back out of the separate `wins`,
+  `losses` and `ERA` stats — present on all 182 upcoming probables sampled — and rendered as two
+  labelled pairs, value over label, the way a box score heads a column. Hockey shows a goalie's name
+  and whether the start is confirmed, and no numbers at all, because a goalie's record field is
+  always empty and its statistics array is empty with it
+- Neither those numbers nor the leader values are set in Lekton any more. The monospace face is for
+  figures you scan down a column — a clock, a score — and these are read in place
+- **Team leaders get the full width of the card, not half of it.** They were mirrored too at first,
+  and it did not survive football: a value there runs to 21 characters — `14/23, 141 YDS, 1 INT` —
+  against four for baseball's `.276`, and no half-width column fits both. Every leader now gets one
+  full-width row grouped under its category, and the team is carried by a wash of its own colour
+  across the row rather than by which side of the card it sits on
+- Within a row, the name takes the slack and the value keeps its own width. A clipped name is still
+  readable; a clipped stat is not
+- Headshots crop with `object-fit: cover`, not the crest's `contain`. A headshot is a 350x254 photo
+  of a person, and fitting one whole inside a circle leaves empty bands above and below the head
+- **Headshots throughout**, 38px on a starter and 20px on a leader, from the same
+  `a.espncdn.com` host the team logos already come from. They are near-universal — 776 of 776 MLB
+  leaders, every goalie sampled — except in soccer, which sends one for roughly a leader in ten, so
+  the placeholder is a designed state rather than a failure: a circle in the team's colour carrying
+  the player's initials, holding the row's height and left edge exactly
+- **The disc a player stands on is the team's colour**, and the initials sit on the same disc rather
+  than bringing their own background. ESPN headshots are cut-outs with transparent backgrounds, so
+  the disc is what the player is actually standing on and it has to outlive the placeholder. The ink
+  on it follows the colour's luminance — white on a navy, near-black on a Bruins gold, since 0.1833
+  is where white stops clearing 4.5:1. `readableInkOn` sits in `colorUtils` next to the luminance
+  maths it needs, rather than repeating that arithmetic inside a component
+- Getting there took a wrong turn worth recording. The placeholder is laid out *and hidden* by
+  `_crest.scss`, and restating any of it in a call site is a silent override: a nested
+  `.crest-fallback` rule matches `[data-crest-state='loaded'] > .crest-fallback` on specificity and
+  beats it on source order, so the placeholder stayed in the layout and its white initials showed
+  through every loaded headshot. Team logos never exposed it because they are opaque
+- **Team leaders, one row per category**, capped at three. The proprietary composites are dropped by
+  a rule about how ESPN names things rather than a list of the names themselves, which is what keeps
+  `MLBRating` and basketball's `rating` out without anyone maintaining an inventory
+- **A per-game average is labelled as one.** The first version of this collapsed ESPN's
+  `pointsPerGame` into `points` on the theory that they were duplicates, which would have printed
+  the WNBA's 19.4 under the season-points label. Live data says the WNBA sends only the per-game
+  variants and the NBA only the totals — no league sends both — so the two stay distinct and the
+  per-game rows carry PPG, RPG and APG. Soccer's `goals` and `goalsLeaders` really are duplicates
+  and really are collapsed
+- **Labels are keyed by sport, not by category name.** `points` and `assists` mean one thing in
+  basketball and another in hockey, and `goals` is shared by hockey and soccer, so a flat map would
+  print a hockey points leader as a basketball one. A category we have no label for falls back to
+  ESPN's own abbreviation instead of rendering a raw key
+- Values render verbatim. The football ones carry their own English units and there is no version of
+  `"12 CAR, 68 YDS, 1 TD"` we could assemble ourselves
+- The block does not render at all for a sport that sends neither, so college football and college
+  hockey screens are unchanged
+
+### One fewer request
+Team records used to cost a per-game `/summary` fetch on every detail screen. They now come off the
+scoreboard, with `/summary` kept as the fallback for the leagues and dates that send none. That
+makes the request skippable before a game starts: the series dots are the only thing left on a
+pre-game screen the scoreboard cannot supply, so a soccer or regular-season baseball game fires no
+`/summary` call at all. Hockey and basketball fall through to the fetch on their own, which is what
+keeps them working before their season is underway.
+
+### Strings and coverage
+- Twenty-two new `detail` keys across all twelve locales: the two starter headings, the two starter
+  statuses, the leaders heading, the two pitcher stat labels, and fifteen stat abbreviations. A
+  Cypress spec renders every locale's string in place and measures it, since these are the strings
+  with the least room to grow into. Most keep the English abbreviation, which is not laziness —
+  German BBL and Japanese B.League print PTS, REB and AST in their own official box scores, and
+  Italian FIBS's own abbreviation for a home run is literally HR. Where a language does have its
+  own, it is used: German and French hockey take T / V / PKT and B / A / PTS from NHL.com's own
+  localized glossaries, and both Chinese locales use the native terms CPBL and CBA print
+- **31 new unit tests on the parse**, each built from a payload transcribed off the live API. The
+  NHL's `ytd` record, college football's four record types, a goalie whose record string is empty,
+  both duplicate category pairs, a rookie at `0-0` that a truthiness check would have eaten, and the
+  state gate. One more covers a `leaders` field arriving as a `$ref` string instead of an array,
+  which is what cricket sends and no league we ship does yet
+- **11 on the two helpers pulled out of components.** `shouldFetchSummary` is an exported predicate
+  rather than a condition inside a `useEffect`, and `playerInitials` lives in a `.ts` file rather
+  than the `.tsx` that renders it. Same reason for both: the extension's Jest runs in a node
+  environment with no DOM, and there is no React Testing Library anywhere in the repo, so a decision
+  buried in a component is a decision nothing can test
+- **24 component tests on the block.** Both degradation cases, the sport-keyed label lookup, the
+  placeholder holding a row's height and left edge, every locale's labels measured where they
+  actually render, and an assertion that no football value is ever clipped. The headshot tests mount
+  a 1x1 transparent PNG as a data URI, so they are deterministic and need no network. Transparent on
+  purpose: an opaque image would paint over a placeholder that failed to hide and pass with the bug
+  still in place. That test was run against the unfixed stylesheet and confirmed failing before the
+  fix went in
+- Three assertions changed shape while being written, each wrong in its own way. One claimed a
+  starter shared a centre line with its crest, which two grids with different padding cannot hold.
+  One measured a leader label against a fixed-width column the full-width redesign had removed. One
+  took a locale's budget from the row's own shrink-to-fit width before swapping longer text in, so
+  it measured Japanese against a box sized for English and failed a layout that was fine
+- Demo mode gets an MLB pre-game game and an NHL one, so the block is visible without waiting on a
+  real slate. The Canadiens goalie in it has no headshot on purpose, because the initials disc is
+  the state most likely to rot without anyone noticing
+
+## ArenaSwap reads your tabs and guesses — 2026-08-27
+
+Pairing a tab with a game was the one part of the workflow that scaled badly. The only control was
+the `— Assign a tab —` dropdown on each game card, one game at a time, and every dropdown listed
+every open tab with no hint which one was right. Nothing in the extension had ever looked at what a
+tab was actually showing.
+
+It does now. ArenaSwap scores the open tabs against the games it knows about and offers the pairings
+in a review sheet. It is a suggestion and never an assignment — nothing reaches the registry until
+the Assign button is pressed, and the dropdown still has the final say.
+
+### What counts as a match
+- **Whole tokens, never substrings.** The tab's title and decoded URL become one padded token
+  string, so `BOS` cannot match inside `jobs`, `Boston`, or `bosnia`. The entire class of
+  abbreviation false positives is a property of the data structure rather than a special case
+- **A signal either identifies a team or corroborates one.** A full name or a nickname identifies;
+  a bare city, a lone abbreviation, and the league name only corroborate. A pair has to be
+  identified by something before it can appear at all
+- **Two faint reads count as one firm one.** `new york` in a team name and `ohio state` in another
+  are the same shape — nothing in the string says one is a city and the other a school. So the
+  decision is made across both teams at once: `Ohio State vs Michigan` matches because both sides
+  register, and `The New York Times` does not because only one does
+- **ESPN's own gamecast is matched exactly.** `Game.id` is the ESPN event id, and ESPN's URLs carry
+  it. It only counts behind a recognisable key — a bare number is ignored, since soccer event ids
+  are six digits and would otherwise match half the product pages on the web
+- **No maintained lists.** A streaming-domain allowlist and a replay-keyword filter were both
+  considered and dropped. The one list that ships is ~30 club-form words (`fc`, `united`, `real`,
+  `state`), which tracks language rather than the outside world and does not grow when a league adds
+  a team
+
+### The sheet
+- A dismissible banner in the main view opens `suggestView`, a fourth popup view. One row per tab,
+  paired with its best game, so the list is bounded by how many tabs are open rather than by the
+  size of the slate
+- **No score, badge or confidence meter is ever drawn.** A weak row simply arrives unchecked
+- Checking a row releases whichever row was holding that game, so the list never shows a state it
+  will not honour
+- Dismissal is per pair and lasts the session. Every row that was shown is recorded, not just the
+  accepted ones — otherwise the rejected rows would raise the banner again on the next open
+- Scheduled games are eligible alongside live ones. When a tab fits both, live wins, as a tiebreak
+  rather than a bonus: a weak live match should not beat a strong scheduled one
+
+### One thing this tidied on the way past
+`tabAssignSelect` had the registry's one-tab-one-game rule inlined in its change handler. It is now
+`assignTabToGame` in `utils/tabSuggestions.ts`, shared by the dropdown and the apply step, with a
+test asserting the extraction reproduces the old behavior. Two writers drifting on that invariant
+was the likeliest way this feature could have corrupted the registry.
+
+### Strings and coverage
+- A `suggest` namespace across all twelve locales — eleven keys each, including the two-form plural
+  counts on the banner copy, the apply button and the confirmation toast. "Slate" was translated for
+  meaning rather than calqued, so it reads as the day's fixtures in each language
+- Every row carries a full `rowLabel` for screen readers. The visible row is crests, abbreviations
+  and a truncated tab title, none of which announces well on its own
+- **38 unit tests on the matcher**, weighted toward the matches that must *not* happen: `Boston
+  Globe`, `The New York Times`, `Best Jobs in Boston`, `OSU Extension Service` on `extension.osu.edu`,
+  a bare event id in a query string, and a six-digit soccer id in a product URL
+- **8 component tests on the sheet**, including one asserting no score ever reaches the DOM and one
+  measuring every locale's apply label against the real button width, since a wrapped primary button
+  reads as a layout bug rather than a long word
+
+## Documentation, split in two and given real URLs — 2026-08-23
+
+The docs site had a schema, a side nav and two section pages, and no content in them. It now has
+fifteen articles: eight for people watching sports, seven for people scoring games with the
+`powerscore` package. The two halves are written for different readers and never pretend otherwise.
+
+### Routing
+- **One article, one URL.** `/docs/[section].astro` stacked every entry onto a single page, so two
+  URLs would have answered every question a reader had. The tree is now `/docs/` (a hub),
+  `/docs/<section>/` (an index), and `/docs/<section>/<slug>/` (the article), added as
+  `pages/docs/index.astro`, `pages/docs/[section]/index.astro` and `pages/docs/[section]/[slug].astro`
+- **`lib/docs.ts` holds the section metadata, the slug helper and the collection query**, so the hub,
+  the indexes, the articles and the side nav all describe a section the same way
+- **`DocsNav` is generated from the collection** rather than a hand-kept list of three links. Both
+  trees are always shown, so a reader on a PowerScore page can see the extension pages exist
+- Previous and next links stay inside a section. Walking from the last extension article into the
+  first PowerScore one would hand a reader documentation for a package they never asked about
+- **"Docs" in the header, the footer and the 404 page now points at `/docs/`**, not at
+  `/docs/extension/`
+
+### Frontmatter
+- **`navLabel`**, for when a title is longer than the 13rem side nav
+- **`faq`**, an optional list of question and answer pairs. It renders as a disclosure block below
+  the article and emits `FAQPage` structured data
+- Every article page carries its own `<title>`, meta description, canonical URL, `og:type=article`,
+  and `TechArticle` plus `BreadcrumbList` JSON-LD. All 18 new URLs are in the sitemap
+- `placeholder.md` is deleted. It existed to keep the collection non-empty and there is content now
+
+### Two things the writing pass caught
+- **A stuck switch was described as sensitivity set too high. It is the opposite.**
+  `sensitivityThresholds` maps level 7 to a 1-point gap and level 1 to 37, so level 7 switches most
+  aggressively. A switch that never fires means sensitivity is low
+- **A worked example in `scoring-a-game.md` could not be reproduced.** It printed a score for a
+  `Game` the page never showed, built from the abstract return of `toGame(event)`. The example now
+  defines the game it scores, and both it and the `getting-started.md` tutorial were re-run against
+  the real scorer field by field

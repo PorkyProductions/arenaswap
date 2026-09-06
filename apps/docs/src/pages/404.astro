@@ -1,13 +1,21 @@
 ---
 import Shell from '../layouts/Shell.astro';
 import NotFoundCard from '../components/NotFoundCard';
+import { defaultLocale, localePath } from '../i18n/locales';
+import { useTranslations, uiStrings } from '../i18n/ui';
 
+// One 404 for the whole site, in English. GitHub Pages answers every unknown URL under the base
+// path with this single file, so there is no per-locale version it could reach for — a request for
+// /arenaswap/de/nothing-here gets served the same document a request for /arenaswap/nothing-here
+// does. The links point at the English pages for the same reason.
+const t = useTranslations(defaultLocale);
 const base = import.meta.env.BASE_URL;
 ---
 <Shell
-	title='404 — ArenaSwap'
-	description="That page isn't on the schedule. Head back to ArenaSwap."
+	title={t('meta.notFoundTitle')}
+	description={t('meta.notFoundDescription')}
 	noindex
+	localized={false}
 >
 	<section class='notfound'>
 		<div class='notfound-glow' aria-hidden='true'></div>
@@ -15,34 +23,32 @@ const base = import.meta.env.BASE_URL;
 			<div class='notfound-inner'>
 
 				<div class='notfound-card'>
-					<NotFoundCard />
+					<NotFoundCard strings={uiStrings(defaultLocale)} />
 				</div>
 
-				<h1 class='notfound-title'>This one isn't on the schedule.</h1>
+				<h1 class='notfound-title'>{t('notFound.title')}</h1>
 
-				<p class='notfound-sub'>
-					The page you're after was traded, retired, or never suited up in the first place.
-				</p>
+				<p class='notfound-sub'>{t('notFound.sub')}</p>
 
 				<p class='notfound-path' data-no-dots>
-					<span class='notfound-path-key'>Requested</span>
+					<span class='notfound-path-key'>{t('notFound.requested')}</span>
 					<code id='notfound-path'>{base}</code>
 				</p>
 
 				<div class='notfound-cta'>
-					<a href={base} class='btn btn-cta'>
-						<i class='bi bi-house-door me-2'></i>Back home
+					<a href={localePath(defaultLocale)} class='btn btn-cta'>
+						<i class='bi bi-house-door me-2'></i>{t('notFound.backHome')}
 					</a>
-					<a href={`${base}releases/`} class='btn btn-outline-secondary-custom'>
-						Read the release notes
+					<a href={localePath(defaultLocale, 'releases/')} class='btn btn-outline-secondary-custom'>
+						{t('notFound.readReleases')}
 					</a>
 				</div>
 
 				<div class='notfound-links'>
-					<a href={`${base}powerscore/`}>PowerScore</a>
-					<a href={`${base}docs/extension/`}>Docs</a>
-					<a href={`${base}faq/`}>FAQ</a>
-					<a href={`${base}legal/`}>Legal notices</a>
+					<a href={localePath(defaultLocale, 'powerscore/')}>{t('nav.powerscore')}</a>
+					<a href={localePath(defaultLocale, 'docs/')}>{t('nav.docs')}</a>
+					<a href={localePath(defaultLocale, 'faq/')}>{t('nav.faq')}</a>
+					<a href={localePath(defaultLocale, 'legal/')}>{t('nav.legal')}</a>
 				</div>
 
 			</div>

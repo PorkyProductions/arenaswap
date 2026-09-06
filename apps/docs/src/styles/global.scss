@@ -11,6 +11,39 @@ $navbar-dark-hover-color:       #e6edf3;
 $navbar-dark-brand-color:       #e6edf3;
 $navbar-dark-active-color:      #F75C03;
 
+// The language switcher is the first dropdown on the site, and it landed on the same gap the Up
+// Next day pager found in the popup: Bootstrap 5.3 builds $dropdown-link-hover-bg out of
+// --as-tertiary-bg, which this theme never overrode and which is therefore still the light default
+// #f8f9fa. Rendered, hovering an item put #e6edf3 text on a near-white slab.
+//
+// And $dropdown-link-active-color is $component-active-color, a flat white that reaches only
+// 3.22:1 on $primary. Buttons escape this by running the colour through color-contrast(); a
+// dropdown does not, so the active item takes the page's own near-black instead.
+$dropdown-bg:                   #161b22;
+$dropdown-border-color:         #30363d;
+$dropdown-link-color:           rgba(230, 237, 243, 0.82);
+$dropdown-link-hover-color:     #e6edf3;
+$dropdown-link-hover-bg:        #21262d;
+$dropdown-link-active-color:    #0d1117;
+$dropdown-font-size:            0.875rem;
+
+// Bootstrap 5.3 builds every alert out of the `-bg-subtle`, `-border-subtle` and `-text-emphasis`
+// tokens, and it computes two sets of them: a light pair on `:root` and a dark pair under
+// `[data-bs-theme=dark]`. This site never sets that attribute — its darkness comes from the hand
+// picked $body-bg in packages/ui rather than from Bootstrap's colour-mode switch — so the light set
+// wins and every alert renders as a pale slab on a #0d1117 page. Same shape as the pagination and
+// dropdown gaps before it.
+//
+// Switching the whole document to data-bs-theme=dark would fix it and also drag --as-body-bg,
+// --as-border-color and the rest onto Bootstrap's own dark greys, undoing the theme. So the two
+// variants the site actually renders take Bootstrap's dark values directly, and nothing else moves.
+$secondary-bg-subtle:           #0c1f2a;
+$secondary-border-subtle:       #256b8f;
+$secondary-text-emphasis:       #8bc4e4;
+$warning-bg-subtle:             #302701;
+$warning-border-subtle:         #917608;
+$warning-text-emphasis:         #f7dc6f;
+
 @import 'bootstrap/scss/bootstrap';
 @import 'bootstrap/scss/reboot';
 @import 'bootstrap-icons/font/bootstrap-icons.scss';
@@ -287,6 +320,117 @@ body.nav-open {
 
 .nav-drawer-cta {
 	padding-top: 0.5rem;
+}
+
+// ─── Language switcher ───────────────────────────────────────────────────────
+// The trigger borrows the desktop links' resting and hover treatment rather than inventing a
+// third, so the row still reads as one set of controls. Below 992px it goes with those links and
+// the drawer shows the twelve languages as a plain list.
+.lang-switch {
+	@media (max-width: 991px) {
+		display: none;
+	}
+}
+
+.lang-switch-trigger {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.375rem 0.6rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: rgba(230, 237, 243, 0.72);
+	background: none;
+	border: none;
+	border-radius: 0.5rem;
+	white-space: nowrap;
+	transition: color 0.15s ease, background 0.15s ease;
+
+	&:hover,
+	&[aria-expanded='true'] {
+		color: var(--color-text);
+		background: rgba(230, 237, 243, 0.06);
+	}
+}
+
+.lang-switch-caret {
+	font-size: 0.6rem;
+	// The chevron sits optically high next to a cap-height word.
+	transform: translateY(1px);
+}
+
+// Bootstrap's own dropdown, themed through the variables above rather than re-specified here. The
+// only thing left is the height, because twelve entries at 992px run past a laptop's fold.
+.lang-switch-menu {
+	max-height: min(70vh, 26rem);
+	overflow-y: auto;
+}
+
+// The flag is decoration beside a name that already says which language it is, so it is sized
+// against the row rather than against the text and takes no part in the reading order.
+.lang-switch-flag {
+	display: inline-block;
+	width: 1.5em;
+	margin-right: 0.15rem;
+	font-size: 0.95em;
+}
+
+// Inside the menu rather than beside the trigger: as a sibling of the button it was a block in the
+// nav row's normal flow, and a wrapped sentence in a 64px bar pushes the whole row out of shape.
+// Bootstrap's own item padding, so it lines up with the names under it.
+.lang-switch-note {
+	font-size: 0.78rem;
+	line-height: 1.45;
+	color: var(--color-muted);
+	margin: 0;
+	padding: 0.25rem 1rem 0.5rem;
+	// Wide enough for the sentence on two lines, which is what sets the menu width on the pages
+	// that carry it. A menu of language names is about 13rem on its own.
+	max-width: 17rem;
+}
+
+.lang-switch-list .lang-switch-note {
+	padding: 0.75rem 0 0;
+}
+
+.lang-switch-list {
+	padding-top: 1.5rem;
+	border-top: 1px solid var(--color-border);
+
+	// Beats `.nav-drawer ul`, which sets a 2rem bottom margin for the link list above this one.
+	ul {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem 1.25rem;
+	}
+
+	// And `.nav-drawer li a`, whose 1rem block padding and 1.1rem type are sized for the six
+	// navigation links rather than for twelve language names.
+	li {
+		border-bottom: none;
+
+		a {
+			padding: 0.35rem 0;
+			font-size: 0.95rem;
+			color: var(--color-muted);
+
+			&[aria-current='true'] {
+				color: var(--color-primary);
+			}
+		}
+	}
+}
+
+.lang-switch-heading {
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--color-muted);
+	margin: 0 0 0.75rem;
 }
 
 // ─── Buttons ─────────────────────────────────────────────────────────────────

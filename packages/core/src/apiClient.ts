@@ -6,13 +6,16 @@ import {
 } from './espnSchemas';
 import type {
 	EspnCompetition,
+	EspnCompetitor,
 	EspnEvent,
+	EspnProbable,
 	EspnOddsProvider,
 	EspnScoreboardResponse,
 	EspnSituation,
+	EspnVenueAddress,
 } from './espnSchemas';
 import { logWarn } from './logger';
-import type { Game, GameCondition, GameOdds, LeagueConfig, LeagueId, LeagueLogoMap } from './types';
+import type { Game, GameCondition, GameOdds, LeagueConfig, LeagueId, LeagueLogoMap, ProbableStarter, TeamLeader } from './types';
 
 const espnBase = 'https://site.api.espn.com/apis/site/v2/sports';
 
@@ -57,17 +60,39 @@ const parseStatus = (state: string): Game['status'] => {
 	return 'post';
 };
 
-const toQueryDate = (date: Date): string => (
-	`${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, '0')}${String(date.getUTCDate()).padStart(2, '0')}`
-);
+// ESPN files its scoreboard by US Eastern calendar date, not by UTC: a 2026-09-04T02:10Z first
+// pitch comes back under dates=20260903. The popup groups and labels games by the viewer's own
+// calendar day, so the window is chosen in local days and translated to Eastern here rather than
+// being built in a third zone that agrees with neither.
+const espnFilingDateFormat = new Intl.DateTimeFormat('en-US', {
+	timeZone: 'America/New_York',
+	year: 'numeric',
+	month: '2-digit',
+	day: '2-digit',
+});
 
-const buildUpcomingDatesRangeQuery = (days: number): string => {
+const toQueryDate = (date: Date): string => {
+	const parts = espnFilingDateFormat.formatToParts(date);
+	const part = (type: Intl.DateTimeFormatPartTypes): string => parts.find(p => p.type === type)?.value ?? '';
+	return `${part('year')}${part('month')}${part('day')}`;
+};
+
+const localDayStart = (date: Date): Date => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+export const buildUpcomingDatesRangeQuery = (days: number, now: Date = new Date()): string => {
 	// ESPN's default no-dates scoreboard only reliably surfaces active and recent games; the
 	// explicit range returns every scheduled event, including this morning's pre-game ones.
-	const start = new Date();
-	const end = new Date(start);
-	end.setUTCDate(end.getUTCDate() + days);
-	return `${toQueryDate(start)}-${toQueryDate(end)}`;
+	const windowStart = localDayStart(now);
+	// The popup's cutoff is a rolling `days * 24h` from now, so the last day it can label is the
+	// local day that instant falls in. Ending on that day's final millisecond rather than on its
+	// midnight keeps the range out of an Eastern date nothing on screen would come from.
+	const lastLocalDay = localDayStart(new Date(now.getTime() + (days * 24 * 60 * 60 * 1000)));
+	const windowEnd = new Date(new Date(
+		lastLocalDay.getFullYear(),
+		lastLocalDay.getMonth(),
+		lastLocalDay.getDate() + 1,
+	).getTime() - 1);
+	return `${toQueryDate(windowStart)}-${toQueryDate(windowEnd)}`;
 };
 
 const ch = (n: number): number => {
@@ -148,6 +173,18 @@ const parseBroadcasts = (competition: EspnCompetition): string[] | undefined => 
 	return parsed.length > 0 ? parsed : undefined;
 };
 
+const parseVenueLocation = (address?: EspnVenueAddress): string | undefined => {
+	const city = address?.city?.trim();
+	const state = address?.state?.trim();
+	const country = address?.country?.trim();
+	if (!city && !state && !country) return undefined;
+	// Country only stands in where ESPN sent no state, so a domestic game reads "Inglewood, CA"
+	// rather than "Inglewood, CA, USA".
+	if (city && state) return `${city}, ${state}`;
+	if (city && country) return `${city}, ${country}`;
+	return city || state || country;
+};
+
 const pickProviderLogo = (provider?: EspnOddsProvider, rel?: string): string | undefined => {
 	if (!provider?.logos?.length) return undefined;
 	if (rel) {
@@ -182,6 +219,108 @@ const parseOdds = (competition: EspnCompetition): GameOdds | undefined => {
 	return parsed;
 };
 
+// `type` is not a stable discriminator across leagues. The overall record is `total` in most of
+// them, `ytd` in the NHL and `standingsoverall` in the AFL, so a lone `find` on `total` silently
+// returns nothing for hockey. Index 0 held the overall record in every league sampled, which is
+// all the positional fallback rests on.
+const overallRecordTypes = ['total', 'ytd', 'standingsoverall'];
+
+const parseCompetitorRecord = (competitor: EspnCompetitor): string | undefined => {
+	const records = competitor.records;
+	if (!records || records.length === 0) return undefined;
+	const overall = overallRecordTypes
+		.map(type => records.find(entry => entry.type === type))
+		.find(entry => entry !== undefined)
+		?? records[0];
+	// `summary` beats `displayValue` because the NHL appends standings points to the latter —
+	// "28-28-10, 66 PTS", twice the width of the column it has to sit in.
+	return (overall?.summary ?? overall?.displayValue ?? '').trim() || undefined;
+};
+
+// Baseball's `probableStartingPitcher` and hockey's `probableStartingGoalie` are the only two
+// values ESPN sends. Matching the shared prefix rather than either name means a third sport can
+// start shipping a starter without needing a change here.
+const starterStat = (probable: EspnProbable, name: string): string | undefined => (
+	probable.statistics?.find(stat => stat.name === name)?.displayValue?.trim() || undefined
+);
+
+const parseProbableStarter = (competitor: EspnCompetitor): ProbableStarter | undefined => {
+	const probable = competitor.probables?.find(entry => entry.name?.startsWith('probableStarting'));
+	if (!probable) return undefined;
+	const name = probable.athlete?.shortName?.trim() || probable.athlete?.displayName?.trim();
+	if (!name) return undefined;
+	const status = probable.status?.type?.trim().toLowerCase();
+	const wins = starterStat(probable, 'wins');
+	const losses = starterStat(probable, 'losses');
+	return {
+		name,
+		headshot: probable.athlete?.headshot?.trim() || undefined,
+		winLoss: wins !== undefined && losses !== undefined ? `${wins}-${losses}` : undefined,
+		era: starterStat(probable, 'ERA'),
+		// Empty for every goalie sampled; a pitcher's arrives assembled as "(7-7, 5.17)".
+		line: probable.record?.trim() || undefined,
+		status: status === 'expected' || status === 'confirmed' ? status : undefined,
+	};
+};
+
+// Soccer sends the same stat twice, as `goals` and `goalsLeaders`, so the suffix comes off before
+// anything dedupes on the result. `Leaders` is listed before `Leader` because alternation is tried
+// left to right.
+//
+// `PerGame` is deliberately NOT stripped. No league was found sending both a total and a per-game
+// variant of the same stat, so collapsing them buys nothing — and it would relabel the WNBA's
+// `pointsPerGame` of 19.4 as season points, which is a different number.
+const normalizeLeaderCategory = (name: string): string => (
+	name.replace(/(Leaders|Leader)$/, '').toLowerCase()
+);
+
+// The proprietary composites — MLB's `MLBRating` (552.8) and basketball's `rating`
+// ("15 PTS, 9 REB, 8 AST, 3 BLK") — are useless in a column this narrow. A rule about how ESPN
+// names things outlives a list of the names themselves.
+const isCompositeRating = (name: string): boolean => /rating$/i.test(name);
+
+const maxLeadersPerTeam = 3;
+
+const parseTeamLeaders = (competitor: EspnCompetitor): TeamLeader[] | undefined => {
+	const leaders: TeamLeader[] = [];
+	const seen = new Set<string>();
+
+	for (const cat of competitor.leaders ?? []) {
+		const name = cat.name?.trim();
+		if (!name || isCompositeRating(name)) continue;
+
+		const category = normalizeLeaderCategory(name);
+		if (seen.has(category)) continue;
+
+		const top = cat.leaders?.[0];
+		const player = top?.athlete?.shortName?.trim() || top?.athlete?.displayName?.trim();
+		const value = top?.displayValue?.trim();
+		if (!player || !value) continue;
+
+		seen.add(category);
+		// `value` goes through verbatim. ESPN bakes English into the football ones — "12 CAR, 68 YDS,
+		// 1 TD" — and there is no version of that string we could assemble ourselves.
+		leaders.push({
+			category,
+			fallbackLabel: cat.shortDisplayName?.trim() || name,
+			player,
+			value,
+			headshot: top?.athlete?.headshot?.trim() || undefined,
+		});
+		if (leaders.length === maxLeadersPerTeam) break;
+	}
+
+	return leaders.length > 0 ? leaders : undefined;
+};
+
+// Spread into both team literals below, the way resolveTeamColors already is. Records ride every
+// status; the other two are pre-game only.
+const parseTeamContext = (competitor: EspnCompetitor, state: Game['status']) => ({
+	record: parseCompetitorRecord(competitor),
+	probableStarter: state === 'pre' ? parseProbableStarter(competitor) : undefined,
+	leaders: state === 'pre' ? parseTeamLeaders(competitor) : undefined,
+});
+
 const parseWeather = (event: EspnEvent): GameCondition | undefined => {
 	const w = event.weather;
 	if (!w || typeof w.temperature !== 'number') return undefined;
@@ -199,6 +338,16 @@ const downOrdinals = ['', '1st', '2nd', '3rd', '4th'] as const;
 const parseGoalToGo = (situation: EspnSituation): boolean => {
 	if (/goal/i.test(situation.shortDownDistanceText ?? '')) return true;
 	return typeof situation.down === 'number' && (typeof situation.distance !== 'number' || situation.distance <= 0);
+};
+
+// `possession` disappears at every dead ball while the rest of the situation survives, so a
+// timeout or the end of a quarter would otherwise take the field diagram's direction of travel
+// with it. `lastPlay.team` holds the offense through those states: at the end of the 2nd quarter
+// of FRES at USC it read 278 for a Fresno State drive ESPN scored at -1 yard, which only balances
+// if Fresno State — the away side — was driving toward 0.
+const parsePossession = (situation: EspnSituation, homeId: string, awayId: string): string | undefined => {
+	const candidate = situation.possession ?? situation.lastPlay?.team?.id;
+	return candidate === homeId || candidate === awayId ? candidate : undefined;
 };
 
 const buildDownDistance = (situation: EspnSituation): string | undefined => {
@@ -290,6 +439,7 @@ const parseEvent = (event: EspnEvent, league: LeagueId): Game | null => {
 			shootoutScore: home.shootoutScore,
 			logo: home.team.logo ?? undefined,
 			...resolveTeamColors(home.team.color, home.team.alternateColor),
+			...parseTeamContext(home, state),
 		},
 		awayTeam: {
 			id: away.id,
@@ -299,8 +449,10 @@ const parseEvent = (event: EspnEvent, league: LeagueId): Game | null => {
 			shootoutScore: away.shootoutScore,
 			logo: away.team.logo ?? undefined,
 			...resolveTeamColors(away.team.color, away.team.alternateColor),
+			...parseTeamContext(away, state),
 		},
 		venueName: comp.venue?.fullName ?? comp.venue?.name ?? undefined,
+		venueLocation: parseVenueLocation(comp.venue?.address),
 		period: status.period ?? 1,
 		clockSeconds: parseClockToSeconds(status.displayClock ?? '0:00'),
 		status: state,
@@ -327,6 +479,9 @@ const parseEvent = (event: EspnEvent, league: LeagueId): Game | null => {
 		down: isGridironSituation ? situation.down : undefined,
 		distance: isGridironSituation ? situation.distance : undefined,
 		isGoalToGo: isGridironSituation ? parseGoalToGo(situation) : undefined,
+		yardLine: isGridironSituation ? situation.yardLine : undefined,
+		possessionTeamId: isGridironSituation ? parsePossession(situation, home.id, away.id) : undefined,
+		driveStartYardLine: isGridironSituation ? situation.lastPlay?.drive?.start?.yardLine : undefined,
 		weather: parseWeather(event),
 		isPostseason: resolvePostseason(event, comp, league),
 		delayed: isDelayed || undefined,
