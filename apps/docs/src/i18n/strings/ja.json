@@ -1,0 +1,442 @@
+{
+	"meta": {
+		"homeTitle": "ArenaSwap — その瞬間を、もう見逃さない。",
+		"homeDescription": "ArenaSwapは{leagues}のリーグにわたるすべてのライブ試合を監視し、最も盛り上がっている試合にブラウザのタブを自動で切り替えます。無料、アカウント不要、トラッキングなし。",
+		"faqTitle": "よくある質問 — ArenaSwap",
+		"faqDescription": "ArenaSwapがどのようにタブを切り替えるか、対応するリーグやストリーミングサービス、PowerScoreが何を測定するか、そしてあなたのデータをどう扱うかについて。",
+		"powerscoreTitle": "PowerScoreパッケージ — ArenaSwap",
+		"powerscoreDescription": "PowerScoreは、あらゆるライブ試合を0から100の興奮度スコアに変換します。npmからインストールして、5つのシグナルの仕組みを読み、今夜の試合をライブで採点する様子を見てみましょう。",
+		"legalTitle": "法的通知 — ArenaSwap",
+		"legalDescription": "ArenaSwapのプライバシー通知、ライセンス開示、映像のクレジット表記、免責事項。",
+		"privacyTitle": "プライバシー — ArenaSwap",
+		"privacyDescription": "ArenaSwapのプライバシー通知：拡張機能が保持する設定、送信する情報、要求するブラウザの権限、そしてこのウェブサイトの取り扱いについて。",
+		"termsTitle": "免責事項 — ArenaSwap",
+		"termsDescription": "ArenaSwapはESPNおよび記載されたいかなるリーグとも提携しておらず、ソフトウェアを無保証で提供し、自ら制御できないデータに依存しています。",
+		"creditsTitle": "クレジット — ArenaSwap",
+		"creditsDescription": "ArenaSwapのホームページに表示される試合映像のクレジット表記、および表示されるスコア、リーグのマーク、チームエンブレムの権利について。",
+		"licensesTitle": "ライセンス — ArenaSwap",
+		"licensesDescription": "ArenaSwapはISCライセンスのもとで配布されています。依存しているオープンソースソフトウェアと書体を、それぞれのライセンスとともにここに一覧しています。",
+		"notFoundTitle": "404 — ArenaSwap",
+		"notFoundDescription": "このページはスケジュールにありません。ArenaSwapに戻る。",
+		"releaseFeedTitle": "ArenaSwapのリリースノート"
+	},
+	"nav": {
+		"home": "ホーム",
+		"powerscore": "PowerScore",
+		"docs": "ドキュメント",
+		"releases": "リリース",
+		"faq": "よくある質問",
+		"legal": "法的通知",
+		"openMenu": "メニューを開く",
+		"language": "言語",
+		"chooseLanguage": "言語を選択",
+		"englishOnly": "このページは英語版のみ利用可能です。",
+		"untranslatedHeading": "このページはまだ翻訳されていません。",
+		"untranslatedBody": "ドキュメントとリリースノートは英語で書かれています。このサイトの他の部分はすべて日本語でご利用いただけます。"
+	},
+	"install": {
+		"addTo": "{browser}に追加",
+		"alsoFor": "{firefox}と{edge}にも対応"
+	},
+	"footer": {
+		"tagline": "スポーツファンによる、スポーツファンのためのプロダクト。",
+		"product": "プロダクト",
+		"documentation": "ドキュメント",
+		"powerscorePackage": "PowerScoreパッケージ",
+		"releaseNotes": "リリースノート",
+		"legal": "法的情報",
+		"privacy": "プライバシー",
+		"licenses": "ライセンス",
+		"credits": "クレジット",
+		"disclaimers": "免責事項",
+		"install": "インストール",
+		"chromeWebStore": "Chrome Web Store",
+		"firefoxAddons": "Firefox Add-ons",
+		"edgeAddons": "Edge Add-ons",
+		"iscLicense": "ISC License",
+		"disclaimer": "ESPN、NFL、NBA、NHL、MLB、MLS、その他この拡張機能が追跡するいかなるリーグとも提携・承認関係にありません。",
+		"legalNotices": "法的通知",
+		"madeWith": "{name}がPhiladelphia & Bostonで❤️を込めて制作"
+	},
+	"sport": {
+		"basketball": "バスケットボール",
+		"football": "アメリカンフットボール",
+		"hockey": "ホッケー",
+		"baseball": "野球",
+		"softball": "ソフトボール",
+		"soccer": "サッカー"
+	},
+	"home": {
+		"hero": {
+			"titleLine1": "その瞬間を、",
+			"titleLine2": "もう見逃さない。",
+			"lede": "ArenaSwapは{leagues}のリーグにわたるすべてのライブ試合を監視し、最短6秒ごとに最も盛り上がっている試合へブラウザのタブを自動で切り替えます。",
+			"teamStrip": "{leagues}のリーグのすべてのチームに対応。あなたのチームも、もちろん。",
+			"captionSwitched": "ArenaSwapが{from}から{to}へ切り替えました。",
+			"captionWatching": "今、{game}を視聴中です。盤面で最も注目の試合です。",
+			"replay": "デモを再生",
+			"tabLabel": "タブ {number}：{host}"
+		},
+		"tabs": {
+			"titleLine1": "一度設定すれば。",
+			"titleLine2": "あとは全部お任せ。",
+			"copy": "ストリームを開いて試合に割り当てたら、あとは離れて大丈夫。それ以降のすべての切り替えはArenaSwapが処理します。",
+			"steps": [
+				{
+					"title": "ストリームを開く。",
+					"copy": "見たい試合を別々のブラウザタブで開きましょう。ブラウザ上で動くストリーミングサービスなら何でもArenaSwapで使えます。"
+				},
+				{
+					"title": "各タブを割り当てる。",
+					"copy": "拡張機能を開き、リストから各試合を見つけて、1つのドロップダウンで正しいタブに紐づけます。"
+				},
+				{
+					"title": "最高の試合があなたを見つける。",
+					"copy": "ArenaSwapがすべてのライブ試合を採点し、最も盛り上がっている試合へ自動で切り替えます。あなたはただ観るだけ。"
+				}
+			]
+		},
+		"charts": {
+			"title": "理由が、毎回わかる。",
+			"copy": "5つのシグナルが積み重なって、それぞれのスコアになります。どの試合を開いても内訳があり、PowerScoreの推移、スコア履歴、得点差チャートも確認できます。"
+		},
+		"leagues": {
+			"titleLine1": "ライブなら、",
+			"titleLine2": "すべて網羅。",
+			"copy": "{sports}種目のスポーツ。あらゆるレベルの試合。ArenaSwapはそのすべてを同時に監視します。見ないものはオフにすれば、追跡されなくなります。",
+			"numerals": [
+				"ゼロ",
+				"一",
+				"二",
+				"三",
+				"四",
+				"五",
+				"六",
+				"七",
+				"八",
+				"九",
+				"十"
+			]
+		},
+		"settings": {
+			"title": "あなたに合わせて調整。",
+			"copy": "感度が高すぎる？下げましょう。自分のチームは大好きだけど、一番盛り上がっている試合も見たい？ボーナスを追加。ちょっとビールを買いに行く？Standby Streamが画面に何かを映し続けます。ArenaSwapはあなたの必要に合わせて動きます。",
+			"items": [
+				{
+					"name": "感度（1〜{levels}）",
+					"copy": "ArenaSwapが切り替えるまでに必要なスコア差の大きさ。"
+				},
+				{
+					"name": "切り替えクールダウン",
+					"copy": "切り替え間の最短時間。素早いタブの切り替えを防ぎます。"
+				},
+				{
+					"name": "切り替え遅延",
+					"copy": "ストリームがデータより遅れている場合のため、切り替え前に待機します。"
+				},
+				{
+					"name": "お気に入りチームボーナス",
+					"copy": "あなたのチームが出場する試合に加点します。"
+				},
+				{
+					"name": "Standby Stream",
+					"copy": "すべてのライブ試合が盛り上がらなくなったとき、選んだフォールバックタブに留めます。"
+				},
+				{
+					"name": "ゲームブースト",
+					"copy": "特定の試合のPowerScoreを手動で引き上げ、画面に長く表示させます。"
+				}
+			],
+			"levelOf": "レベル {level}／{levels}"
+		}
+	},
+	"faq": {
+		"title": "質問。",
+		"lede": "ここに載っていないことがあれば、{link}",
+		"ledeLink": "Issueを開いてください",
+		"items": [
+			{
+				"q": "ArenaSwapはどのリーグに対応していますか？",
+				"a": "{leagues}のリーグ、6つのスポーツにわたります。バスケットボール：NBA、WNBA、NCAA Basketball、NCAA Women's Basketball、両方のオリンピック大会。フットボール：NFL、NCAA Football、UFL。ホッケー：NHL、NCAA Men's Hockey、両方のオリンピック大会。野球とソフトボール：MLB、NCAA Baseball、NCAA Softball、ワールド・ベースボール・クラシック、オリンピック野球。サッカー：プレミアリーグ、ラ・リーガ、ブンデスリーガ、セリエA、リーガMX、MLS、NWSL、チャンピオンズリーグ、ヨーロッパリーグ、両方のFIFAワールドカップ、両方のオリンピック大会。"
+			},
+			{
+				"q": "タブの切り替えはどのように機能しますか？",
+				"a": "開いているストリームをそれぞれ試合に割り当てます。ArenaSwapはPowerScoreですべてのライブ試合を採点し、見ている試合を十分に上回る試合が出てくると、そちらへタブを切り替え、ミュートを解除し、他はミュートします。感度はどれだけ差があれば十分かを設定し、クールダウンは2つの試合の間を行ったり来たりするのを防ぎます。"
+			},
+			{
+				"q": "アカウントやサブスクリプションは必要ですか？",
+				"a": "いいえ。ArenaSwapは無料で、アカウントは不要、何も収集しません。すべてブラウザ内で完結し、ESPNの公開スコアを読み取るだけです。あなたが見ているものは、どこにも送信されません。"
+			},
+			{
+				"q": "自分のストリーミングサービスでも使えますか？",
+				"a": "ブラウザタブで再生されるストリームであれば何でも使えます。ArenaSwapはサービスと連携するのではなく、タブの切り替えとミュートを行うためです。ESPN+、Peacock、Paramount+、YouTube TV、Hulu Live、Fubo、各リーグの無料配信をカバーします。ネイティブアプリやセットトップボックスには対応できません。"
+			},
+			{
+				"q": "PowerScoreはどのように機能しますか？",
+				"a": "PowerScoreは5つのシグナルから構成される0〜100の評価値です：試合の接戦度、終盤度、直近の得点によるモメンタム、リードの入れ替わり、そして進行中の逆転の大きさです。「接戦」の基準は各スポーツによって異なるため、1点差のホッケーの試合と1点差のバスケットボールの試合は同じように扱われます。あなたのチームやポストシーズンは加点され、盛り上がりを失った試合は減点され、中断やインターミッション中の試合はゼロになります。"
+			},
+			{
+				"q": "特定の試合から切り替わらないようにできますか？",
+				"a": "できます。タブの割り当てを解除すればArenaSwapはそのままにしますし、ポップアップ上部のトグルで自動切り替え自体をオフにもできます。感度を下げるか、クールダウンを長くすれば、完全にオフにしなくても切り替えを少なくできます。"
+			},
+			{
+				"q": "すべての試合がつまらないときはどうなりますか？",
+				"a": "Standby Streamをオンにしてタブを選んでください。追跡している試合がどれも閾値を超えないとき、一番マシな試合に留まる代わりに、そこに留めます。"
+			},
+			{
+				"q": "ソースコードは公開されていますか？",
+				"a": "はい、GitHubで公開しています。PowerScoreアルゴリズムも含まれており、それ単体でnpmに公開されているため、拡張機能なしで試合を採点することもできます。"
+			}
+		]
+	},
+	"notFound": {
+		"title": "このページはスケジュールにありません。",
+		"sub": "お探しのページはトレードされたか、引退したか、そもそも出場していません。",
+		"requested": "リクエストされたページ",
+		"backHome": "ホームに戻る",
+		"readReleases": "リリースノートを読む"
+	},
+	"legal": {
+		"nav": {
+			"heading": "法的通知",
+			"overview": "概要",
+			"privacy": "プライバシー",
+			"licenses": "ライセンス",
+			"credits": "クレジット",
+			"terms": "免責事項"
+		},
+		"index": {
+			"title": "法的通知。",
+			"privacyBlurb": "ArenaSwapが保持する設定、送信する情報とその送信先、そしてブラウザに要求する権限について。",
+			"licensesBlurb": "ArenaSwapが配布されるライセンス、および依存しているオープンソースソフトウェアと書体について。",
+			"creditsBlurb": "このウェブサイトに表示される映像のクレジット表記、および表示されるスコア、マーク、エンブレムの権利について。",
+			"termsBlurb": "提携・保証に関する免責事項、およびArenaSwapが提供を約束する範囲の限界について。"
+		},
+		"convenienceNotice": "この翻訳は利便性のために提供されています。効力を持つのは{link}です。",
+		"convenienceNoticeLink": "英語版のテキスト",
+		"privacy": {
+			"title": "プライバシー。",
+			"updated": "最終更新日：{date}",
+			"updatedDate": "2026年8月19日",
+			"retainsHeading": "拡張機能が保持する情報",
+			"retains1": "拡張機能は、あなたが設定した内容を保持します。これには、フォローしているリーグ、お気に入りに登録したチーム、感度・クールダウン・切り替え遅延の設定、Standby Streamの閾値、そしてスコアの構成方法が含まれます。ブラウザはこれらの設定をブックマークと同じように保持するため、同じブラウザプロファイルでサインインしている他のコンピュータでも利用できる場合があります。",
+			"retains2": "それ以外の情報はすべて、それが発生したブラウジングセッションに属し、そのセッションが終了すると破棄されます。これには、特定の試合に割り当てたタブ、Standby Streamとして指定したタブ、試合に手動で加えた調整、そしてチャートの元となる直近のスコア履歴が含まれます。",
+			"retains3": "拡張機能は、あなたの氏名、住所、アカウント、連絡先、その他あなたを特定できるいかなる情報も保持しません。そのような情報が求められることは一切ありません。",
+			"transmitsHeading": "拡張機能が送信する情報",
+			"transmits1": "拡張機能は、いずれもESPNが運営する2つのホストとのみ通信でき、それ以外とは通信できません。",
+			"transmitsHost1": "スコア、スケジュール、試合時計、オッズ、勝率のため。",
+			"transmitsHost2": "チームエンブレムとリーグマークのため。",
+			"transmits2": "これらはESPNが公開している情報への通常のリクエストです。そのため、ESPNはあなたのネットワークアドレスと、リクエストされたリーグのスコアボードの記録を受け取ります。これは、あなた自身がそのウェブサイトを訪問した場合とまったく同じです。拡張機能は、これらのリクエストに識別子、アカウント、個人情報を一切添付しません。設定でリーグを無効にすると、拡張機能はそのリーグへのリクエストを完全に停止します。",
+			"permissionsHeading": "ブラウザの権限",
+			"permissions1": "拡張機能はブラウザに3つの権限を要求し、それぞれ記載された目的のみに使用されます。",
+			"permissionTabsName": "タブ。",
+			"permissionTabs": "開いているタブを表示し、試合を割り当てられるようにするため、またそれらのタブを切り替え、ミュート・ミュート解除するためです。この権限が伝えるのはタブの一覧のみで、それ以上ではありません。拡張機能のいかなる部分も、あなたが訪問するページ内では実行されません。",
+			"permissionStorageName": "ストレージ。",
+			"permissionStorage": "上記の設定を保持するためです。",
+			"permissionNotificationsName": "通知。",
+			"permissionNotifications": "切り替えが発生したことを知らせるためです。通知はブラウザが作成・表示し、その過程であなたのコンピュータから何かが送信されることはありません。",
+			"websiteHeading": "このウェブサイトについて",
+			"website1": "このウェブサイトはCookieを設定せず、解析ツールも使用せず、いかなる種類のトラッキングも行っておらず、同意すべきことが何もないため同意も求めません。GitHub Pagesでホストされており、GitHubは通常のホスティング業務の一環としてそのサーバーへのリクエストを記録します。書体は第三者からではなく、このウェブサイト自体から配信されています。",
+			"website2": "このウェブサイトの2つの機能は、あなたのブラウザからESPNと通信します。デモ画面はチームエンブレムを{host}にリクエストし、{link}は進行中の試合を採点するため、開いている間はライブスコアボードをリクエストし続けます。",
+			"website2Link": "PowerScoreページ",
+			"childrenHeading": "お子様について",
+			"children1": "拡張機能は、年齢を問わずいかなる方からも個人情報を収集しません。これは13歳未満のお子様も含みます。",
+			"modificationsHeading": "本通知の変更",
+			"modifications1": "本通知は随時改訂される場合があります。改訂は公開時点で効力を持ち、上記の日付は本通知が最後に改訂された日を示します。公開後も拡張機能を継続して使用することは、改訂後の通知への同意とみなされます。",
+			"questionsHeading": "お問い合わせ",
+			"questions1": "本通知に関するご質問は、プロジェクトの{link}までお寄せください。",
+			"questionsLink": "GitHubのIssueトラッカー"
+		},
+		"terms": {
+			"title": "免責事項。",
+			"affiliationHeading": "提携関係の不存在",
+			"affiliation1": "ArenaSwapは、ESPN、NFL、NBA、WNBA、NHL、MLB、MLS、NWSL、NCAA、UFL、FIFA、UEFA、国際オリンピック委員会、またその他のいかなるリーグ、クラブ、放送局、ストリーミングサービスとも提携、後援、承認、その他の関係を持ちません。リーグおよびチームの名称、マーク、エンブレムはそれぞれの権利者の所有物であり、試合を識別する目的のみでここに表示されています。",
+			"notStreamingHeading": "ストリーミングサービスではありません",
+			"notStreaming1": "ArenaSwapは、いかなる試合もホスト、再配信、復号、ロック解除、その他の方法でアクセスを提供することはありません。あなた自身が開いた、すでに視聴権を持つサービス上のブラウザタブの間を移動するだけです。特定の試合を視聴する権利があるかどうかは、あなたとその販売元との間の問題です。",
+			"thirdPartyHeading": "第三者から取得したデータ",
+			"thirdParty1": "スコア、試合時計、スケジュール、オッズ、勝率はESPNから取得されます。ArenaSwapはこれらのデータを制御しておらず、正確・完全・最新・利用可能であることを保証できず、いつ変更されるかにも影響を与えません。こうしたデータは遅延、誤り、欠落の可能性があり、ストリームは通常データフィードより遅れます。拡張機能に表示される内容は公式なスコアとして扱われるべきではなく、それに基づいて賭けを行うべきではありません。",
+			"estimateHeading": "PowerScoreは推定値です",
+			"estimate1": "PowerScoreは、公開されている数値から、今その試合がどれだけ魅力的に見えるかを推定します。予測、確率、賭けのモデル、事実の陳述ではなく、見たかった試合から時に遠ざけてしまうこともあります。そのために{link}があります。",
+			"estimateLink": "感度、クールダウン、お気に入りチームの設定",
+			"warrantyHeading": "無保証",
+			"warranty1": "本ソフトウェアは、商品性や特定目的への適合性についての黙示の保証を含め、明示または黙示を問わずいかなる種類の保証もなく、「現状のまま」提供されます。ArenaSwapに関わるいかなる者も、その使用から生じる損害について責任を負いません。全文は{link}に記載されています。",
+			"warrantyLink": "ライセンスページ",
+			"availabilityHeading": "提供状況",
+			"availability1": "ArenaSwapは無償で提供され、資金提供を受けておらず、作者たちの余暇時間で維持されています。ブラウザは拡張機能を管理するルールを変更し、読み取り先のサービスは予告なく変更され、ここにはサービスレベル契約は一切付随しません。いかなる機能も、以降のバージョンで変更または廃止される可能性があります。",
+			"noAdviceHeading": "本内容は法的助言ではありません",
+			"noAdvice1": "本ページはブラウザ拡張機能の動作を説明するものです。助言を構成するものではなく、ソフトウェアが配布されるISCライセンスを超えるいかなる契約も成立させません。"
+		},
+		"credits": {
+			"title": "クレジット。",
+			"footageHeading": "映像",
+			"sourceLink": "出典",
+			"publicDomain": "パブリックドメイン",
+			"scoresHeading": "スコア",
+			"scores1": "ライブスコア、スケジュール、チームカラー、エンブレム、勝率はESPNから取得されています。ArenaSwapはESPNと提携も承認も受けておらず、このウェブサイトに記載されているいかなるリーグもArenaSwapと提携または承認していません。",
+			"marksHeading": "マーク",
+			"marks1": "リーグおよびチームのマークはそれぞれのリーグとクラブの所有物です。試合を識別する目的のみでここに表示されています。"
+		},
+		"licenses": {
+			"title": "ライセンス。",
+			"arenaswapHeading": "ArenaSwap",
+			"arenaswap1": "以下に全文を掲載するISCライセンスが、拡張機能、このウェブサイト、共有インターフェースコンポーネント、そしてスコアを取得するクライアントを規律します。",
+			"softwareHeading": "ソフトウェア",
+			"software1": "ArenaSwapは以下に一覧するソフトウェアの上に構築されており、それぞれの項目は記載されたライセンスに従います。各項目のライセンス全文については、各エントリをご確認ください。",
+			"colPackage": "パッケージ",
+			"colVersion": "バージョン",
+			"colLicense": "ライセンス",
+			"typefacesHeading": "書体",
+			"typefaces1": "以下の書体はこのウェブサイトから配信されており、それぞれ記載されたライセンスに従います。",
+			"colFamily": "ファミリー",
+			"colBy": "作者"
+		}
+	},
+	"powerscore": {
+		"heroName": "PowerScore.",
+		"heroTaglinePrefix": "あらゆる",
+		"heroTaglineSuffix": "スコアの裏にあるスコア。",
+		"heroRestingToken": "",
+		"heroRestingSuffix": "スコアの裏にあるスコア。",
+		"heroSub": "PowerScoreは、あらゆるライブ試合を0から100の興奮度スコアに変換し、試合が進むにつれて更新します。ArenaSwapが次に見る試合を選ぶために使うのと同じエンジンで、単体でもインストールできます。",
+		"viewOnNpm": "npmで見る",
+		"sourceOnGithub": "GitHubのソースコード",
+		"installHeading": "コマンド一つでインストール",
+		"copy": "コピー",
+		"copied": "コピーしました",
+		"signalsHeading": "数値を構成する要素",
+		"signalsSub": "5つのシグナルが積み重なって、0から{max}のスコアになります。それぞれの上限を合計すると意図的に{max}を超えますが、合計には上限が設定されているため、接戦の試合は高く、大差の試合は低く抑えられます。スコアが高いほど、今この瞬間のドラマが大きいということです。",
+		"signalMax": "最大{max}",
+		"signals": [
+			{
+				"name": "接戦度",
+				"copy": "どれだけ僅差か。同点の試合が最も高いスコアになり、終盤になるほど接戦度の重みが増します。"
+			},
+			{
+				"name": "終盤",
+				"copy": "接戦の試合の最終ピリオドで緊張感が高まり、延長戦に向かう同点はさらに高いスコアになります。"
+			},
+			{
+				"name": "モメンタム",
+				"copy": "反撃されない連続得点でスコアが急上昇し、その後数分かけて徐々に下がります。"
+			},
+			{
+				"name": "リードの入れ替わり",
+				"copy": "リードが何度も入れ替わる試合は、一度も入れ替わらない試合に勝ります。"
+			},
+			{
+				"name": "逆転",
+				"copy": "劣勢のチームが盛り返すとスコアが上がります。"
+			}
+		],
+		"liveHeading": "ライブPowerScore",
+		"liveLoading": "ライブPowerScoreを読み込み中",
+		"liveError": "現在、ライブ試合のデータを読み込めません。",
+		"liveNow": "ライブ",
+		"machineHeading": "動いている様子を見る。",
+		"machineSub": "ArenaSwapはあらゆるライブ試合をリアルタイムで採点し、あなたのタブを最高の試合に切り替えます。その様子はこちら。",
+		"machineWatch": "監視",
+		"machineWatchCopy": "フォローしているすべてのリーグの、すべてのライブ試合を同時に。",
+		"machineScore": "採点",
+		"machineScoreCopy": "PowerScoreが各試合の盛り上がり度をライブで評価します。",
+		"machineSwitch": "切り替え",
+		"machineSwitchCopy": "タブが自動で最高の試合へ切り替わります。",
+		"liveLoadingCopy": "ライブ試合を取得し、PowerScoreを計算しています。",
+		"liveEmptyTitle": "現在ライブ試合はありません",
+		"liveEmptyCopy": "試合がライブになると、このセクションは自動的に更新され、対応するすべてのリーグのリアルタイムPowerScoreを表示します。",
+		"liveScoreBadge": "PowerScore {score} / 100",
+		"machineAlt": "あらゆるライブ試合を監視し採点するArenaSwap",
+		"machineNowWatching": "視聴中",
+		"machineNowOn": "{service}で",
+		"machineCaptions": [
+			"フォローしているリーグのすべてのライブ試合を監視します",
+			"そしてそれぞれの盛り上がり度をライブで採点します",
+			"試合を開けば、理由がそのままわかります",
+			"そしてタブが最高の試合に着地します"
+		],
+		"machineSignals": [
+			"接戦度",
+			"終盤のプレッシャー",
+			"モメンタム",
+			"リードの入れ替わり",
+			"逆転"
+		]
+	},
+	"ui": {
+		"gameCard": {
+			"live": "ライブ",
+			"powerScore": "PowerScore",
+			"watchLabel": "視聴先：",
+			"oddsProvidedBy": "オッズ提供元：",
+			"favorited": "お気に入り済み",
+			"addToFavoritesShort": "お気に入りに追加",
+			"addToFavorites": "{team}をお気に入りに追加",
+			"removeFromFavorites": "{team}をお気に入りから削除",
+			"openDetails": "{away} vs {home}の詳細を開く",
+			"delay": "中断",
+			"delayFallback": "中断",
+			"vs": "vs",
+			"topOfInning": "イニングの表",
+			"bottomOfInning": "イニングの裏",
+			"shootout": "PK {away}–{home}",
+			"downDistanceAt": "{fieldPosition}で{downDistance}"
+		},
+		"field": {
+			"possession": "{team}がボールを保持",
+			"noPossession": "フィールドポジション"
+		},
+		"main": {
+			"tourButton": "ツアー",
+			"settingsButton": "設定",
+			"sectionActiveLiveTabs": "アクティブタブ",
+			"sectionOtherLiveGames": "ライブ試合",
+			"sectionUpNext": "次の試合",
+			"enableToggleLabel": "自動切り替えを有効にする",
+			"onStandbyStream": "Standby Stream 中 — アクションを待っています"
+		},
+		"tabAssign": {
+			"placeholder": "— タブを割り当て —"
+		},
+		"detail": {
+			"chartPowerScoreTitle": "PowerScoreの推移",
+			"chartScoreTitle": "スコアの推移",
+			"chartWinProbTitle": "勝利確率",
+			"chartComponentsTitle": "PowerScoreコンポーネントの推移"
+		},
+		"setup": {
+			"groupSwitching": "切り替え",
+			"groupSwitchingDesc": "ArenaSwapがどれだけ積極的に良い試合へ移すか。",
+			"groupScoring": "スコアリング",
+			"groupScoringDesc": "PowerScoreを構成するシグナルと、ボーナス点の対象。",
+			"groupLeagues": "リーグ",
+			"groupLeaguesDesc": "追跡するリーグと、その表示順。",
+			"groupDisplay": "表示",
+			"groupDisplayDesc": "メイン画面に表示する内容。",
+			"groupStandby": "Standby Stream",
+			"groupStandbyDesc": "どの試合も盛り上がらないときの待機先。",
+			"groupDemo": "デモモード",
+			"groupDemoDesc": "架空の試合で、切り替えの動きをいつでも確認できます。",
+			"switchNotifications": "切り替え通知"
+		},
+		"sensitivity": {
+			"label": "切り替え感度"
+		},
+		"cooldown": {
+			"label": "切り替えクールダウン"
+		},
+		"switchDelay": {
+			"label": "切り替え遅延",
+			"off": "オフ"
+		},
+		"favoriteTeamBonus": {
+			"label": "お気に入りチームボーナス"
+		},
+		"postseasonBoost": {
+			"label": "ポストシーズンブースト"
+		},
+		"bso": {
+			"balls": "B",
+			"strikes": "S",
+			"outs": "O"
+		}
+	}
+}

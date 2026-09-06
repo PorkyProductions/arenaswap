@@ -1,0 +1,442 @@
+{
+	"meta": {
+		"homeTitle": "ArenaSwap — 不再错过精彩瞬间。",
+		"homeDescription": "ArenaSwap 会监控 {leagues} 个联赛的所有直播比赛，并自动将您的浏览器标签页切换到最精彩的比赛。免费，无需账户，无追踪。",
+		"faqTitle": "常见问题 — ArenaSwap",
+		"faqDescription": "了解 ArenaSwap 如何切换标签页、支持哪些联赛和流媒体服务、PowerScore 衡量什么，以及它如何处理您的数据。",
+		"powerscoreTitle": "PowerScore 包 — ArenaSwap",
+		"powerscoreDescription": "PowerScore 将任何直播比赛转化为 0 到 100 的精彩度评分。从 npm 安装它，了解五个信号的运作方式，并实时观看它为今晚的比赛评分。",
+		"legalTitle": "法律声明 — ArenaSwap",
+		"legalDescription": "ArenaSwap 的隐私声明、许可信息、素材授权说明和免责声明。",
+		"privacyTitle": "隐私 — ArenaSwap",
+		"privacyDescription": "ArenaSwap 的隐私声明：扩展程序保留的偏好设置、传输的信息、请求的浏览器权限，以及本网站的处理方式。",
+		"termsTitle": "免责声明 — ArenaSwap",
+		"termsDescription": "ArenaSwap 不隶属于 ESPN 或任何提及的联赛，其软件不提供任何担保，并依赖于其无法控制的数据。",
+		"creditsTitle": "鸣谢 — ArenaSwap",
+		"creditsDescription": "ArenaSwap 主页所展示比赛素材的授权说明，以及所显示比分、联赛标志和球队徽标的权属信息。",
+		"licensesTitle": "许可 — ArenaSwap",
+		"licensesDescription": "ArenaSwap 依据 ISC 许可分发。此处列出了其所依赖的开源软件与字体，并附有各自的许可协议。",
+		"notFoundTitle": "404 — ArenaSwap",
+		"notFoundDescription": "该页面不在赛程表上。返回 ArenaSwap。",
+		"releaseFeedTitle": "ArenaSwap 更新日志"
+	},
+	"nav": {
+		"home": "首页",
+		"powerscore": "PowerScore",
+		"docs": "文档",
+		"releases": "更新日志",
+		"faq": "常见问题",
+		"legal": "法律声明",
+		"openMenu": "打开菜单",
+		"language": "语言",
+		"chooseLanguage": "选择语言",
+		"englishOnly": "此页面仅提供英文版本。",
+		"untranslatedHeading": "此页面尚未翻译。",
+		"untranslatedBody": "文档和更新日志使用英文撰写。本网站的其余部分均提供中文版本。"
+	},
+	"install": {
+		"addTo": "添加到 {browser}",
+		"alsoFor": "同样支持 {firefox} 和 {edge}"
+	},
+	"footer": {
+		"tagline": "由体育迷打造，为体育迷服务。",
+		"product": "产品",
+		"documentation": "文档",
+		"powerscorePackage": "PowerScore 包",
+		"releaseNotes": "更新日志",
+		"legal": "法律",
+		"privacy": "隐私",
+		"licenses": "许可",
+		"credits": "鸣谢",
+		"disclaimers": "免责声明",
+		"install": "安装",
+		"chromeWebStore": "Chrome Web Store",
+		"firefoxAddons": "Firefox Add-ons",
+		"edgeAddons": "Edge Add-ons",
+		"iscLicense": "ISC License",
+		"disclaimer": "本扩展程序与 ESPN、NFL、NBA、NHL、MLB、MLS 及其追踪的任何其他联赛均无隶属或认可关系。",
+		"legalNotices": "法律声明",
+		"madeWith": "由 {name} 在费城和波士顿用 ❤️ 打造"
+	},
+	"sport": {
+		"basketball": "篮球",
+		"football": "美式橄榄球",
+		"hockey": "冰球",
+		"baseball": "棒球",
+		"softball": "垒球",
+		"soccer": "足球"
+	},
+	"home": {
+		"hero": {
+			"titleLine1": "不再错过",
+			"titleLine2": "精彩瞬间。",
+			"lede": "ArenaSwap 会监控 {leagues} 个联赛的所有直播比赛，并最快每 6 秒自动将您的浏览器标签页切换到最精彩的比赛。",
+			"teamStrip": "支持 {leagues} 个联赛的每一支球队，也包括您支持的那一支。",
+			"captionSwitched": "ArenaSwap 已将您从 {from} 切换到了 {to}。",
+			"captionWatching": "您正在观看 {game}，这是当前最值得关注的比赛。",
+			"replay": "播放演示",
+			"tabLabel": "标签页 {number}：{host}"
+		},
+		"tabs": {
+			"titleLine1": "只需设置一次。",
+			"titleLine2": "尽览所有比赛。",
+			"copy": "打开您的直播流，将其分配给比赛，然后就可以放心离开了。此后的每一次切换都交给 ArenaSwap 来处理。",
+			"steps": [
+				{
+					"title": "打开您的直播流。",
+					"copy": "在不同的浏览器标签页中打开您想看的比赛。任何能在浏览器中运行的流媒体服务都可与 ArenaSwap 搭配使用。"
+				},
+				{
+					"title": "为每个标签页分配比赛。",
+					"copy": "打开扩展程序，在列表中找到每场比赛，通过一个下拉菜单将其关联到正确的标签页。"
+				},
+				{
+					"title": "最精彩的比赛会主动找到您。",
+					"copy": "ArenaSwap 会为每场直播比赛评分，并自动切换到最精彩的一场。您只需观看即可。"
+				}
+			]
+		},
+		"charts": {
+			"title": "每一次都能看到原因。",
+			"copy": "五个信号共同构成每一个评分。打开任意一场比赛，都能看到详细的分解，以及 PowerScore 走势、比分历史和分差图表。"
+		},
+		"leagues": {
+			"titleLine1": "只要是直播，",
+			"titleLine2": "就都能覆盖。",
+			"copy": "{sports} 项运动，覆盖所有级别的比赛。ArenaSwap 会同时监控这一切。关闭您不看的项目，它就会停止追踪。",
+			"numerals": [
+				"零",
+				"一",
+				"两",
+				"三",
+				"四",
+				"五",
+				"六",
+				"七",
+				"八",
+				"九",
+				"十"
+			]
+		},
+		"settings": {
+			"title": "为您量身调校。",
+			"copy": "灵敏度太高？调低一点。喜欢自己的球队，但也想看最精彩的比赛？加一个加成分。要出去买杯啤酒？Standby Stream 会让屏幕上始终有内容。ArenaSwap 会按照您需要的方式运行。",
+			"items": [
+				{
+					"name": "灵敏度（1–{levels}）",
+					"copy": "ArenaSwap 切换前所需的评分差距大小。"
+				},
+				{
+					"name": "切换冷却",
+					"copy": "两次切换之间的最短时间，防止标签页快速反复切换。"
+				},
+				{
+					"name": "切换延迟",
+					"copy": "切换前的等待时间，适用于您的直播流落后于数据的情况。"
+				},
+				{
+					"name": "收藏球队加成",
+					"copy": "为您支持的球队所参加的比赛加分。"
+				},
+				{
+					"name": "Standby Stream",
+					"copy": "当所有直播比赛都冷场时，ArenaSwap 会让您停留在您选择的备用标签页上。"
+				},
+				{
+					"name": "比赛加速",
+					"copy": "手动提高某场比赛的 PowerScore，让它在屏幕上停留更久。"
+				}
+			],
+			"levelOf": "第 {level} 级，共 {levels} 级"
+		}
+	},
+	"faq": {
+		"title": "常见问题。",
+		"lede": "如果这里没有您想了解的内容，{link}",
+		"ledeLink": "请提交一个 issue",
+		"items": [
+			{
+				"q": "ArenaSwap 支持哪些联赛？",
+				"a": "覆盖六项运动的 {leagues} 个联赛。篮球：NBA、WNBA、NCAA Basketball、NCAA Women's Basketball 以及两项奥运会比赛。橄榄球：NFL、NCAA Football 和 UFL。冰球：NHL、NCAA Men's Hockey 以及两项奥运会比赛。棒球和垒球：MLB、NCAA Baseball、NCAA Softball、世界棒球经典赛以及奥运棒球。足球：英超、西甲、德甲、意甲、墨西哥甲级联赛、美国大联盟、美国女足联赛、欧冠、欧联，以及两届 FIFA 世界杯和两项奥运会比赛。"
+			},
+			{
+				"q": "标签页切换是如何运作的？",
+				"a": "您将每个打开的直播流分配给一场比赛。ArenaSwap 会用 PowerScore 为每场直播比赛评分，当某场比赛的评分充分超过您正在观看的比赛时，它就会将您的标签页切换过去，取消该标签页的静音，并将其余标签页静音。灵敏度决定了领先多少才算“足够”，而冷却时间可以防止您在两场比赛之间来回跳转。"
+			},
+			{
+				"q": "需要账户或订阅吗？",
+				"a": "不需要。ArenaSwap 完全免费，无需账户，也不收集任何信息。它完全在您的浏览器中运行，读取 ESPN 公开的比分数据。您观看的任何内容都不会被发送到任何地方。"
+			},
+			{
+				"q": "它能配合我使用的流媒体服务吗？",
+				"a": "任何能在浏览器标签页中播放的直播流都可以配合使用，因为 ArenaSwap 是通过切换和静音标签页来工作的，而不是与某个服务进行集成。这涵盖了 ESPN+、Peacock、Paramount+、YouTube TV、Hulu Live、Fubo 以及各联赛的免费直播。但它无法帮助原生应用或机顶盒。"
+			},
+			{
+				"q": "PowerScore 是如何运作的？",
+				"a": "PowerScore 是一个 0 到 100 的评分，由五个信号构成：比赛的胶着程度、比赛的进程、近期得分带来的势头、领先方的变化，以及正在进行的逆转的规模。每项运动对“胶着”的定义各不相同，因此一分差距的冰球比赛和一分差距的篮球比赛会被同等对待。您支持的球队和季后赛会加分；冷场的比赛会被扣分，而处于中断或中场休息的比赛评分为零。"
+			},
+			{
+				"q": "我可以阻止它从某场比赛切换走吗？",
+				"a": "可以。取消该标签页的分配，ArenaSwap 就不会再管它；您也可以通过弹出窗口顶部的开关直接关闭自动切换。降低灵敏度或延长冷却时间可以让切换变得更少，而无需完全关闭它。"
+			},
+			{
+				"q": "如果所有比赛都很无聊会怎样？",
+				"a": "打开 Standby Stream 并选择一个标签页。当您追踪的比赛中没有一场达到阈值时，ArenaSwap 会让您停留在那里，而不是把您留在最不糟糕的那场比赛上。"
+			},
+			{
+				"q": "源代码是否公开？",
+				"a": "是的，公开在 GitHub 上，其中包括 PowerScore 算法。该算法也单独发布在 npm 上，因此您即使不使用扩展程序，也可以为比赛评分。"
+			}
+		]
+	},
+	"notFound": {
+		"title": "该页面不在赛程表上。",
+		"sub": "您要找的页面已被交易、退役，或者从未真正上过场。",
+		"requested": "请求的地址",
+		"backHome": "返回首页",
+		"readReleases": "阅读更新日志"
+	},
+	"legal": {
+		"nav": {
+			"heading": "法律声明",
+			"overview": "概览",
+			"privacy": "隐私",
+			"licenses": "许可",
+			"credits": "鸣谢",
+			"terms": "免责声明"
+		},
+		"index": {
+			"title": "法律声明。",
+			"privacyBlurb": "ArenaSwap 保留的偏好设置、传输的信息及其接收方，以及向您的浏览器请求的权限。",
+			"licensesBlurb": "ArenaSwap 分发所依据的许可协议，以及其所依赖的开源软件与字体。",
+			"creditsBlurb": "本网站所展示素材的授权说明，以及其显示的比分、标志和徽标的权属信息。",
+			"termsBlurb": "关于隶属关系与担保的免责声明，以及 ArenaSwap 承诺提供内容的范围限制。"
+		},
+		"convenienceNotice": "本翻译仅为方便阅读而提供，以{link}为准。",
+		"convenienceNoticeLink": "英文原文",
+		"privacy": {
+			"title": "隐私。",
+			"updated": "最后更新时间：{date}",
+			"updatedDate": "2026 年 8 月 19 日",
+			"retainsHeading": "扩展程序保留的信息",
+			"retains1": "扩展程序会保留您设置的偏好，包括您关注的联赛、您标记为收藏的球队、您的灵敏度、冷却时间与切换延迟设置、您的 Standby Stream 阈值，以及评分的构成方式。您的浏览器会像保存书签一样保存这些偏好设置，因此在您使用同一浏览器账户登录的其他电脑上，这些设置也可能同样可用。",
+			"retains2": "所有其他信息都属于产生它们的那次浏览会话，并在该会话结束时被丢弃，包括您为特定比赛分配的标签页、您指定为 Standby Stream 的标签页、您对某场比赛所做的任何手动调整，以及用于绘制图表的近期评分历史。",
+			"retains3": "扩展程序不会保留您的姓名、地址、账户、联系方式，或任何其他可用于识别您身份的信息。任何时候都不会向您索取此类信息。",
+			"transmitsHeading": "扩展程序传输的信息",
+			"transmits1": "扩展程序仅与两台均由 ESPN 运营的主机通信，无法访问其他任何主机：",
+			"transmitsHost1": "用于获取比分、赛程、比赛计时、赔率和获胜概率。",
+			"transmitsHost2": "用于获取球队徽标和联赛标志。",
+			"transmits2": "这些都是对 ESPN 公开发布信息的普通请求。因此，ESPN 会收到您的网络地址以及所请求联赛比分板的记录，这与您自己访问其网站时的情况完全相同。扩展程序不会在这些请求中附加任何标识符、账户或个人信息。如果您在设置中停用某个联赛，扩展程序会完全停止请求该联赛的数据。",
+			"permissionsHeading": "浏览器权限",
+			"permissions1": "扩展程序会向您的浏览器请求三项权限，每一项都仅用于所述目的：",
+			"permissionTabsName": "标签页。",
+			"permissionTabs": "用于展示您已打开的标签页，以便您为其分配比赛，以及用于切换、静音和取消静音这些标签页。此权限仅传递标签页列表，不涉及其他任何内容。扩展程序的任何部分都不会在您访问的页面内运行。",
+			"permissionStorageName": "存储。",
+			"permissionStorage": "用于保留上述偏好设置。",
+			"permissionNotificationsName": "通知。",
+			"permissionNotifications": "用于告知您已发生切换。每条通知均由您的浏览器生成和显示，在此过程中不会有任何内容离开您的电脑。",
+			"websiteHeading": "关于本网站",
+			"website1": "本网站不设置 Cookie，不使用任何分析工具，也不包含任何形式的追踪，并且由于没有任何需要征得同意的内容，因此也不会请求您的同意。本网站由 GitHub Pages 托管，GitHub 会在其正常托管业务中记录对其服务器发出的请求。字体由本网站自行提供，而非来自任何第三方。",
+			"website2": "本网站有两项功能确实会从您的浏览器与 ESPN 通信：演示界面会向 {host} 请求球队徽标，而{link}会为进行中的比赛评分，因此只要您让它保持打开，就会持续请求实时比分板数据。",
+			"website2Link": "PowerScore 页面",
+			"childrenHeading": "儿童",
+			"children1": "无论年龄大小，扩展程序都不会收集任何人的个人信息，其中也包括十三岁以下的儿童。",
+			"modificationsHeading": "本声明的修改",
+			"modifications1": "本声明可能会不时修订。修订版本自发布之日起生效，上方标注的日期即为本声明最近一次修订的时间。您在本声明发布后继续使用扩展程序，即表示您接受经修订的声明。",
+			"questionsHeading": "问题咨询",
+			"questions1": "有关本声明的问题，可以发送给本项目的{link}。",
+			"questionsLink": "GitHub 上的 issue 跟踪系统"
+		},
+		"terms": {
+			"title": "免责声明。",
+			"affiliationHeading": "无隶属关系",
+			"affiliation1": "ArenaSwap 与 ESPN、NFL、NBA、WNBA、NHL、MLB、MLS、NWSL、NCAA、UFL、FIFA、UEFA、国际奥林匹克委员会，或任何其他联赛、俱乐部、广播机构或流媒体服务均无隶属、赞助、认可或其他任何关系。联赛与球队的名称、标志及徽标均为其各自所有者的财产，在此仅用于识别比赛之目的。",
+			"notStreamingHeading": "并非流媒体服务",
+			"notStreaming1": "ArenaSwap 不会托管、转播、解密、解锁，或以任何其他方式提供任何比赛的访问权限。它只是在您自己打开的、您已有权观看的服务所对应的浏览器标签页之间切换。您是否有权观看某场特定比赛，属于您与向您出售该权限的一方之间的事宜。",
+			"thirdPartyHeading": "从第三方获取的数据",
+			"thirdParty1": "比分、比赛计时、赛程、赔率和获胜概率均来自 ESPN。ArenaSwap 无法控制这些数据，无法保证其准确、完整、最新或可用，也无法影响其变化的时间。这些数据可能存在延迟、错误或缺失，直播流通常也会落后于数据源。扩展程序中显示的任何内容都不应被视为官方比分，也不应据此进行任何投注。",
+			"estimateHeading": "PowerScore 只是一种估算",
+			"estimate1": "PowerScore 会根据公开可得的数据，估算一场比赛当前看起来有多精彩。它不是预测、概率、投注模型，也不是事实陈述，有时甚至会把您引离您本想观看的比赛。为此，我们提供了{link}。",
+			"estimateLink": "灵敏度、冷却时间和收藏球队设置",
+			"warrantyHeading": "无担保",
+			"warranty1": "本软件按“现状”提供，不提供任何形式的明示或暗示担保，包括但不限于适销性和特定用途适用性的暗示担保。参与 ArenaSwap 的任何人员均不对因使用本软件而产生的任何损害承担责任。完整文本载于{link}。",
+			"warrantyLink": "许可页面",
+			"availabilityHeading": "可用性",
+			"availability1": "ArenaSwap 免费提供，没有资金支持，由其作者在业余时间维护。浏览器可能会更改管理扩展程序的规则，其读取数据的服务也可能不经通知而变化，本项目不附带任何服务级别协议。任何功能都可能在后续版本中被更改或撤除。",
+			"noAdviceHeading": "本文所述并非法律建议",
+			"noAdvice1": "这些页面仅描述一款浏览器扩展程序的行为方式。它们不构成任何建议，除本软件所依据分发的 ISC 许可协议外，也不建立任何合同关系。"
+		},
+		"credits": {
+			"title": "鸣谢。",
+			"footageHeading": "素材",
+			"sourceLink": "来源",
+			"publicDomain": "公共领域",
+			"scoresHeading": "比分",
+			"scores1": "实时比分、赛程、球队颜色、徽标和获胜概率均来自 ESPN。ArenaSwap 既不隶属于 ESPN，也未获得 ESPN 的认可；本网站提及的任何联赛也均不隶属于 ArenaSwap，亦未对其表示认可。",
+			"marksHeading": "标志",
+			"marks1": "联赛与球队的标志均为其各自联赛和俱乐部的财产，在此仅用于识别比赛之目的。"
+		},
+		"licenses": {
+			"title": "许可。",
+			"arenaswapHeading": "ArenaSwap",
+			"arenaswap1": "以下完整列出的 ISC 许可协议适用于本扩展程序、本网站、共享界面组件，以及用于获取比分的客户端。",
+			"softwareHeading": "软件",
+			"software1": "ArenaSwap 建立在下方列出的软件之上，其中每一项均仍受其旁所标明的许可协议约束。请点击任意条目以查看其完整的许可文本。",
+			"colPackage": "软件包",
+			"colVersion": "版本",
+			"colLicense": "许可协议",
+			"typefacesHeading": "字体",
+			"typefaces1": "以下字体均由本网站提供，并仍受各自旁边标明的许可协议约束。",
+			"colFamily": "字体家族",
+			"colBy": "作者"
+		}
+	},
+	"powerscore": {
+		"heroName": "PowerScore.",
+		"heroTaglinePrefix": "每一个",
+		"heroTaglineSuffix": "比分背后的比分。",
+		"heroRestingToken": "",
+		"heroRestingSuffix": "比分背后的比分。",
+		"heroSub": "PowerScore 会将任何直播比赛转化为 0 到 100 的精彩度评分，并随着比赛进程实时更新。这与 ArenaSwap 用来选择您接下来该看哪场比赛的引擎完全相同，并且可以独立安装。",
+		"viewOnNpm": "在 npm 上查看",
+		"sourceOnGithub": "GitHub 上的源代码",
+		"installHeading": "一条命令即可安装",
+		"copy": "复制",
+		"copied": "已复制",
+		"signalsHeading": "这个数字由什么构成",
+		"signalsSub": "五个信号叠加构成一个 0 到 {max} 的评分。它们各自的上限之和刻意超过了 {max}，而总分设有上限，因此胶着的比赛会冲得很高，一边倒的比赛则会保持较低。评分越高，代表此刻的看点越多。",
+		"signalMax": "最高 {max}",
+		"signals": [
+			{
+				"name": "胶着程度",
+				"copy": "比赛有多胶着？平局的比赛评分最高，而且比赛越到后期，胶着程度的权重就越大。"
+			},
+			{
+				"name": "比赛后段",
+				"copy": "在胶着比赛的最后一节，紧张感会不断上升，而走向加时的平局评分会更高。"
+			},
+			{
+				"name": "势头",
+				"copy": "一波未被回应的连续得分会让评分骤然飙升，随后在接下来的几分钟内逐渐回落。"
+			},
+			{
+				"name": "领先变化",
+				"copy": "领先方不断易主的比赛，胜过从未变化过的比赛。"
+			},
+			{
+				"name": "逆转",
+				"copy": "落后一方奋起直追，会推高评分。"
+			}
+		],
+		"liveHeading": "实时 PowerScore",
+		"liveLoading": "正在加载实时 PowerScore",
+		"liveError": "目前无法加载实时比赛数据。",
+		"liveNow": "直播中",
+		"machineHeading": "看看它是如何运作的。",
+		"machineSub": "ArenaSwap 会实时为每场直播比赛评分，然后将您的标签页切换到最精彩的那场。它的运作方式如下。",
+		"machineWatch": "监控",
+		"machineWatchCopy": "同时监控您关注的每个联赛的所有直播比赛。",
+		"machineScore": "评分",
+		"machineScoreCopy": "PowerScore 会实时评估每场比赛有多精彩。",
+		"machineSwitch": "切换",
+		"machineSwitchCopy": "您的标签页会自动跳转到最精彩的比赛。",
+		"liveLoadingCopy": "正在获取直播比赛并计算 PowerScore。",
+		"liveEmptyTitle": "目前没有直播比赛",
+		"liveEmptyCopy": "当比赛开始直播时，本区域会自动刷新，并显示所有受支持联赛的实时 PowerScore。",
+		"liveScoreBadge": "PowerScore {score} / 100",
+		"machineAlt": "ArenaSwap 正在监控并为每场直播比赛评分",
+		"machineNowWatching": "正在观看",
+		"machineNowOn": "位于 {service}",
+		"machineCaptions": [
+			"它会监控您关注联赛的每一场直播比赛",
+			"并实时为每一场比赛的精彩程度评分",
+			"打开一场比赛，即可看到确切原因",
+			"随后您的标签页会落在最精彩的比赛上"
+		],
+		"machineSignals": [
+			"胶着程度",
+			"比赛后段压力",
+			"势头",
+			"领先变化",
+			"逆转"
+		]
+	},
+	"ui": {
+		"gameCard": {
+			"live": "直播",
+			"powerScore": "PowerScore",
+			"watchLabel": "观看：",
+			"oddsProvidedBy": "赔率来源：",
+			"favorited": "已收藏",
+			"addToFavoritesShort": "加入收藏",
+			"addToFavorites": "将 {team} 加入收藏",
+			"removeFromFavorites": "从收藏中移除 {team}",
+			"openDetails": "查看 {away} 与 {home} 的比赛详情",
+			"delay": "中断",
+			"delayFallback": "中断",
+			"vs": "vs",
+			"topOfInning": "上半局",
+			"bottomOfInning": "下半局",
+			"shootout": "点球 {away}–{home}",
+			"downDistanceAt": "{fieldPosition} {downDistance}"
+		},
+		"field": {
+			"possession": "{team}持球进攻",
+			"noPossession": "球场位置"
+		},
+		"main": {
+			"tourButton": "引导教程",
+			"settingsButton": "设置",
+			"sectionActiveLiveTabs": "活跃标签页",
+			"sectionOtherLiveGames": "直播比赛",
+			"sectionUpNext": "即将开赛",
+			"enableToggleLabel": "启用自动切换",
+			"onStandbyStream": "处于 Standby Stream，等待精彩时刻"
+		},
+		"tabAssign": {
+			"placeholder": "— 分配标签页 —"
+		},
+		"detail": {
+			"chartPowerScoreTitle": "PowerScore 走势",
+			"chartScoreTitle": "比分走势",
+			"chartWinProbTitle": "胜率",
+			"chartComponentsTitle": "PowerScore 各分项走势"
+		},
+		"setup": {
+			"groupSwitching": "切换",
+			"groupSwitchingDesc": "ArenaSwap 有多积极把您带到更精彩的比赛。",
+			"groupScoring": "评分",
+			"groupScoringDesc": "哪些信号构成 PowerScore，以及什么能加分。",
+			"groupLeagues": "联赛",
+			"groupLeaguesDesc": "追踪哪些联赛，以及它们的显示顺序。",
+			"groupDisplay": "显示",
+			"groupDisplayDesc": "主界面上显示的内容。",
+			"groupStandby": "Standby Stream",
+			"groupStandbyDesc": "所有比赛都冷场时把您停在哪里。",
+			"groupDemo": "演示模式",
+			"groupDemoDesc": "用虚构的比赛，随时看一次切换是怎么发生的。",
+			"switchNotifications": "切换通知"
+		},
+		"sensitivity": {
+			"label": "切换灵敏度"
+		},
+		"cooldown": {
+			"label": "切换冷却"
+		},
+		"switchDelay": {
+			"label": "切换延迟",
+			"off": "关闭"
+		},
+		"favoriteTeamBonus": {
+			"label": "收藏球队加成"
+		},
+		"postseasonBoost": {
+			"label": "季后赛加成"
+		},
+		"bso": {
+			"balls": "B",
+			"strikes": "S",
+			"outs": "O"
+		}
+	}
+}

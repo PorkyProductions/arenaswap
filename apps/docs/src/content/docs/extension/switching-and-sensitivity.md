@@ -31,7 +31,7 @@ If ArenaSwap feels slow to catch a game that's clearly heating up, raise it. If 
 
 ## Stop rapid switching
 
-**Switch cooldown**, also under Switching, sets the minimum time between automatic switches, from 15 seconds up to 3 minutes. The default is 45 seconds.
+**Switch cooldown**, also under Switching, sets the minimum time between automatic switches, from **Off** up to 3 minutes. The default is 45 seconds. Set it to Off, and the sensitivity gap is the only thing left holding a switch back.
 
 If two of your assigned games are close enough that the lead keeps trading back and forth, a short cooldown lets ArenaSwap follow every swing. Raise the cooldown, and ArenaSwap holds on one game longer before it's willing to switch again, even if the other briefly pulls ahead.
 

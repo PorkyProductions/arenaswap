@@ -1,5 +1,7 @@
 ---
 import { docPath, docsSectionOrder, docsSections, getSectionDocs } from '../lib/docs';
+import { localePath } from '../i18n/locales';
+import { currentLocale } from '../i18n/ui';
 
 interface Props {
 	// Path without the base, e.g. `docs/extension/installing/`. Marks the matching link as current.
@@ -7,7 +9,7 @@ interface Props {
 }
 
 const { current = '' } = Astro.props;
-const base = import.meta.env.BASE_URL;
+const locale = currentLocale(Astro.currentLocale);
 
 // Both trees, always, with the articles under them. A reader on a PowerScore page can see the
 // extension pages exist without going back to a hub to find out.
@@ -22,7 +24,7 @@ const trees = await Promise.all(docsSectionOrder.map(async section => ({
 	{trees.map(tree => (
 		<Fragment>
 			<h2>
-				<a href={`${base}${tree.index}`} aria-current={current === tree.index ? 'page' : undefined}>
+				<a href={localePath(locale, tree.index)} aria-current={current === tree.index ? 'page' : undefined}>
 					{tree.label}
 				</a>
 			</h2>
@@ -30,7 +32,7 @@ const trees = await Promise.all(docsSectionOrder.map(async section => ({
 				{tree.pages.map(page => (
 					<li>
 						<a
-							href={`${base}${docPath(page)}`}
+							href={localePath(locale, docPath(page))}
 							aria-current={current === docPath(page) ? 'page' : undefined}
 						>
 							{page.data.navLabel ?? page.data.title}

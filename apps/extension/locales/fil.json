@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Auto-Switch sa Live na NFL, NBA, March Madness at MLB",
+	"extDescription": "Nanonood ng bawat live game sa 31 liga at awtomatikong nagpapalit sa pinaka-exciting, kada 6 segundo.",
 	"app": {
 		"welcomeToast": "Maligayang pagdating sa ArenaSwap!",
 		"settingsSavedToast": "Na-save ang mga setting",
@@ -659,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Cooldown ng Paglipat",
-		"explainer": "Nagtatakda ng pinakamaikling oras sa pagitan ng mga awtomatikong paglipat para mabawasan ang mabilisang pag-flip ng tab."
+		"explainer": "Nagtatakda ng pinakamaikling oras sa pagitan ng mga awtomatikong paglipat para mabawasan ang mabilisang pag-flip ng tab.",
+		"off": "Off"
 	},
 	"switchDelay": {
 		"label": "Delay ng Paglipat",

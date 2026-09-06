@@ -1,10 +1,21 @@
 ---
-import Shell from '../../layouts/Shell.astro';
-import LegalNav from '../../components/LegalNav.astro';
-import { directDependencies } from '../../lib/dependencyLicences';
+import Shell from '../../../layouts/Shell.astro';
+import LegalNav from '../../../components/LegalNav.astro';
+import LegalTranslationNotice from '../../../components/LegalTranslationNotice.astro';
+import { directDependencies } from '../../../lib/dependencyLicences';
+import { localeRoutes } from '../../../i18n/locales';
+import { useTranslations } from '../../../i18n/ui';
 
 // The dependency table is read from the manifests at build time, so it cannot drift from what is
 // actually installed. See src/lib/dependencyLicences.ts.
+//
+// The ISC text is reproduced verbatim in every language. A licence is only the licence in the words
+// it was granted in, and a translated one grants nothing.
+
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
 
 const dependencies = directDependencies();
 
@@ -16,13 +27,13 @@ const fonts = [
 ];
 ---
 <Shell
-	title='Licenses — ArenaSwap'
-	description='ArenaSwap is distributed under the ISC License. The open-source software and typefaces upon which it depends are listed here with the license each carries.'
+	title={t('meta.licensesTitle')}
+	description={t('meta.licensesDescription')}
 	path='legal/licenses/'
 >
 	<div class='container'>
 		<div class='page-head'>
-			<h1 class='page-title'>Licenses.</h1>
+			<h1 class='page-title'>{t('legal.licenses.title')}</h1>
 		</div>
 
 		<div class='reading-shell'>
@@ -30,11 +41,10 @@ const fonts = [
 
 			<div class='legal-measure'>
 				<div class='prose'>
-					<h2>ArenaSwap</h2>
-					<p>
-						The ISC License, set out in full below, governs the extension, this website, the
-						shared interface components and the client through which scores are obtained.
-					</p>
+					<LegalTranslationNotice path='legal/licenses/' />
+
+					<h2>{t('legal.licenses.arenaswapHeading')}</h2>
+					<p>{t('legal.licenses.arenaswap1')}</p>
 					<pre><code>{`ISC License
 
 Copyright (c) 2026 Ryan Mullin, Lattice & Company, and contributors
@@ -51,20 +61,17 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.`}</code></pre>
 
-					<h2>Software</h2>
-					<p>
-						ArenaSwap is built upon the software listed below, each item of which remains subject
-						to the license stated against it. Follow any entry for the full text of its license.
-					</p>
+					<h2>{t('legal.licenses.softwareHeading')}</h2>
+					<p>{t('legal.licenses.software1')}</p>
 				</div>
 
 				<div class='table-responsive'>
 					<table class='table table-dark table-sm align-middle'>
 						<thead>
 							<tr>
-								<th scope='col'>Package</th>
-								<th scope='col'>Version</th>
-								<th scope='col'>License</th>
+								<th scope='col'>{t('legal.licenses.colPackage')}</th>
+								<th scope='col'>{t('legal.licenses.colVersion')}</th>
+								<th scope='col'>{t('legal.licenses.colLicense')}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -85,20 +92,17 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.`}</code></pre>
 				</div>
 
 				<div class='prose'>
-					<h2>Typefaces</h2>
-					<p>
-						The typefaces below are served from this website and remain subject to the license
-						stated against each.
-					</p>
+					<h2>{t('legal.licenses.typefacesHeading')}</h2>
+					<p>{t('legal.licenses.typefaces1')}</p>
 				</div>
 
 				<div class='table-responsive'>
 					<table class='table table-dark table-sm align-middle'>
 						<thead>
 							<tr>
-								<th scope='col'>Family</th>
-								<th scope='col'>By</th>
-								<th scope='col'>License</th>
+								<th scope='col'>{t('legal.licenses.colFamily')}</th>
+								<th scope='col'>{t('legal.licenses.colBy')}</th>
+								<th scope='col'>{t('legal.licenses.colLicense')}</th>
 							</tr>
 						</thead>
 						<tbody>

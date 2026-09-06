@@ -3,6 +3,20 @@
 	"tasks": {
 		"build": {
 			"outputs": ["$TURBO_ROOT$/docs/**"]
+		},
+		"typecheck": {
+			// `astro sync` and `astro build` both write `.astro/`, and turbo is free to schedule
+			// these two together. When it does, one of them regenerates the type files out from
+			// under the other and the build fails on a module it can no longer resolve. The same
+			// shape as the e2e server and `wxt zip` racing over `.output/chrome-mv3`, and it only
+			// began to show once the locale routes took the build from 128 pages to 346 and gave
+			// the two tasks a wider window to overlap in.
+			"dependsOn": ["^build", "build"]
+		},
+		// Cypress serves the real `astro build` output at the base path it was built for, so it
+		// needs this package's own build and not just its dependencies'.
+		"test:e2e": {
+			"dependsOn": ["build"]
 		}
 	}
 }

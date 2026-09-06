@@ -1,25 +1,26 @@
 ---
 import { getCollection, render } from 'astro:content';
-import Shell from '../../../layouts/Shell.astro';
-import DocsNav from '../../../components/DocsNav.astro';
-import { docPath, docSlug, docsSections, type DocsSection } from '../../../lib/docs';
+import Shell from '../../../../layouts/Shell.astro';
+import DocsNav from '../../../../components/DocsNav.astro';
+import { docPath, docSlug, docsSections, type DocsSection } from '../../../../lib/docs';
+import UntranslatedNotice from '../../../../components/UntranslatedNotice.astro';
+import { defaultLocale, localePath, localeRoutesFor } from '../../../../i18n/locales';
 
-// One article, one URL. Drafts are excluded from the route table, so a draft is a 404 rather than
-// a page nothing links to.
+// One article, one URL per locale. Drafts are excluded from the route table, so a draft is a 404
+// rather than a page nothing links to.
 export const getStaticPaths = async () => {
 	const pages = await getCollection('docs', ({ data }) => !data.draft);
 
-	return pages.map(page => ({
+	return localeRoutesFor(pages.map(page => ({
 		params: { section: page.data.section, slug: docSlug(page) },
 		props: { page },
-	}));
+	})));
 };
 
-const { page } = Astro.props;
+const { page, locale } = Astro.props;
 const { title, description, faq } = page.data;
 const section = page.data.section as DocsSection;
 const meta = docsSections[section];
-const base = import.meta.env.BASE_URL;
 const path = docPath(page);
 
 const { Content } = await render(page);
@@ -33,7 +34,10 @@ const previous = siblings[index - 1];
 const next = siblings[index + 1];
 
 const site = Astro.site ?? new URL('https://hiteacheryouare.github.io');
-const url = new URL(`${base}${path}`, site).href;
+// The structured data describes the English article, which is the copy every locale's URL carries
+// and the one the canonical points at. Twelve URLs claiming to be twelve distinct articles would
+// be twelve claims about the same piece of writing.
+const url = new URL(localePath(defaultLocale, path), site).href;
 
 const structuredData: Record<string, unknown>[] = [
 	{
@@ -46,7 +50,7 @@ const structuredData: Record<string, unknown>[] = [
 		isPartOf: {
 			'@type': 'WebSite',
 			name: 'ArenaSwap',
-			url: new URL(base, site).href,
+			url: new URL(localePath(defaultLocale), site).href,
 		},
 		publisher: {
 			'@type': 'Organization',
@@ -57,8 +61,8 @@ const structuredData: Record<string, unknown>[] = [
 		'@context': 'https://schema.org',
 		'@type': 'BreadcrumbList',
 		itemListElement: [
-			{ '@type': 'ListItem', position: 1, name: 'Documentation', item: new URL(`${base}docs/`, site).href },
-			{ '@type': 'ListItem', position: 2, name: meta.title, item: new URL(`${base}docs/${section}/`, site).href },
+			{ '@type': 'ListItem', position: 1, name: 'Documentation', item: new URL(localePath(defaultLocale, 'docs/'), site).href },
+			{ '@type': 'ListItem', position: 2, name: meta.title, item: new URL(localePath(defaultLocale, `docs/${section}/`), site).href },
 			{ '@type': 'ListItem', position: 3, name: title, item: url },
 		],
 	},
@@ -80,6 +84,7 @@ if (faq?.length) {
 	title={`${title} — ArenaSwap`}
 	description={description}
 	path={path}
+	translated={false}
 	ogType='article'
 >
 	<div class='container'>
@@ -87,6 +92,8 @@ if (faq?.length) {
 			<h1 class='page-title docs-title'>{title}</h1>
 			<p class='page-lede'>{description}</p>
 		</div>
+
+		<UntranslatedNotice />
 
 		<div class='reading-shell'>
 			<DocsNav current={path} />
@@ -112,12 +119,12 @@ if (faq?.length) {
 				{(previous || next) && (
 					<nav class='docs-adjacent' aria-label='Nearby articles'>
 						{previous && (
-							<a href={`${base}${docPath(previous)}`}>
+							<a href={localePath(locale, docPath(previous))}>
 								<span aria-hidden='true'>← </span>{previous.data.title}
 							</a>
 						)}
 						{next && (
-							<a class='docs-adjacent-next' href={`${base}${docPath(next)}`}>
+							<a class='docs-adjacent-next' href={localePath(locale, docPath(next))}>
 								{next.data.title}<span aria-hidden='true'> →</span>
 							</a>
 						)}

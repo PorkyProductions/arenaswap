@@ -1,44 +1,33 @@
 ---
-import Shell from '../../layouts/Shell.astro';
-import LegalNav from '../../components/LegalNav.astro';
+import Shell from '../../../layouts/Shell.astro';
+import LegalNav from '../../../components/LegalNav.astro';
+import { localePath, localeRoutes } from '../../../i18n/locales';
+import { useTranslations } from '../../../i18n/ui';
 
 // A hub rather than one long page: these four get linked individually — to a store reviewer, to an
 // issue, to a licence header — and a URL that lands on the right clause beats a URL plus "scroll
 // down a bit".
 
-const base = import.meta.env.BASE_URL;
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
 
 const notices = [
-	{
-		path: 'legal/privacy/',
-		title: 'Privacy',
-		blurb: 'The preferences ArenaSwap retains, the information it transmits and to whom, and the permissions it requests of your browser.',
-	},
-	{
-		path: 'legal/licenses/',
-		title: 'Licenses',
-		blurb: 'The license under which ArenaSwap is distributed, together with the open-source software and typefaces upon which it depends.',
-	},
-	{
-		path: 'legal/credits/',
-		title: 'Credits',
-		blurb: 'Attribution for the footage appearing on this website, and the ownership of the scores, marks and crests it displays.',
-	},
-	{
-		path: 'legal/terms/',
-		title: 'Disclaimers',
-		blurb: 'Disclaimers of affiliation and of warranty, and the limits of what ArenaSwap undertakes to provide.',
-	},
+	{ path: 'legal/privacy/', title: t('legal.nav.privacy'), blurb: t('legal.index.privacyBlurb') },
+	{ path: 'legal/licenses/', title: t('legal.nav.licenses'), blurb: t('legal.index.licensesBlurb') },
+	{ path: 'legal/credits/', title: t('legal.nav.credits'), blurb: t('legal.index.creditsBlurb') },
+	{ path: 'legal/terms/', title: t('legal.nav.terms'), blurb: t('legal.index.termsBlurb') },
 ];
 ---
 <Shell
-	title='Legal notices — ArenaSwap'
-	description='The ArenaSwap privacy notice, license disclosures, footage attribution and disclaimers.'
+	title={t('meta.legalTitle')}
+	description={t('meta.legalDescription')}
 	path='legal/'
 >
 	<div class='container'>
 		<div class='page-head'>
-			<h1 class='page-title'>Legal notices.</h1>
+			<h1 class='page-title'>{t('legal.index.title')}</h1>
 		</div>
 
 		<div class='reading-shell'>
@@ -47,7 +36,7 @@ const notices = [
 			<ul class='legal-index'>
 				{notices.map(notice => (
 					<li>
-						<h2><a href={`${base}${notice.path}`}>{notice.title}</a></h2>
+						<h2><a href={localePath(locale, notice.path)}>{notice.title}</a></h2>
 						<p>{notice.blurb}</p>
 					</li>
 				))}

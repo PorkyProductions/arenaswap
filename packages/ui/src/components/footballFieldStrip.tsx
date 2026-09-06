@@ -33,6 +33,10 @@ const numberSize = 5;
 const ballSize = 6.4;
 const firstDownWidth = 0.8;
 const scrimmageWidth = 0.7;
+// The bar runs along the ball's own line, so it reads as the ground that ball has covered rather
+// than as a separate gauge. 2.2 keeps it inside the professional hash rows, which are the closest
+// pair of markings it has to sit between.
+const driveBarHeight = 2.2;
 const sidelineInset = 0.55;
 
 const footballFieldStrip = ({ game }: footballFieldStripProps) => {
@@ -71,10 +75,6 @@ const footballFieldStrip = ({ game }: footballFieldStripProps) => {
 				{mownBands.map(x => (
 					<rect key={x} className='ff-mow' x={x} y={0} width={10} height={stripHeight} />
 				))}
-
-				{driveStart !== null && (
-					<rect className='ff-drive' x={driveLeft} y={0} width={driveWidth} height={stripHeight} fill={offenseColor} />
-				)}
 
 				{([[awayEndZoneX, game.awayTeam, awayColor], [homeEndZoneX, game.homeTeam, homeColor]] as const).map(
 					([x, team, color], index) => (
@@ -120,6 +120,18 @@ const footballFieldStrip = ({ game }: footballFieldStripProps) => {
 				{[sidelineInset, stripHeight - sidelineInset].map(y => (
 					<line key={y} className='ff-sideline' x1={0} x2={stripYards} y1={y} y2={y} />
 				))}
+
+				{driveStart !== null && (
+					<rect
+						className='ff-drive'
+						x={driveLeft}
+						y={midlineY - driveBarHeight / 2}
+						width={driveWidth}
+						height={driveBarHeight}
+						rx={driveBarHeight / 2}
+						fill={offenseColor}
+					/>
+				)}
 
 				{diagram.firstDownX !== null && (
 					<rect

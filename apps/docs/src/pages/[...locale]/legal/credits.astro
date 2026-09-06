@@ -1,6 +1,9 @@
 ---
-import Shell from '../../layouts/Shell.astro';
-import LegalNav from '../../components/LegalNav.astro';
+import Shell from '../../../layouts/Shell.astro';
+import LegalNav from '../../../components/LegalNav.astro';
+import LegalTranslationNotice from '../../../components/LegalTranslationNotice.astro';
+import { localeRoutes } from '../../../i18n/locales';
+import { useTranslations } from '../../../i18n/ui';
 
 // The footage in the hero is real game footage, which means somebody filmed it. Two of the three
 // clips are under CC BY licences that require attribution, and this page is where that is said out
@@ -13,10 +16,19 @@ import LegalNav from '../../components/LegalNav.astro';
 //
 // Kept as data rather than prose so scripts/docs/fetchHeroClips.sh and this list can be checked
 // against each other by eye.
+//
+// The sport takes a translated label; nothing else here does. A licence is named by its identifier,
+// a venue and a broadcaster by their own names, and a fixture by the two teams playing in it —
+// translating any of those would break the attribution the CC BY licence is asking for.
+
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
 
 const clips = [
 	{
-		sport: 'Basketball',
+		sport: t('sport.basketball'),
 		what: "Northern Arizona at Hawai'i, Stan Sheriff Center",
 		author: "Warrior Insider, University of Hawai'i Athletics",
 		licence: 'CC BY 3.0',
@@ -24,15 +36,15 @@ const clips = [
 		source: 'https://commons.wikimedia.org/wiki/File:Hawaii_Basketball_-_Highlights_From_Northern_Arizona_Game.webm',
 	},
 	{
-		sport: 'Football',
+		sport: t('sport.football'),
 		what: 'Army at Navy, from All Hands Update',
 		author: 'Defense Media Activity, U.S. Navy',
-		licence: 'Public domain',
+		licence: t('legal.credits.publicDomain'),
 		licenceUrl: 'https://commons.wikimedia.org/wiki/Template:PD-USGov',
 		source: 'https://commons.wikimedia.org/wiki/File:All_Hands_Update-_Army_vs_Navy.webm',
 	},
 	{
-		sport: 'Hockey',
+		sport: t('sport.hockey'),
 		what: 'Minnesota State at Bemidji State, Sanford Center',
 		author: 'Lakeland PBS',
 		licence: 'CC BY 3.0',
@@ -42,20 +54,22 @@ const clips = [
 ];
 ---
 <Shell
-	title='Credits — ArenaSwap'
-	description='Attribution for the game footage appearing on the ArenaSwap homepage, together with the ownership of the scores, league marks and team crests displayed.'
+	title={t('meta.creditsTitle')}
+	description={t('meta.creditsDescription')}
 	path='legal/credits/'
 >
 	<div class='container'>
 		<div class='page-head'>
-			<h1 class='page-title'>Credits.</h1>
+			<h1 class='page-title'>{t('legal.credits.title')}</h1>
 		</div>
 
 		<div class='reading-shell'>
 			<LegalNav current='legal/credits/' />
 
 			<div>
-				<h2 class='display-md' style='font-size:1.35rem'>Footage</h2>
+				<LegalTranslationNotice path='legal/credits/' />
+
+				<h2 class='display-md' style='font-size:1.35rem'>{t('legal.credits.footageHeading')}</h2>
 				<ul class='credit-list'>
 					{clips.map(clip => (
 						<li class='credit-item'>
@@ -65,25 +79,18 @@ const clips = [
 								<span aria-hidden='true'> · </span>
 								<a href={clip.licenceUrl} class='credit-licence'>{clip.licence}</a>
 								<span aria-hidden='true'> · </span>
-								<a href={clip.source}>Source</a>
+								<a href={clip.source}>{t('legal.credits.sourceLink')}</a>
 							</p>
 						</li>
 					))}
 				</ul>
 
 				<div class='prose' style='margin-top:2.5rem'>
-					<h2>Scores</h2>
-					<p>
-						Live scores, schedules, team colors, crests and win probabilities are obtained from
-						ESPN. ArenaSwap is neither affiliated with nor endorsed by ESPN, and no league named
-						upon this website is affiliated with ArenaSwap or endorses it.
-					</p>
+					<h2>{t('legal.credits.scoresHeading')}</h2>
+					<p>{t('legal.credits.scores1')}</p>
 
-					<h2>Marks</h2>
-					<p>
-						League and team marks are the property of their respective leagues and clubs. They
-						appear here for the sole purpose of identifying games.
-					</p>
+					<h2>{t('legal.credits.marksHeading')}</h2>
+					<p>{t('legal.credits.marks1')}</p>
 				</div>
 			</div>
 		</div>

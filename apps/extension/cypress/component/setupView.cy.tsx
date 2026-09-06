@@ -85,6 +85,13 @@ const defaultProps = {
 
 const openGroup = (id: string) => cy.get(`#settingsGroup-${id}`).click();
 
+// React tracks an input's last value on the element itself and swallows a change event whose value
+// it thinks it already has, so the value goes in through the native setter the tracker patched.
+const dragRangeTo = (selector: string, index: number) => cy.get(selector).then(([el]: JQuery<HTMLElement>) => {
+	Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(el, String(index));
+	el.dispatchEvent(new Event('input', { bubbles: true }));
+});
+
 describe('setupView index', () => {
 	it('shows the Settings header with a back button', () => {
 		cy.mount(<SetupView {...defaultProps} />);
@@ -214,6 +221,40 @@ describe('setupView switching group', () => {
 	it('offers the explainer as a tooltip rather than permanent body copy', () => {
 		cy.get('.setting-tooltip-btn').should('have.length.at.least', 3);
 		cy.contains('Controls how big the PowerScore gap').should('not.exist');
+	});
+});
+
+describe('setupView cooldown slider', () => {
+	it('runs all the way down to off', () => {
+		const onCooldownChange = cy.spy().as('onCooldownChange');
+		cy.mount(<SetupView {...defaultProps} onCooldownChange={onCooldownChange} />);
+		openGroup('switching');
+
+		dragRangeTo('#cooldown-range', 0);
+		cy.get('@onCooldownChange').should('have.been.calledWith', 0);
+	});
+
+	it('names the bottom of the range Off rather than counting zero seconds', () => {
+		cy.mount(<SetupView {...defaultProps} prefs={{ ...defaultPrefs, cooldownSeconds: 0 }} />);
+		openGroup('switching');
+
+		cy.get('#cooldown-range').parent().find('.setting-value-label').should('have.text', 'Off');
+		cy.get('#cooldown-range').parent().should('not.contain.text', '0s');
+	});
+
+	it('keeps every locale\'s Off label on one line beside the setting name', () => {
+		cy.viewport(320, 560);
+		cy.mount(<SetupView {...defaultProps} prefs={{ ...defaultPrefs, cooldownSeconds: 0 }} />);
+		openGroup('switching');
+
+		Object.entries(locales).forEach(([name, locale]) => {
+			cy.get('#cooldown-range').parent().find('.setting-value-label').should(([el]: JQuery<HTMLElement>) => {
+				el.textContent = locale.cooldown.off;
+				const row = el.parentElement!;
+				expect(el.getBoundingClientRect().height, `off label stays one line in ${name}`).to.be.at.most(22);
+				expect(row.getBoundingClientRect().height, `label and value share a line in ${name}`).to.be.at.most(28);
+			});
+		});
 	});
 });
 

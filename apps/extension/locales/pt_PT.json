@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Mudança automática de NFL, NBA, March Madness e MLB em directo",
+	"extDescription": "Observa todos os jogos em directo em 31 ligas e muda o teu separador automaticamente para o mais emocionante, a cada 6 segundos.",
 	"app": {
 		"welcomeToast": "Bem-vindo ao ArenaSwap!",
 		"settingsSavedToast": "Definições guardadas",
@@ -659,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Tempo de espera entre mudanças",
-		"explainer": "Define o tempo mínimo entre mudanças automáticas para evitar a troca rápida de separadores."
+		"explainer": "Define o tempo mínimo entre mudanças automáticas para evitar a troca rápida de separadores.",
+		"off": "Desactivado"
 	},
 	"switchDelay": {
 		"label": "Atraso de mudança",

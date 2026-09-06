@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Auto-Switch Live NFL, NBA, MarchMadness & MLB Games",
+	"extDescription": "Watches every live game across 31 leagues and auto-switches your browser tab to the most exciting one, as fast as every 6 seconds.",
 	"app": {
 		"welcomeToast": "Welcome to ArenaSwap!",
 		"settingsSavedToast": "Settings saved",
@@ -659,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Switch cooldown",
-		"explainer": "Sets the minimum time between automatic switches to reduce rapid tab flipping."
+		"explainer": "Sets the minimum time between automatic switches to reduce rapid tab flipping.",
+		"off": "Off"
 	},
 	"switchDelay": {
 		"label": "Switch delay",

@@ -1,7 +1,9 @@
 ---
 import { getCollection, render } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
-import Shell from '../../layouts/Shell.astro';
+import Shell from '../../../layouts/Shell.astro';
+import UntranslatedNotice from '../../../components/UntranslatedNotice.astro';
+import { localePath, localeRoutesFor, type LocaleCode } from '../../../i18n/locales';
 
 // A release note reads like an announcement, so it is laid out like one: centred masthead, an
 // optional lead image, one column of prose, and the note's own section headings pinned beside it.
@@ -10,7 +12,7 @@ export const getStaticPaths = async () => {
 	const releases = (await getCollection('releases', ({ data }) => !data.draft))
 		.toSorted((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 
-	return releases.map((release, index) => ({
+	return localeRoutesFor(releases.map((release, index) => ({
 		params: { version: release.data.version },
 		props: {
 			release,
@@ -18,19 +20,18 @@ export const getStaticPaths = async () => {
 			newer: releases[index - 1],
 			older: releases[index + 1],
 		},
-	}));
+	})));
 };
 
 interface Props {
 	release: CollectionEntry<'releases'>;
 	newer?: CollectionEntry<'releases'>;
 	older?: CollectionEntry<'releases'>;
+	locale: LocaleCode;
 }
 
-const { release, newer, older } = Astro.props;
+const { release, newer, older, locale } = Astro.props;
 const { Content, headings } = await render(release);
-
-const base = import.meta.env.BASE_URL;
 
 // Only the note's own top-level sections. Deeper headings would turn the aside into an outline of
 // an outline.
@@ -44,15 +45,17 @@ const formatted = release.data.date.toLocaleDateString('en-US', {
 	title={`${release.data.title} — ArenaSwap ${release.data.version}`}
 	description={release.data.summary}
 	path={`releases/${release.data.version}/`}
+	translated={false}
 	ogType='article'
 	image={release.data.image}
 	imageAlt={release.data.imageAlt}
 >
 	<div class='release-page'>
 		<div class='container'>
-			<a class='release-back' href={`${base}releases/`}>
+			<a class='release-back' href={localePath(locale, 'releases/')}>
 				<span aria-hidden='true'>←</span> Back to release notes
 			</a>
+			<UntranslatedNotice />
 		</div>
 
 		<header class='release-masthead'>
@@ -93,12 +96,12 @@ const formatted = release.data.date.toLocaleDateString('en-US', {
 			{(newer || older) && (
 				<nav class='release-adjacent' aria-label='Other releases'>
 					{older && (
-						<a href={`${base}releases/${older.data.version}/`}>
+						<a href={localePath(locale, `releases/${older.data.version}/`)}>
 							<span aria-hidden='true'>← </span>{older.data.version}<span aria-hidden='true'> · </span>{older.data.title}
 						</a>
 					)}
 					{newer && (
-						<a href={`${base}releases/${newer.data.version}/`} class='release-adjacent-next'>
+						<a href={localePath(locale, `releases/${newer.data.version}/`)} class='release-adjacent-next'>
 							{newer.data.version}<span aria-hidden='true'> · </span>{newer.data.title}<span aria-hidden='true'> →</span>
 						</a>
 					)}

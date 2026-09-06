@@ -124,16 +124,44 @@ describe('football field', () => {
 		});
 	});
 
-	it('washes the ground the drive has covered, back to where it started', () => {
+	it('runs the drive bar back from the ball to where the drive started', () => {
 		mountStrip(nflGame);
 		cy.get('.ff-field').then($svg => {
 			const fieldRect = $svg[0].getBoundingClientRect();
 			const drive = $svg[0].querySelector('.ff-drive')!.getBoundingClientRect();
-			// The Eagles' own 25 to their own 30 is five yards, and it sits behind the ball.
-			expect((drive.width / fieldRect.width) * 120, 'five yards of drive').to.be.closeTo(5, 0.3);
-			expect(drive.height, 'full depth of the field').to.be.closeTo(fieldRect.height, 1);
+			const yardsAt = (edge: number) => ((edge - fieldRect.left) / fieldRect.width) * 120;
+			// The Eagles are at home and therefore driving right to left, so the bar reaches back
+			// from their own 30 to their own 25 — the ball at its near end, the drive start at its far.
+			expect(yardsAt(drive.left), 'near end on the ball').to.be.closeTo(80, 0.5);
+			expect(yardsAt(drive.right), 'far end on the drive start').to.be.closeTo(85, 0.5);
+		});
+	});
+
+	// It rides the ball's own line rather than sitting somewhere else on the field, which is what
+	// makes it read as ground that ball has covered instead of as a separate gauge.
+	it('runs the drive bar along the ball\'s line, inside the hash rows', () => {
+		mountStrip(nflGame);
+		cy.get('.ff-field').then($svg => {
+			const drive = $svg[0].querySelector('.ff-drive')!.getBoundingClientRect();
 			const ball = $svg[0].querySelector('.ff-ball')!.getBoundingClientRect();
-			expect(drive.right, 'the wash trails the ball rather than leading it').to.be.greaterThan(ball.left);
+			expect(drive.top + drive.height / 2, 'shares the ball\'s centre line')
+				.to.be.closeTo(ball.top + ball.height / 2, 1.5);
+
+			// The hash rows are the closest pair of markings it has to fit between.
+			const hashes = $svg[0].querySelector('.ff-hashes')!.getBoundingClientRect();
+			expect(drive.top).to.be.greaterThan(hashes.top);
+			expect(drive.bottom).to.be.lessThan(hashes.bottom);
+		});
+	});
+
+	// It still terminates on the line of scrimmage, which is what keeps it legible as ball
+	// movement from the bottom of the field: that line runs the full depth.
+	it('meets the line of scrimmage', () => {
+		mountStrip(nflGame);
+		cy.get('.ff-field').then($svg => {
+			const drive = $svg[0].querySelector('.ff-drive')!.getBoundingClientRect();
+			const scrimmage = $svg[0].querySelector('.ff-scrimmage')!.getBoundingClientRect();
+			expect(drive.left).to.be.closeTo(scrimmage.left + scrimmage.width / 2, 2);
 		});
 	});
 

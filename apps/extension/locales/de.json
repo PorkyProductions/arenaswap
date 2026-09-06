@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Automatischer Wechsel: Live-NFL, NBA, March Madness & MLB",
+	"extDescription": "Beobachtet jedes Live-Spiel in 31 Ligen und wechselt deinen Tab automatisch zum spannendsten – bis zu alle 6 Sekunden.",
 	"app": {
 		"welcomeToast": "Willkommen bei ArenaSwap!",
 		"settingsSavedToast": "Einstellungen gespeichert",
@@ -659,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Wechsel-Cooldown",
-		"explainer": "Setzt die Mindestzeit zwischen automatischen Wechseln, um schnelles Tab-Flipping zu reduzieren."
+		"explainer": "Setzt die Mindestzeit zwischen automatischen Wechseln, um schnelles Tab-Flipping zu reduzieren.",
+		"off": "Aus"
 	},
 	"switchDelay": {
 		"label": "Wechselverzögerung",

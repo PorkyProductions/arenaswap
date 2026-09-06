@@ -45,7 +45,7 @@ const footballDrivePatterns = [
 	{ downDistance: '1st & 10', fieldPosition: 'PHI 25', down: 1, distance: 10, yardLine: 25 },
 ] as const;
 
-// The drive starts on the Eagles' own 25 and the pattern wraps back to it, so the wash grows across
+// The drive starts on the Eagles' own 25 and the pattern wraps back to it, so the bar grows across
 // the whole table and resets with the possession.
 const footballDriveStartYardLine = 25;
 

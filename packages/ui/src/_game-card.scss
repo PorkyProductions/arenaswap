@@ -515,10 +515,13 @@ button.game-meta-attribution {
 	opacity: 0.72;
 }
 
-// Ground the offense has already covered on this drive, washed rather than barred: at 77px tall a
-// horizontal bar would have to cross the numbers and the hash rows to say the same thing.
+// Ground the offense has already covered on this drive, running back from the ball to where the
+// drive began. The casing is what keeps a dark team colour off dark grass — a bottle green bar on
+// turf is otherwise the same problem the end zones solve with a goal line.
 .ff-drive {
-	fill-opacity: 0.34;
+	stroke: rgba(255, 255, 255, 0.85);
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
 }
 
 // Broadcast yellow. This is the one colour on the field a football fan reads without being told

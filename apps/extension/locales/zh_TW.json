@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap——自動切換 NFL、NBA、March Madness、MLB 直播",
+	"extDescription": "監控 31 個聯賽的所有直播比賽，自動把你的分頁切到最精彩的一場，最快每 6 秒判定一次。",
 	"app": {
 		"welcomeToast": "歡迎使用 ArenaSwap！",
 		"settingsSavedToast": "設定已儲存",
@@ -659,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "切換冷卻",
-		"explainer": "設定自動切換之間的最短間隔，避免分頁來回亂跳。"
+		"explainer": "設定自動切換之間的最短間隔，避免分頁來回亂跳。",
+		"off": "關閉"
 	},
 	"switchDelay": {
 		"label": "切換延遲",

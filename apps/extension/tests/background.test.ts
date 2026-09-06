@@ -928,6 +928,45 @@ describe('manual tab activation', () => {
 		await drain(16);
 		expect(tabsUpdate).toHaveBeenCalledWith(2, { active: true });
 	});
+
+	test('switches on the very next poll when the cooldown is off', async () => {
+		await loadBackground({
+			prefs: { ...switchingPrefs, cooldownSeconds: 0 },
+			tabRegistry: [{ gameId: 'thriller', tabId: 2 }],
+			fetchReturnValue: { games: [thriller], leagueLogos: {} },
+			openTabIds: [1, 2],
+			activeTabId: 1,
+			initialSystemTime: 1_000_000,
+		});
+
+		await activateTab(2);
+
+		await runFirstPoll();
+		expect(tabsUpdate).toHaveBeenCalledWith(2, { active: true });
+	});
+
+	test('switches when the cooldown is off and the evaluation lands in the same millisecond', async () => {
+		await loadBackground({
+			prefs: { ...switchingPrefs, cooldownSeconds: 0 },
+			tabRegistry: [{ gameId: 'thriller', tabId: 2 }],
+			fetchReturnValue: { games: [thriller], leagueLogos: {} },
+			openTabIds: [1, 2],
+			activeTabId: 1,
+			initialSystemTime: 1_000_000,
+		});
+
+		await activateTab(2);
+		const activatedAt = Date.now();
+
+		// Elapsed time compared against a zero cooldown is only ever blocking when the two instants
+		// are equal, so the clock is pinned back to the activation to reach that one case: a poll
+		// evaluating in the same millisecond the user landed on a game tab.
+		jest.advanceTimersByTime(pollIntervalMs + 2000);
+		jest.setSystemTime(activatedAt);
+		await drain(16);
+
+		expect(tabsUpdate).toHaveBeenCalledWith(2, { active: true });
+	});
 });
 
 // Regression: mute updates went out as one Promise.all, so a tab closing inside the

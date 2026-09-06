@@ -1,11 +1,15 @@
 ---
-import Shell from '../../layouts/Shell.astro';
-import { docPath, docsSectionOrder, docsSections, getSectionDocs } from '../../lib/docs';
+import Shell from '../../../layouts/Shell.astro';
+import { docPath, docsSectionOrder, docsSections, getSectionDocs } from '../../../lib/docs';
+import UntranslatedNotice from '../../../components/UntranslatedNotice.astro';
+import { localePath, localeRoutes } from '../../../i18n/locales';
 
 // The hub. Two trees with two audiences: people watching sports, and people scoring games in their
 // own code. Splitting them at the top means neither has to scroll past the other.
 
-const base = import.meta.env.BASE_URL;
+export const getStaticPaths = localeRoutes;
+
+const { locale } = Astro.props;
 
 const trees = await Promise.all(docsSectionOrder.map(async section => ({
 	section,
@@ -17,17 +21,21 @@ const trees = await Promise.all(docsSectionOrder.map(async section => ({
 	title='ArenaSwap documentation'
 	description='Guides for watching several games at once with ArenaSwap, and the developer reference for the PowerScore package that decides which game wins.'
 	path='docs/'
+	translated={false}
 >
 	<div class='container'>
 		<div class='page-head'>
 			<h1 class='page-title'>Documentation.</h1>
+		</div>
+		<div class="p-4">
+			<UntranslatedNotice />
 		</div>
 
 		<div class='docs-hub'>
 			{trees.map(tree => (
 				<section class='docs-hub-tree' aria-labelledby={`hub-${tree.section}`}>
 					<h2 id={`hub-${tree.section}`}>
-						<a href={`${base}docs/${tree.section}/`}>{tree.meta.heading}</a>
+						<a href={localePath(locale, `docs/${tree.section}/`)}>{tree.meta.heading}</a>
 					</h2>
 					<p class='docs-hub-lede'>{tree.meta.description}</p>
 
@@ -36,7 +44,7 @@ const trees = await Promise.all(docsSectionOrder.map(async section => ({
 					) : (
 						<ul class='docs-hub-list'>
 							{tree.pages.map(page => (
-								<li><a href={`${base}${docPath(page)}`}>{page.data.title}</a></li>
+								<li><a href={localePath(locale, docPath(page))}>{page.data.title}</a></li>
 							))}
 						</ul>
 					)}

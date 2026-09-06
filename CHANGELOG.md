@@ -1,5 +1,239 @@
 # Changelog
 
+## The site is published in twelve languages, and following a link stays in yours — 2026-09-05
+
+ArenaSwap's own popup has shipped in twelve languages for a long time. The website that sells it
+shipped in one. Someone reading a German store listing, clicking through, and landing on English
+copy is being told the product is not really for them, whatever the listing said.
+
+The site is now published at `/arenaswap/` in English and at `/arenaswap/de/`, `/arenaswap/pt-BR/`
+and nine more besides. English keeps the root, so no URL that has ever been published moved, and no
+store listing, backlink or bookmark broke. The other eleven take one path segment.
+
+### One page file, twelve pages
+
+`src/pages/[...locale]/` is a rest parameter that resolves to nothing for English and to the locale
+code for everyone else, so a single `faq.astro` produces all twelve FAQ pages rather than twelve
+near-identical files drifting apart. `localeRoutes` maps the twelve, and `localeRoutesFor` crosses
+them with a page's own parameters for the trees that have several pages under them.
+
+`Astro.currentLocale` is derived from the URL by Astro's own routing, which is what keeps the
+navigation, the footer, the install button and the language switcher from having a locale threaded
+down through them as a prop. It is read through one validating helper rather than trusted directly,
+so exactly one place decides what happens when it is missing.
+
+### The strings, and the ones that are not really strings
+
+`src/i18n/strings/<locale>.json` holds about 260 keys a locale: the navigation, the footer, all five
+landing bands, the FAQ, the 404, the PowerScore page and all five legal pages.
+
+A `ui` namespace inside each of those mirrors `apps/extension/locales/` key for key. The site's
+demonstrations are not pictures of the popup — they are the popup, the same components out of
+`@arenaswap/ui`, so the German page has to say what the German extension says rather than a second
+translation of the same idea. Those values are copied from the extension's files, never reworded.
+An island cannot read Astro frontmatter, so the flattened map is handed to it as a prop and put on
+the `TranslationContext` the shared components already read.
+
+**A sentence with a link in the middle of it cannot be substituted into**, because what goes in the
+hole is markup rather than text. Splitting on the placeholder works right up until a language puts
+two holes in the other order — which is not hypothetical, it is what the privacy notice's "requests
+crests from `a.espncdn.com`, and the PowerScore page scores games" sentence does in half the
+languages that have it. `tokenize` breaks the template into an ordered run of literal text and named
+slots, and the call site renders each slot wherever the translation put it.
+
+**A bundle that drifts from `en.json` fails the build.** A missing key already threw, because the
+translator throws rather than rendering the key. What it could not see was a list that came back one
+item short, and three of them are read by position — the landing page's steps, the five PowerScore
+signals, and the spelled-out numerals. The guard compares every bundle's shape against English and
+names what is missing or extra. It caught a real drift within a minute of being written.
+
+### Four strings that needed a different shape
+
+The PowerScore hero rotates through league abbreviations and then settles on the word for a score:
+"The score behind every NFL score." becomes "The score behind every score." That is a pun in English
+and a different sentence in every language, so it is four separate keys — the words before the
+token, the words after it, and what each becomes when the rotation lands — rather than one template
+with a hole in it. Japanese, Korean and both Chinese locales set the resting token to an empty
+string, which reads correctly: 「あらゆるNFLスコアの裏にあるスコア。」 becomes 「あらゆるスコアの
+裏にあるスコア。」 The first Spanish attempt baked the article into the prefix and settled into "the
+score behind every score of the score"; the article moved into the resting token, which is ours to
+control and does not have to agree with whatever gender the next league abbreviation implies.
+
+The install button is filled in by the browser, so `Add to {browser}` is a template the client-side
+detection substitutes into rather than a string assembled from two halves — several languages do not
+put the name last.
+
+### Following a link used to change the language under you
+
+The documentation and the release notes are not translated, and the first pass left them on English
+URLs only. So the Docs link in a German navigation pointed at `/arenaswap/docs/`, and following it
+changed the navigation, the footer and the language switcher to English all at once, with the
+switcher then only able to offer the German home page. A review caught it, and it is the worst thing
+this feature could have done: it makes the localized site feel like a veneer that falls off.
+
+Both trees are now built once per locale. The chrome is in the reader's language and the article is
+in English, above a Bootstrap alert saying so — a statement of fact rather than an apology, and it
+names what *is* translated so nobody assumes they have fallen off the localized site entirely.
+
+Those pages point their canonical at the English URL and emit no `hreflang` alternates, because an
+alternate announces a translation and there is none to announce. The translated pages emit all
+twelve plus `x-default`, in the head and in the sitemap.
+
+That took the build from 128 pages to 346, which widened a race nobody had hit before: `astro sync`
+and `astro build` both write `.astro/`, and turbo was free to schedule `typecheck` and `build`
+together. One would regenerate the type files out from under the other. Same shape as the e2e server
+and `wxt zip` fighting over `.output/chrome-mv3`, and fixed the same way — an ordering edge, so they
+cannot overlap.
+
+### The switcher, and two Bootstrap gaps it found
+
+A globe-and-language button in the navigation, and a plain list in the mobile drawer, because a
+dropdown inside a dropdown is a menu you have to open twice. Every entry names its language in that
+language, since a switcher written in English is only readable by someone who already reads English.
+There is no automatic redirect: guessing from `navigator.language` gets bilingual readers wrong and
+makes the English page hard to reach on purpose.
+
+Flags sit beside the names. A flag names a country and a locale names a language, and the two only
+line up because each of these happens to have one place it is most read — `es` takes Mexico rather
+than Spain because the Spanish that ships is Latin American. Windows has no colour flag glyphs and
+renders them as boxed letter pairs, which is why the name beside it is doing the actual work.
+
+Adopting Bootstrap's dropdown turned up the same class of bug the Up Next day pager found in the
+popup, twice. `$dropdown-link-hover-bg` is built from `--as-tertiary-bg`, which this theme never
+overrode, so hovering an item put `#e6edf3` text on the light default `#f8f9fa`. And
+`$dropdown-link-active-color` is a flat white that reaches 3.22:1 on `$primary` — buttons escape
+this by running the colour through `color-contrast()` and a dropdown does not. Both are fixed
+through the Sass variables rather than re-specified on the component, so every future dropdown on
+the site inherits the fix.
+
+The same gap bit the alert on the untranslated pages. Bootstrap 5.3 computes two sets of the
+`-bg-subtle` tokens, a light pair on `:root` and a dark pair under `[data-bs-theme=dark]`, and this
+site's darkness comes from a hand-picked `$body-bg` rather than from Bootstrap's colour-mode switch.
+Setting `data-bs-theme=dark` would fix it and drag `--as-body-bg` and the rest onto Bootstrap's own
+greys, undoing the theme, so the two variants the site actually renders take Bootstrap's dark values
+and nothing else moves. The warning alert on the PowerScore page had been a pale yellow slab on
+`#0d1117` this whole time.
+
+### The store listings and what the browser calls the extension
+
+`apps/extension/marketing/<locale>/` carries the listing title, both short descriptions and the full
+description in eleven languages. The rule lines, the sport emoji and the section order are identical
+to the English file in every one, because the store renders that layout verbatim.
+
+The manifest's `name` and `description` are `__MSG_` placeholders now, resolved out of two new
+top-level keys in `apps/extension/locales/`. They have to be top-level: `@wxt-dev/i18n` flattens
+nested keys with an underscore, so anything namespaced would arrive as `meta_extName` and stop
+matching what the manifest asks for. The English strings are byte-identical to what shipped, so the
+live listing did not move.
+
+`name` caps at 75 characters and `description` at 132, counted in characters rather than bytes,
+which is the thing most likely to be got wrong next — a CJK title has far more room than its byte
+length suggests. French landed at exactly 75 after a rewrite; it had come in at 77.
+
+Keywords and the five permission justifications stay English on purpose. Keywords need to be
+researched against a market's own search behaviour rather than translated, and justifications are
+read by store reviewers working in English.
+
+### What is not translated
+
+The fifteen documentation articles, the release notes and the ISC licence text. The licence is only
+the licence in the words it was granted in. The legal pages *are* translated, and each one opens
+with a line saying the English text is the version that governs — a translated privacy notice
+quietly presenting itself as authoritative is the one way this could cost somebody something.
+
+`card.reason` on the live PowerScore page is still English: it is composed inside the `powerscore`
+package from the game state, and translating it means translating something published on npm on its
+own.
+
+The 404 is English and single. GitHub Pages answers every unknown URL under the base path with that
+one file, so there is no per-locale copy for it to serve — it is the only page left where the
+language switcher falls back to offering a home page.
+
+### Coverage
+
+The site had no test harness at all, which is why none of this could have been caught. It has one
+now: `apps/docs/cypress.config.ts` and a static server that takes the base path and strips it, so a
+spec visits the same URL GitHub Pages will serve rather than a rewritten one, over the real
+`astro build` output rather than a dev-server rendering of it. `test:e2e` depends on this package's
+own build for that reason, the same way the extension's does.
+
+46 checks in it, measuring what only a browser can answer. The navigation's three groups are
+asserted not to collide at 992px and 1280px in all twelve languages, and no link is allowed to wrap
+— which is how Spanish and both Portuguese locales were caught overflowing, having expanded FAQ to
+"Preguntas frecuentes". Eleven walk a translated visit three hops deep, from the home page into the
+documentation hub, into an article, and across the side navigation, asserting the locale survives
+every one; each was confirmed failing against the English-only docs tree before the fix went in. The
+install button is measured for wrapping in every locale. The dropdown's hover and active colours and
+the alert's background are read off the computed style rather than trusted to the stylesheet, since
+the whole class of bug there is a stylesheet that looks right and resolves to a light default.
+
+## The switch cooldown goes down to off — 2026-09-05
+
+The slider stopped at 15 seconds, so there was no way to say you wanted none of it. The switch delay
+sitting directly under it has offered an Off since it shipped, and the two controls are the same
+shape: a wait measured in seconds that some people do not want.
+
+Zero was already a legal stored value — `normalizeSecondsPreference` floors at 0 rather than at the
+slider's own minimum — so nothing about storage or the preference shape had to move. The slider was
+simply never offering the bottom of the range it already supported.
+
+The word is each locale's existing one. Every locale file already carries `switchDelay.off`, so
+`cooldown.off` takes that same translation rather than a new coinage, and Off reads identically on
+both sliders in all twelve.
+
+### One millisecond where off did not mean off
+
+The gate is `Date.now() - lastSwitchTime <= cooldownSeconds * 1000`, and against a cooldown of zero
+that is only ever blocking when the two instants are equal — a poll evaluating in the same
+millisecond the user landed on a game tab, which is a real event ordering rather than a
+hypothetical, since a manual activation starts the cooldown itself. It is guarded explicitly now, so
+the arithmetic is not what makes off work.
+
+### The onboarding copy of the control
+
+The walkthrough draws its own cooldown slider, decorative and going nowhere, and it had its own copy
+of the step list and its own formatter. It imports both from the real slider now rather than keeping
+a third list in step by hand, which is how it would have quietly kept a 15 second floor. Its resting
+position is still 30 seconds.
+
+### The docs named the old floor
+
+The settings reference and the switching article both named 15 seconds as the floor, so both say
+Off now, and the cooldown row on the settings table reads the same range as the switch delay row
+directly under it.
+
+### Coverage
+
+Two background tests: an off cooldown switching on the very next poll, and the same-millisecond case,
+which was confirmed failing without the guard. Three on the slider: the bottom of the range sending 0
+rather than 15, the value reading Off instead of `0s`, and every locale's Off measured on one line
+beside the setting name at 320px.
+
+Driving a range input turned up something worth recording. React keeps its own note of an input's
+last value on the element and discards a change event whose value it thinks it already has, so
+neither `cy.type` with arrow keys nor a jQuery `val()` reaches the handler — arrow keys because
+Cypress synthesises the key events without the browser's native range behaviour, and `val()` because
+it writes straight past the tracker. The value goes in through the native setter the tracker patched,
+which is the one route it notices.
+
+## The FAQ at the foot of a docs article stopped drawing rows that are not there — 2026-09-05
+
+The block reads as a list of collapsed questions. Above the first one and below the last one it was
+also drawing an empty band, which read as one more question with nothing in it.
+
+Both were the same mistake made twice. `.faq-item` draws a rule above every row and one below the
+last, so the list already opens and closes itself. `.docs-faq` was adding a section rule of its own
+2rem above the first row's, and `.docs-adjacent` was adding another 5rem below the last row's. Two
+identical 1px lines with nothing between them is exactly what an empty row would look like.
+
+The wrappers give the rules up. `.docs-faq` keeps its top margin and loses its border, so the first
+row's own rule is what separates the list from the article. `.docs-adjacent` keeps its border
+everywhere except directly after a FAQ block, where the list's closing rule serves instead and the
+nav takes the 1.5rem of clearance that rule would have given it.
+
+Nothing else moves. An article with no `faq:` frontmatter renders no block at all and its prev/next
+nav is untouched, and the standalone `/faq` page never had a wrapper drawing a second rule.
+
 ## The upcoming window is picked in your day and asked for in ESPN's — 2026-09-05
 
 One data path carried three different day boundaries. The window was built in UTC, ESPN resolved it
@@ -261,21 +495,31 @@ scores.
 
 ### The drive, and the two ways it lies
 
-The ground the offense has covered on this drive is washed in its own colour, from where the drive
-began to where the ball is now, which is what makes the direction of travel legible in a still
-screenshot rather than only in motion. It was a bar across the middle of the field first; at 77px
-tall a bar has to cross both rows of numbers and both hash rows to say the same thing, and a wash is
-a fill rather than another edge.
+The ground the offense has covered on this drive is a bar in its own colour, running back from the
+ball to where the drive began, which is what makes the direction of travel legible in a still
+screenshot rather than only in motion.
+
+It rides the ball's own line, and the two alternatives are both worse. A full-depth wash reads as a
+stain on the turf rather than as movement. Moving the bar down to the foot of the field makes every
+drive visible regardless of length, and turns it into a separate gauge that happens to sit under a
+football pitch — the connection to the ball is what the bar is for. So it runs into the ball, and
+the cost is that a drive shorter than the marker is wide disappears under it. That is about six
+yards at this scale, and it is the case where the bar has least to say: the caption above the field
+already reads "2nd & 7", which is the same three yards stated in words.
+
+It takes a white casing for the same reason the end zones need a goal line — a bottle green bar on
+grass is otherwise not there at all. At 2.2 units it fits between the professional hash rows, which
+are the closest pair of markings it has to sit between.
 
 `lastPlay.drive` still describes the **previous** team's drive for the one poll after a change of
 possession, and a punt leaves it pointing tens of yards backwards. Every one of those stale reads is
 negative in the new offense's direction, so ground is only drawn where it was actually gained —
-which also drops the washes too narrow to see.
+which also drops the bars too narrow to see.
 
 That guard does not catch the second one. ESPN publishes `drive.start.yardLine: 0` as a placeholder
 on a drive it has only just opened, under a description that reports the real yardage: three live
-games carried it at once, one of them "1 play, 5 yards" against a coordinate that would have washed
-forty. It inflates the gain rather than inverting it, so a goal line is rejected as a drive start
+games carried it at once, one of them "1 play, 5 yards" against a coordinate that would have drawn a
+bar forty yards long. It inflates the gain rather than inverting it, so a goal line is rejected as a drive start
 outright. A real drive begins at a touchback spot or a recovery, never on the paint.
 
 ### The field is a field

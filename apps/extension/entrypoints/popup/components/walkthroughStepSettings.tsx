@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { i18n } from '#i18n';
+import { cooldownSteps, formatCooldownSeconds } from './cooldownSlider';
 
 interface walkthroughStepSettingsProps {
 	onNext: () => void;
@@ -11,12 +12,9 @@ const sensitivityLabels: Record<number, string> = {
 	4: i18n.t('stepSettings.sensitivity4'), 5: i18n.t('stepSettings.sensitivity5'), 6: i18n.t('stepSettings.sensitivity6'), 7: i18n.t('stepSettings.sensitivity7'),
 };
 
-const cooldownSteps = [15, 30, 45, 60, 90, 120, 180];
-const formatCooldown = (s: number) => s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${s % 60 ? ` ${s % 60}s` : ''}`;
-
 const walkthroughStepSettings = ({ onNext, onBack }: walkthroughStepSettingsProps) => {
 	const [sensitivity, setSensitivity] = useState(4);
-	const [cooldownIdx, setCooldownIdx] = useState(1);
+	const [cooldownIdx, setCooldownIdx] = useState(2);
 
 	return (
 		<div className='popup-container d-flex flex-column'>
@@ -57,7 +55,7 @@ const walkthroughStepSettings = ({ onNext, onBack }: walkthroughStepSettingsProp
 							{i18n.t('stepSettings.cooldownLabel')}
 						</span>
 						<span className='fw-semibold setting-value-label'>
-							{formatCooldown(cooldownSteps[cooldownIdx]!)}
+							{formatCooldownSeconds(cooldownSteps[cooldownIdx]!)}
 						</span>
 					</div>
 					<input

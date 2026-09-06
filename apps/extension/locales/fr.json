@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Bascule automatique : NFL, NBA, March Madness et MLB en direct",
+	"extDescription": "Surveille chaque match en direct dans 31 ligues et bascule ton onglet vers le plus captivant, jusqu'à toutes les 6 secondes.",
 	"app": {
 		"welcomeToast": "Bienvenue sur ArenaSwap !",
 		"settingsSavedToast": "Paramètres enregistrés",
@@ -659,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Délai entre les changements",
-		"explainer": "Définit le temps minimum entre les changements automatiques pour éviter les basculements rapides."
+		"explainer": "Définit le temps minimum entre les changements automatiques pour éviter les basculements rapides.",
+		"off": "Désactivé"
 	},
 	"switchDelay": {
 		"label": "Délai de changement",

@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Troca automática de NFL, NBA, March Madness e MLB ao vivo",
+	"extDescription": "Observa todo jogo ao vivo em 31 ligas e troca sua aba automaticamente para o mais emocionante, a cada 6 segundos.",
 	"app": {
 		"welcomeToast": "Bem-vindo ao ArenaSwap!",
 		"settingsSavedToast": "Configurações salvas",
@@ -659,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Cooldown entre trocas",
-		"explainer": "Define o tempo mínimo entre trocas automáticas para evitar troca rápida de abas."
+		"explainer": "Define o tempo mínimo entre trocas automáticas para evitar troca rápida de abas.",
+		"off": "Desativado"
 	},
 	"switchDelay": {
 		"label": "Atraso de troca",

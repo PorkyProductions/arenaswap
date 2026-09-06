@@ -1,4 +1,6 @@
 {
+	"extName": "ArenaSwap — Cambio automatico di NFL, NBA, March Madness e MLB dal vivo",
+	"extDescription": "Osserva ogni partita dal vivo in 31 leghe e passa automaticamente alla più avvincente, anche ogni 6 secondi.",
 	"app": {
 		"welcomeToast": "Benvenuto su ArenaSwap!",
 		"settingsSavedToast": "Impostazioni salvate",
@@ -659,7 +661,8 @@
 	},
 	"cooldown": {
 		"label": "Tempo di attesa tra i cambi",
-		"explainer": "Imposta il tempo minimo tra i cambi automatici per ridurre i cambi rapidi di scheda."
+		"explainer": "Imposta il tempo minimo tra i cambi automatici per ridurre i cambi rapidi di scheda.",
+		"off": "Off"
 	},
 	"switchDelay": {
 		"label": "Ritardo di cambio",

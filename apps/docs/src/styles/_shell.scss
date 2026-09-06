@@ -150,11 +150,13 @@
 
 // Questions a reader arrives with, kept below the article rather than woven into it. Same
 // disclosure widget as the FAQ page.
+//
+// No rule of its own: every .faq-item already draws one above itself and the last draws one below,
+// so a section border lands a second identical line a couple of rem from the first, and the band
+// between them reads as a question with nothing in it.
 .docs-faq {
 	max-width: 68ch;
 	margin: 3.5rem 0 0;
-	padding-top: 1.5rem;
-	border-top: 1px solid #21262d;
 }
 
 .docs-adjacent {
@@ -182,6 +184,13 @@
 		grid-column: 2;
 		text-align: right;
 	}
+}
+
+// The FAQ list closes with a rule of its own, so the nav borrows it rather than drawing a second.
+.docs-faq + .docs-adjacent {
+	margin-top: 1.5rem;
+	padding-top: 0;
+	border-top: 0;
 }
 
 .docs-hub {
@@ -537,6 +546,28 @@
 		margin: 0.4rem 0 0;
 		max-width: 70ch;
 	}
+}
+
+// Bootstrap's alert, doing the work. Only the measure and the two type sizes are set here: an alert
+// is styled for a full-width form, and this one heads a reading column.
+.untranslated-notice {
+	margin: 0 0 2rem;
+	max-width: 70ch;
+}
+
+.untranslated-notice-heading {
+	font-size: 0.925rem;
+	font-weight: 600;
+	margin: 0;
+}
+
+.untranslated-notice-body {
+	font-size: 0.875rem;
+	line-height: 1.65;
+	// Bootstrap's .alert sets a bottom margin on its own children; the body is the last thing in
+	// the box and does not need one.
+	margin: 0.3rem 0 0;
+	opacity: 0.85;
 }
 
 .legal-measure {

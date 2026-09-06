@@ -22,12 +22,14 @@ const sceneCount = 4;
 const sceneDurations = [4200, 4200, 6000, 8200];
 
 // OrangeDots.astro skips React islands, so the orange-dot flourish is applied here instead.
-const sceneCaptions = [
-	'It watches every live game across your leagues',
-	'And scores each one on how exciting it is, live',
-	'Open a game to see exactly why',
-	'Then your tab lands on the best one',
-];
+interface Strings {
+	alt: string;
+	nowWatching: string;
+	nowOn: string;
+	captions: string[];
+	signals: string[];
+	powerScore: string;
+}
 
 const imageBase = `${import.meta.env.BASE_URL}images`;
 const orange = '#F75C03';
@@ -53,8 +55,8 @@ const nodes = networkLeagues.map((n, i) => {
 	};
 });
 
-const NetworkScene = ({ showScores }: { showScores: boolean }) => (
-	<svg className='mw-net' viewBox='0 0 960 720' data-scores={showScores} role='img' aria-label='ArenaSwap watching and scoring every live game'>
+const NetworkScene = ({ showScores, alt }: { showScores: boolean; alt: string }) => (
+	<svg className='mw-net' viewBox='0 0 960 720' data-scores={showScores} role='img' aria-label={alt}>
 		{nodes.map((n, i) => (
 			<g key={`wire-${n.id}`}>
 				<line className='mw-wire-base' x1={n.x} y1={n.y} x2={centerX} y2={centerY} />
@@ -86,12 +88,14 @@ const demoGame = {
 	home: { abbr: 'BOS', name: 'Celtics', score: 110, logo: 'https://a.espncdn.com/i/teamlogos/nba/500/bos.png' },
 	power: 92,
 };
-const signals = [
-	{ name: 'Closeness', value: 30, max: scoreMaxCloseness, color: '#22c55e' },
-	{ name: 'Late-game pressure', value: 26, max: scoreMaxLateGame, color: orange },
-	{ name: 'Momentum', value: 20, max: scoreMaxMomentum, color: '#2274A5' },
-	{ name: 'Lead changes', value: 9, max: scoreMaxLeadChanges, color: '#F1C40F' },
-	{ name: 'Comeback', value: 7, max: scoreMaxComeback, color: '#D90368' },
+// Names come in as a list and are paired with the figures by position, so a locale supplies five
+// labels and nothing else. The values and ceilings are the same in every language.
+const signalValues = [
+	{ value: 30, max: scoreMaxCloseness, color: '#22c55e' },
+	{ value: 26, max: scoreMaxLateGame, color: orange },
+	{ value: 20, max: scoreMaxMomentum, color: '#2274A5' },
+	{ value: 9, max: scoreMaxLeadChanges, color: '#F1C40F' },
+	{ value: 7, max: scoreMaxComeback, color: '#D90368' },
 ];
 const trend = [58, 62, 61, 69, 72, 79, 85, 92];
 
@@ -120,7 +124,7 @@ const trendOption: EChartsOption = {
 	}],
 };
 
-const GameCard = ({ active, chartElRef }: { active: boolean; chartElRef: React.RefObject<HTMLDivElement | null> }) => (
+const GameCard = ({ active, chartElRef, strings }: { active: boolean; chartElRef: React.RefObject<HTMLDivElement | null>; strings: Strings }) => (
 	<div className='mw-card'>
 		<div className='mw-card-teams'>
 			<div className='mw-team'>
@@ -140,16 +144,16 @@ const GameCard = ({ active, chartElRef }: { active: boolean; chartElRef: React.R
 		<div className='mw-power'>
 			<div className='mw-power-num'>{demoGame.power}<span>/100</span></div>
 			<div className='mw-power-meta'>
-				<span className='mw-power-label'>PowerScore</span>
+				<span className='mw-power-label'>{strings.powerScore}</span>
 				<div ref={chartElRef} className='mw-chart' />
 			</div>
 		</div>
 
 		<div className='mw-signals'>
-			{signals.map(s => (
-				<div key={s.name} className='mw-signal'>
+			{signalValues.map((s, index) => (
+				<div key={strings.signals[index]} className='mw-signal'>
 					<div className='mw-signal-head'>
-						<span>{s.name}</span>
+						<span>{strings.signals[index]}</span>
 						<span className='mw-signal-val' style={{ color: s.color }}>{s.value}</span>
 					</div>
 					<div className='ps-bar-track'>
@@ -169,7 +173,7 @@ const TABS = [
 ];
 const TAB_ORDER = [2, 1, 3, 0]; // hop around, settle on the best (index 0)
 
-const TabSwitch = ({ activeTab }: { activeTab: number }) => (
+const TabSwitch = ({ activeTab, strings }: { activeTab: number; strings: Strings }) => (
 	<div className='mw-browser'>
 		<div className='mw-browser-bar'>
 			<span className='mw-dot' style={{ background: '#ff5f57' }} />
@@ -187,14 +191,14 @@ const TabSwitch = ({ activeTab }: { activeTab: number }) => (
 		</div>
 		<div className='mw-browser-body'>
 			<img src={`${imageBase}/icon_white_on_transparent.png`} alt='' className='mw-browser-mark' />
-			<div className='mw-now-label'>Now watching</div>
+			<div className='mw-now-label'>{strings.nowWatching}</div>
 			<div className='mw-now-game'>{TABS[activeTab].game}</div>
-			<div className='mw-now-on'>on {TABS[activeTab].service}</div>
+			<div className='mw-now-on'>{strings.nowOn.split('{service}').join(TABS[activeTab].service)}</div>
 		</div>
 	</div>
 );
 
-const MachineScene = () => {
+const MachineScene = ({ strings }: { strings: Strings }) => {
 	const [stage, setStage] = useState(0);
 	const [activeTab, setActiveTab] = useState(TAB_ORDER[TAB_ORDER.length - 1]);
 	const [reduced, setReduced] = useState(false);
@@ -259,20 +263,20 @@ const MachineScene = () => {
 		<div ref={rootRef} className='machine-viewport'>
 			<div className='machine-stage-area'>
 				<div className='machine-scene' data-active={stage <= 1}>
-					<NetworkScene showScores={stage === 1} />
+					<NetworkScene showScores={stage === 1} alt={strings.alt} />
 				</div>
 
 				<div className='machine-scene machine-scene-center' data-active={stage === 2}>
-					<GameCard active={stage === 2} chartElRef={chartElRef} />
+					<GameCard active={stage === 2} chartElRef={chartElRef} strings={strings} />
 				</div>
 
 				<div className='machine-scene machine-scene-center' data-active={stage === 3}>
-					<TabSwitch activeTab={activeTab} />
+					<TabSwitch activeTab={activeTab} strings={strings} />
 				</div>
 			</div>
 
 			<p className='machine-caption'>
-				{sceneCaptions.map((c, i) => (
+				{strings.captions.map((c, i) => (
 					<span key={c} className='machine-caption-line' data-active={i === stage}>{c}<span className='as-dot'>.</span></span>
 				))}
 			</p>

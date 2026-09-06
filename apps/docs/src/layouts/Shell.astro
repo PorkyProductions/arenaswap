@@ -5,11 +5,14 @@ import OrangeDots from '../components/OrangeDots.astro';
 import '../styles/tailwind.css';
 import '../styles/global.scss';
 import { chromeWebStore, edgeAddons, firefoxAddons } from '../lib/installTargets';
+import { defaultLocale, localePath, locales } from '../i18n/locales';
+import { currentLocale, useTranslations } from '../i18n/ui';
 
 interface Props {
 	title: string;
 	description: string;
-	// Path without the base, e.g. `releases/`. Used for the canonical and og:url.
+	// Path without the base and without a locale, e.g. `releases/`. Used for the canonical, the
+	// og:url and every hreflang alternate.
 	path?: string;
 	ogTitle?: string;
 	// Article, for a blog post or a release note. Anything else is a page.
@@ -21,15 +24,49 @@ interface Props {
 	// Keeps a page out of search results. It also drops the canonical, because a noindex page
 	// asserting its own canonical URL is a mixed signal.
 	noindex?: boolean;
+	// False only where no per-locale copy of the URL exists, which is now just the 404: GitHub Pages
+	// answers every unknown path under the base with that one file, so there is nothing per-locale
+	// for it to be. The language switcher offers the localized home page instead.
+	localized?: boolean;
+	// False where the URL exists in every locale but the words on it do not — the documentation and
+	// the release notes. Those pages are built once per locale so that following a link out of a
+	// translated page does not change the language of the navigation around it, but the body is the
+	// same English on all twelve. So they point their canonical at the English URL and emit no
+	// hreflang alternates: alternates announce translations, and there are none to announce.
+	translated?: boolean;
 }
 
-const { title, description, path = '', ogTitle, ogType = 'website', image, imageAlt, noindex = false } = Astro.props;
+const {
+	title,
+	description,
+	path = '',
+	ogTitle,
+	ogType = 'website',
+	image,
+	imageAlt,
+	noindex = false,
+	localized = true,
+	translated = true,
+} = Astro.props;
+
+const locale = currentLocale(Astro.currentLocale);
+const t = useTranslations(locale);
+
 const site = Astro.site ?? new URL('https://hiteacheryouare.github.io');
-const canonical = new URL(`${import.meta.env.BASE_URL}${path}`, site);
+const canonical = new URL(localePath(translated ? locale : defaultLocale, path), site);
 const socialImage = new URL(image ?? `${import.meta.env.BASE_URL}images/social-card.png`, site);
+
+// x-default points at English, which is the copy that answers a request carrying no language
+// preference and the only one guaranteed to exist for every path on the site.
+const alternates = localized && translated
+	? locales.map(entry => ({
+			hreflang: entry.code,
+			href: new URL(localePath(entry.code, path), site).href,
+		}))
+	: [];
 ---
 <!doctype html>
-<html lang='en'>
+<html lang={locale}>
 <head>
 	<meta charset='UTF-8' />
 	<meta name='viewport' content='width=device-width, initial-scale=1.0' />
@@ -37,20 +74,30 @@ const socialImage = new URL(image ?? `${import.meta.env.BASE_URL}images/social-c
 	{noindex
 		? <meta name='robots' content='noindex' />
 		: <link rel='canonical' href={canonical.href} />}
+	{!noindex && alternates.map(alternate => (
+		<link rel='alternate' hreflang={alternate.hreflang} href={alternate.href} />
+	))}
+	{!noindex && alternates.length > 0 && (
+		<link rel='alternate' hreflang='x-default' href={new URL(localePath(defaultLocale, path), site).href} />
+	)}
 	<meta property='og:title' content={ogTitle ?? title} />
 	<meta property='og:description' content={description} />
 	<meta property='og:type' content={ogType} />
 	<meta property='og:url' content={canonical.href} />
+	<meta property='og:locale' content={locale.replace('-', '_')} />
 	<meta property='og:image' content={socialImage.href} />
 	<meta property='og:image:alt' content={imageAlt ?? ogTitle ?? title} />
 	<meta name='twitter:card' content='summary_large_image' />
 	<meta name='twitter:image' content={socialImage.href} />
 	<title>{title}</title>
 	<link rel='shortcut icon' href={`${import.meta.env.BASE_URL}images/128.png`} type='image/x-icon' />
-	<link rel='alternate' type='application/rss+xml' title='ArenaSwap release notes' href={`${import.meta.env.BASE_URL}releases/rss.xml`} />
+	<link rel='alternate' type='application/rss+xml' title={t('meta.releaseFeedTitle')} href={`${import.meta.env.BASE_URL}releases/rss.xml`} />
 	<noscript><style>.reveal { opacity: 1 !important; transform: none !important; }</style></noscript>
 
-	<script is:inline define:vars={{ chromeUrl: chromeWebStore, firefoxUrl: firefoxAddons, edgeUrl: edgeAddons }}>
+	<script
+		is:inline
+		define:vars={{ chromeUrl: chromeWebStore, firefoxUrl: firefoxAddons, edgeUrl: edgeAddons, addToTemplate: t('install.addTo', { browser: '{browser}' }) }}
+	>
 			const arenaSwapInstallFork = (name, href) => ({ name, icon: 'bi-download', href });
 
 			window.arenaSwapInstall = (() => {
@@ -75,7 +122,10 @@ const socialImage = new URL(image ?? `${import.meta.env.BASE_URL}images/social-c
 					if (!el) return;
 					el.href = detected.primary.href;
 					el.querySelector('[data-install-icon]').className = `bi ${detected.primary.icon} me-2`;
-					el.querySelector('[data-install-label]').textContent = `Add to ${detected.primary.name}`;
+					// The browser name is a proper noun and is not translated, but the sentence around
+					// it is, and in several languages the name does not come last.
+					el.querySelector('[data-install-label]').textContent =
+						addToTemplate.split('{browser}').join(detected.primary.name);
 				},
 				applyAlternates(el) {
 					if (!el) return;
@@ -89,7 +139,7 @@ const socialImage = new URL(image ?? `${import.meta.env.BASE_URL}images/social-c
 	</script>
 </head>
 <body>
-	<Nav />
+	<Nav localized={localized} />
 	<main>
 		<slot />
 	</main>
