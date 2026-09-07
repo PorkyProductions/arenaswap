@@ -25,7 +25,7 @@ import {
 	type SuggestionTab,
 	type TabSuggestion,
 } from '../../utils/tabSuggestions';
-import { hasStoredUserPreferences, loadStoredUserPreferences, persistStoredUserPreferences } from '../../utils/prefsStorage';
+import { loadStoredUserPreferencesWithPresence, persistStoredUserPreferences } from '../../utils/prefsStorage';
 import { nextTemperatureUnit } from '../../utils/temperatureUnitCycle';
 import { isDemoSeason, resolveDecorationDate, type demoSeason } from '../../utils/holidayDecorations';
 import type { ReviewPromptState } from '../../utils/reviewPrompt';
@@ -117,25 +117,27 @@ export default () => {
 
 	useEffect(() => {
 		const init = async () => {
-			const normalizedPrefs = await loadStoredUserPreferences();
+			// Both reads land before the first paint, so they go out together rather than one
+			// awaiting the other.
+			const [{ prefs: normalizedPrefs, hasStored: hasStoredPrefs }, localResult] = await Promise.all([
+				loadStoredUserPreferencesWithPresence(),
+				browser.storage.local.get({
+					demoMode: false,
+					demoSeason: 'real',
+					onboardingCompleted: null,
+					standbyOnboardingDone: false,
+					[reviewPromptStorageKey]: null,
+				}),
+			]);
 			prefsRef.current = normalizedPrefs;
 			setPrefs(normalizedPrefs);
 			setPrefsLoaded(true);
-
-			const localResult = await browser.storage.local.get({
-				demoMode: false,
-				demoSeason: 'real',
-				onboardingCompleted: null,
-				standbyOnboardingDone: false,
-				[reviewPromptStorageKey]: null,
-			});
 			setDemoMode(localResult.demoMode as boolean);
 			setDemoSeason(isDemoSeason(localResult.demoSeason) ? localResult.demoSeason : 'real');
 			setStandbyOnboardingDone(localResult.standbyOnboardingDone as boolean);
 			setReviewPromptState(normalizeReviewPromptState(localResult[reviewPromptStorageKey]));
 
 			const onboardingFlag = localResult.onboardingCompleted === true;
-			const hasStoredPrefs = await hasStoredUserPreferences();
 			if (!onboardingFlag && hasStoredPrefs) {
 				void browser.storage.local.set({ onboardingCompleted: true });
 				setOnboardingDone(true);

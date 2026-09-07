@@ -1,5 +1,63 @@
 # Changelog
 
+## The popup opens 590KB lighter and stops asking ESPN for what it already has — 2026-09-07
+
+Four measured wins, none of which changes anything on screen.
+
+### The chart library shipped nine times more of itself than it uses
+
+`gameDetailChart` imported echarts through the barrel, which is the whole library: treemap, gauge,
+heatmap, parallel, sunburst, custom series, the calendar, the SVG geo reader. The four option
+builders in `@arenaswap/ui` emit line and bar series on a cartesian grid with an axis tooltip, and
+have never emitted anything else.
+
+Registering those five modules explicitly takes the popup chunk from 1,711,274 bytes to 1,106,134
+— 590KB raw, 190KB gzipped. A popup document is built fresh on every open, so that is parse work
+paid every single time somebody clicks the toolbar icon, for code that could not run.
+
+`apps/docs` already imported it this way, and it renders the same four builders off the same
+registration, so the sufficient set was not a guess — it was sitting in the other app.
+
+### Seeding the win-probability lines refetched every league to use them
+
+Service-worker startup fetched the slate, then fetched the win-probability lines, then called
+`refreshScores` again so the first thing the popup renders already carries volatility. That last
+call goes through `tick()`, which refetches all 31 enabled leagues — to recompute scores from games
+already sitting in memory.
+
+It calls `afterFetch(null, false)` instead, which is the same re-score with no network at all, and
+which the `UPDATE_PREFS` handler had already been using for exactly this purpose thirty lines below.
+MV3 tears the worker down constantly, so this ran far more often than "startup" suggests.
+
+### The popup read the same two keys from both stores twice, one after the other
+
+`loadStoredUserPreferences` and `hasStoredUserPreferences` each read `prefs` out of `storage.sync`
+and `storage.local`. The popup called both, and awaited a third `storage.local.get` in between them
+rather than alongside. Four round-trips where two do, all of them in front of the first paint.
+
+`loadStoredUserPreferencesWithPresence` returns the presence flag next to the prefs, since the
+function already held both raw values and was throwing one away, and the remaining two reads now go
+out together. The single-value `loadStoredUserPreferences` stays for the background, which does not
+need the flag. `hasStoredUserPreferences` is deleted rather than left behind as a second reader of
+the same keys — two of those drifting is how the redundancy appeared in the first place.
+
+### Two fonts nobody could have downloaded
+
+`Geist-Regular.woff2` and `Geist-Medium.woff2` sat in `public/fonts/`, 91KB of the package, with no
+`@font-face` anywhere declaring either weight. `_fonts.scss` declares Geist at 600 and 700 and
+nothing else, because the scoreboard-figures mixin is the only thing that asks for the family. A
+weight with no rule cannot be requested, so these were shipped to every user and reachable by none.
+`apps/docs/public/fonts/` carries only the two declared weights, which is what confirmed these were
+leftovers rather than something the extension needed and the site did not.
+
+### What is still on the table
+
+The icon font is the larger version of the same problem — 132KB of Bootstrap Icons to deliver the
+64 glyphs the source uses, with 76KB of unused `.bi-*` rules in the stylesheet beside it. A subset
+comes out at 8KB and would take most of the webfont layout shift with it. It is not here because
+pruning the CSS needs a hand-maintained allowlist that breaks silently the next time somebody adds
+an icon, and subsetting the font needs a tool the JS toolchain does not currently carry.
+
 ## The site is published in twelve languages, and following a link stays in yours — 2026-09-05
 
 ArenaSwap's own popup has shipped in twelve languages for a long time. The website that sells it

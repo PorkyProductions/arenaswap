@@ -806,9 +806,11 @@ export default defineBackground(() => {
 		startLeaguePolling();
 		scheduleWinProbabilityPolling();
 		// Seed the lines now that the games are known, then re-score so the first thing the popup
-		// renders already carries volatility.
+		// renders already carries volatility. afterFetch rather than refreshScores: the games are
+		// already in hand from the refresh above, and only the scores need recomputing against the
+		// new lines, so going through tick() would refetch every enabled league to no purpose.
 		await refreshWinProbabilities();
-		await refreshScores(false);
+		await afterFetch(null, false);
 	});
 
 	browser.runtime.onMessage.addListener((msg: ExtensionMessage) => {
