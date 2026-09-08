@@ -9,7 +9,7 @@
 - [project_fr_fr_ca_split.md](project_fr_fr_ca_split.md) — REVERTED: fr_FR/fr_CA aren't valid extension locale codes; read before proposing any regional variant
 - [terminology_it.md](terminology_it.md) — it.json (2026-08-15): verified Italian sport terms, native-vs-loanword rulings, Spaceballs dub quotes
 - [project_ko_terminology.md](project_ko_terminology.md) — ko.json (2026-08-15): KBO baseball convention, Konglish-vs-native rulings, shootout=PK fix, unsettled hockey terms
-- [locale_fil_terminology.md](locale_fil_terminology.md) — fil.json (2026-08-15): deliberate Taglish calibration, which sports terms stay English and why
+- [locale_fil_terminology.md](locale_fil_terminology.md) — fil.json: Taglish calibration, which sports terms stay English, and the "Mga + singular English noun" pluralization rule
 - [project_zh_tw_terminology.md](project_zh_tw_terminology.md) — zh_TW.json (2026-08-15): CPBL baseball terms, 你 register, TW-vs-CN software vocabulary, Game Boost consistency fix
 - [reference_cjk_prose_vs_heading_split.md](reference_cjk_prose_vs_heading_split.md) — ja/ko/zh_CN/zh_TW already localize "standby stream" in body prose but keep it literal as a heading/label
 - [reference_cjk_punctuation_and_spacing.md](reference_cjk_punctuation_and_spacing.md) — full vs half-width punctuation and placeholder-spacing rules per CJK locale

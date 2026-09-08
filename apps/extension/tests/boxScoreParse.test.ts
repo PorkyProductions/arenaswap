@@ -219,6 +219,7 @@ describe('parseBoxScore player categories', () => {
 			stats: ['1-3', '3', '0', '1', '0'],
 			starter: true,
 			batOrder: 1,
+			didNotPlay: false,
 			didNotPlayReason: '',
 		});
 	});
@@ -240,8 +241,66 @@ describe('parseBoxScore player categories', () => {
 			name: 'J. Sochan',
 			stats: [],
 			starter: false,
+			didNotPlay: true,
 			didNotPlayReason: "COACH'S DECISION",
 		});
+	});
+
+	test('keeps the did-not-play flag when ESPN sends no reason with it', () => {
+		// Both readers branch on the flag rather than the reason: an empty reason is the case where
+		// a truthiness check renders a row of empty stat cells instead of DNP.
+		const box = parseBoxScore({
+			boxscore: { players: [{
+				team: { id: '18' },
+				statistics: [{
+					labels: ['MIN', 'PTS'],
+					keys: ['minutes', 'points'],
+					athletes: [{ didNotPlay: true, athlete: { shortName: 'J. Sochan' }, stats: [] }],
+				}],
+			}] },
+		}, '1', '18', 'SA', 'NY');
+		expect(box.away?.categories[0].athletes[0]).toMatchObject({
+			didNotPlay: true,
+			didNotPlayReason: '',
+		});
+	});
+
+	test('keeps a category ESPN sends keys for but no display labels', () => {
+		// Columns are selected by `keys` and every heading comes from our own catalog, so a missing
+		// `labels` array costs nothing that would stop the table rendering.
+		const box = parseBoxScore({
+			boxscore: { players: [{
+				team: { id: '18' },
+				statistics: [{
+					name: 'passing',
+					keys: ['completions/passingAttempts', 'passingYards'],
+					athletes: [{ athlete: { shortName: 'D. Carr' }, stats: ['23/35', '232'] }],
+				}],
+			}] },
+		}, '1', '18', 'ATL', 'NO');
+		expect(box.away?.categories.map(c => c.name)).toEqual(['passing']);
+		expect(box.away?.categories[0].labels).toEqual([]);
+	});
+
+	test('places the second side by elimination when only one id matches', () => {
+		// A `players` block carries no `homeAway`, so the id match is its only direct route — and
+		// the id compared is ESPN's competitor id against its team id. Two blocks, one of them
+		// placed, leaves exactly one answer for the other.
+		const box = parseBoxScore({
+			boxscore: { players: [
+				{
+					team: { id: '18', abbreviation: 'NO' },
+					statistics: [{ name: 'passing', labels: ['YDS'], keys: ['passingYards'], athletes: [{ athlete: { shortName: 'D. Carr' }, stats: ['232'] }] }],
+				},
+				{
+					team: { id: 'a-competitor-id-we-do-not-hold', abbreviation: 'ATL' },
+					statistics: [{ name: 'passing', labels: ['YDS'], keys: ['passingYards'], athletes: [{ athlete: { shortName: 'K. Cousins' }, stats: ['198'] }] }],
+				},
+			] },
+		}, '1', '18', 'ATL', 'NO');
+		expect(box.away?.abbreviation).toBe('NO');
+		expect(box.home?.abbreviation).toBe('ATL');
+		expect(box.home?.categories[0].athletes[0].name).toBe('K. Cousins');
 	});
 
 	test('drops a category ESPN sends with no athletes in it', () => {
@@ -293,6 +352,66 @@ describe('parseBoxScore player categories', () => {
 			}] },
 		}, '1', '18', 'ATL', 'NO');
 		expect(box.away?.abbreviation).toBe('NO');
+	});
+});
+
+// Containment is asymmetric, which is why these are guards rather than a reliance on the caller:
+// the network path parses inside a `.catch` and degrades to an empty box score, and the demo path
+// parses synchronously in an effect, where a throw reaches the top-level ErrorBoundary and blanks
+// the whole popup.
+describe('parseBoxScore null elements', () => {
+	test('reads a null athlete as a blank row rather than throwing', () => {
+		const box = parseBoxScore({
+			boxscore: { players: [{
+				team: { id: '18' },
+				statistics: [{ name: 'passing', labels: ['YDS'], keys: ['passingYards'], athletes: [null] }],
+			}] },
+		}, '1', '18', 'ATL', 'NO');
+		expect(box.away?.categories[0].athletes).toEqual([{
+			id: '',
+			name: '',
+			position: '',
+			stats: [],
+			starter: false,
+			batOrder: 0,
+			didNotPlay: false,
+			didNotPlayReason: '',
+		}]);
+	});
+
+	test('drops a null category rather than throwing', () => {
+		const box = parseBoxScore({
+			boxscore: { players: [{
+				team: { id: '18' },
+				statistics: [null, { name: 'passing', labels: ['YDS'], keys: ['passingYards'], athletes: [{ athlete: { shortName: 'D. Carr' }, stats: ['232'] }] }],
+			}] },
+		}, '1', '18', 'ATL', 'NO');
+		expect(box.away?.categories.map(c => c.name)).toEqual(['passing']);
+	});
+
+	test('skips a null block while resolving the two sides', () => {
+		const box = parseBoxScore({
+			boxscore: {
+				players: [null, {
+					team: { id: '18' },
+					statistics: [{ name: 'passing', labels: ['YDS'], keys: ['passingYards'], athletes: [{ athlete: { shortName: 'D. Carr' }, stats: ['232'] }] }],
+				}],
+				teams: [null, { team: { id: '18' }, homeAway: 'away', statistics: [{ name: 'saves', label: 'Saves', displayValue: '8' }] }],
+			},
+		}, '1', '18', 'ATL', 'NO');
+		expect(box.away?.abbreviation).toBe('NO');
+		expect(box.home).toBeNull();
+	});
+
+	test('reads a null period as an unplayed one rather than throwing', () => {
+		const line = parseLineScore({
+			header: { competitions: [{ competitors: [
+				{ homeAway: 'away', team: { id: '18' }, score: '2', linescores: [null, { displayValue: '2', hits: 3, errors: 0 }] },
+				{ homeAway: 'home', team: { id: '1' }, score: '0', linescores: [{ displayValue: '0', hits: 1, errors: 0 }] },
+			] }] },
+		}, '1', '18', 'ATL', 'NO');
+		expect(line?.away.periods).toEqual(['', '2']);
+		expect(line?.away.hits).toBe(3);
 	});
 });
 

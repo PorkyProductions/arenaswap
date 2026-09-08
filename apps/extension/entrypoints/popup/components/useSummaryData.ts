@@ -5,7 +5,6 @@ import type { Game, LeagueId } from '@arenaswap/core/types';
 import { seriesSports } from './seriesDots';
 import { emptyBoxScore, parseBoxScore } from './boxScoreParse';
 import type { BoxScore } from './boxScoreParse';
-import { mockBoxScorePayloads } from './mockBoxScores';
 
 export interface SeriesCompetitor {
 	homeAway: string;
@@ -239,14 +238,20 @@ const useSummaryData = (game: SummaryGameArg): summaryDataResult => {
 			if (status === 'pre') return;
 			setWinProbability(generateMockWinProbs(gameId, scoreRef.current.home, scoreRef.current.away));
 			setSeriesInfo(mockSeriesMap[gameId] ?? null);
-			setBoxScore(parseBoxScore(
-				mockBoxScorePayloads[gameId],
-				teamIdsRef.current.home,
-				teamIdsRef.current.away,
-				abbreviationsRef.current.home,
-				abbreviationsRef.current.away,
-			));
-			return;
+			// The fixtures are ~22KB no real game can reach, so they stay out of the popup chunk.
+			// Every other piece of demo state is already set above; only the box score waits.
+			let cancelled = false;
+			import('./mockBoxScores').then(({ mockBoxScorePayloads }) => {
+				if (cancelled) return;
+				setBoxScore(parseBoxScore(
+					mockBoxScorePayloads[gameId],
+					teamIdsRef.current.home,
+					teamIdsRef.current.away,
+					abbreviationsRef.current.home,
+					abbreviationsRef.current.away,
+				));
+			}).catch(err => logWarn(`Failed to load demo box score for ${gameId}.`, err));
+			return () => { cancelled = true; };
 		}
 
 		const config = leagueConfigMap[league as LeagueId];

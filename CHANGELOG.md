@@ -1,5 +1,335 @@
 # Changelog
 
+## The wrap screen's charts can actually draw, and eleven other things a review found — 2026-09-08
+
+A review pass over the four entries below, which found twelve things and a tail of smaller ones. Two
+were features that could not do what they said at all. The rest run from a contrast failure on the
+one screen built to check contrast, through a set of soccer column headings the sport cannot produce,
+down to a hex value, a rounding guard and a `1` that should have been a `2` — plus six assertions that
+were passing for the wrong reason, which is the part worth reading if you only read one section.
+
+### The charts were gated on a history the background threw away
+
+`coversWholeGame` asks for the first snapshot inside the first tenth of the game and the last one
+past nine tenths of it, which together require the retained history to **span at least 0.8 of the
+sport's estimated length**. Both history maps were trimmed on every poll to the scorer's rolling
+per-sport window, which caps that span at minutes:
+
+| sport | window | span the gate needs | short by |
+| --- | --- | --- | --- |
+| basketball | 5m | 120m | 115m |
+| baseball | 12m | 156m | 144m |
+| football | 12m | 168m | 156m |
+| softball | 12m | 120m | 108m |
+| hockey | 16m | 132m | 116m |
+| soccer | 20m | 120m | 100m |
+
+Unsatisfiable in every sport by an order of magnitude, so the PowerScore chart, the score-trend
+chart and the components chart were **absent from every wrap screen there has ever been**. Only the
+win-probability line drew, and that is deliberately exempt because ESPN builds it from the full
+play-by-play.
+
+The window is not the thing that was wrong. `computePowerScore` reads momentum, lead changes and
+comeback out of that array, and widening it changes every signal the switcher acts on. So the
+snapshots inside the window are kept exactly as they arrive and **everything older is thinned rather
+than dropped** — one sample every two minutes, which is about 100 samples across a football game's
+first three hours and more than 300px of chart can resolve anyway. The scorer is handed the window
+slice, which is byte-identical to what the old trim left behind.
+
+**The tail is only kept when Keep finished games is on**, which is off by default. Both maps are
+written to session storage on every poll and a busy Saturday is thirty live games at once, so this
+is not a cost to hand to somebody who cannot see what it buys — and with the setting off a finished
+game leaves the list entirely, so there is no wrap screen to draw it on. Turning the setting on
+mid-game means that game's tail starts from then and its charts correctly decline to draw.
+
+Two things fell out of that. The cap can no longer be met by dropping the oldest snapshots, because
+the oldest snapshot is the end the gate measures from — it thins the already-coarse tail further
+instead, spending resolution rather than span. And `hydrateHistoryMaps` was re-applying a window on
+every worker wake, which MV3 does constantly; it takes the persisted series as-is now, since what
+was written out was already thinned.
+
+**A live screen is unchanged.** `chartHistory` hands a finished game the whole series and a live one
+the window it has always drawn. Widening a running chart is a separate decision from making the
+wrap's charts possible at all, and the live screen's partial line is the honest shape of a game
+that is only partly played.
+
+The 16 tests that missed this were not wrong, they were incomplete. `wrapCoverage.test.ts` builds
+its histories as fractions of the sport's own length, which is the right shape for a unit test of a
+predicate and says nothing about whether that shape is reachable. That is asserted end to end now:
+a whole basketball game is walked through the real polling at two-minute intervals and what survives
+is handed to `coversWholeGame`. It was confirmed failing against the rolling window first, along
+with the two assertions about where the retained series begins and ends.
+
+### A game that went final while you were watching disappeared at midnight
+
+`retainedFinalGames` was written in exactly two places, both inside `refreshSlate` — which runs at
+worker startup and when a preference changes, and **never on a timer**. Scheduled polling is
+`tickLeague`, which read the retained list and never added to it.
+
+So a game that went final mid-session was never recorded as retained. It stayed on screen only
+because the dateless scoreboard kept returning it, and the dateless scoreboard carries the current
+Eastern day and nothing else. At Eastern midnight it left the payload and the game vanished at a
+couple of hours old against a promised 24 — reappearing only if the service worker happened to tear
+down and restart, which re-runs `refreshSlate` and recovers it through the range query. The
+behaviour was not merely wrong, it was nondeterministic.
+
+Fresh `post` games are merged into the retained list after every fetch now, on both poll paths,
+deduped by id with the fresh copy winning so a score corrected after the whistle is the one that
+sticks. `tickLeague` also rebuilds **every** league's finals from the retained list rather than
+carrying other leagues' through untouched, so one league's poll re-checks the whole set's retention
+instead of each league only ageing out when its own turn comes round.
+
+Every one of the eight tests on this feature drove `GET_STATE` with `forceRefresh`, which routes
+through `tick()`. `tickLeague` was never exercised, before or after. It is now, including the day
+rollover, and the new cases assert a fetch actually happened rather than passing by virtue of no
+poll having run — the poll interval is adaptive, so they step forward until one lands instead of
+hardcoding a delay a scoring change would silently invalidate.
+
+### One day back did not cover a 24-hour window
+
+The range query reached back one local day, under a comment saying a game inside the window started
+at most about 27 hours ago, "which is yesterday or today in local terms." The second clause is
+false: 27 hours before 00:30 is 21:30 **two** local days earlier. Retention runs 24 hours past the
+estimated wrap, so the maximum age since kickoff is 26.5 hours for soccer, basketball and softball
+and 27.5 for football — which cost a 22:10 first pitch about an hour and a half off its tail and a
+22:30 college football kick about two.
+
+It reaches back two days now. The test that pinned the old behaviour asserted the opening date was
+the plain one minus one, which is both the expression under test and wrong across the start of a
+month; it reads literal dates under a pinned clock instead, and crosses into September from the 1st
+of October.
+
+### The dimmed score was not readable, on the one screen built to check that
+
+`.game-score-value.is-loser` was `#9aa4b0` in two files, hardcoded in both. Measured, that is
+**2.33:1** on the final card's `#f4f6f8` and **2.53:1** on the white plate the detail hero uses. A
+2.1rem semibold score is large text, which wants 3:1 — the exact bar the colour helpers in the same
+branch are built around.
+
+`$score-loser-color` is `#7c8794`, which reaches 3.37:1 and 3.65:1, and it is one variable read by
+both files rather than the same hex written twice. The test pinned the literal `rgb(154, 164, 176)`
+with no contrast assertion anywhere near it; there is one now, reading the plate off the card rather
+than hardcoding it, so a card whose background moves cannot leave the ink measured against a colour
+it no longer sits on.
+
+### Scaling a channel cannot lift a colour whose channel is already 255
+
+`brighten` multiplies every channel by a common factor, which is what preserves the hue that mixing
+toward white drains. It has a ceiling nobody had noticed: `Math.round(0 * 1.18)` is 0 and 255 stays
+255, so a pure blue runs the entire 24-step climb and comes back **byte-identical**, at 2.31:1
+against a 3:1 floor. `#000080`, `#00008B` and anything else whose secondary channels are 3 or less
+land in the same place.
+
+No shipped team colour is affected — the five league navies the scaling was written for all have
+secondary channels of 12 or more and finish the climb with room to spare. But the reason it got
+through is worth more than the bug: the lightening tests asserted only that the result differed from
+the input and that the hue survived within five degrees, while the darkening direction had a
+contrast test. `#0000ff` failed even the weak assertion, since it returns unchanged.
+
+A colour that cannot clear the floor by scaling now gives up some of its saturation rather than
+staying unreadable, mixing toward white in 12% steps until it clears. A pure blue lands on `#5252ff`
+at 240° — the hue it started at — and the five navies are untouched, which has its own test. The
+mirror of the card's contrast assertion is in place, over eleven colours including the four that
+used to come back failing.
+
+### Soccer's extra time is not an overtime, and a shootout is not a second one
+
+`regularPeriods` is 2 for soccer, so a match that went to extra time rendered its line score columns
+as `1 | 2 | OT | 2OT`, and one decided on penalties added a fifth reading `3OT`. Neither is something
+the sport can produce.
+
+ESPN's soccer linescores are positionally fixed — `[1H, 2H, ET1, ET2, PENS]`, two entries at full
+time, four at AET, five after penalties — so what a column means is its index. Slicing that list also
+gets a match live in the first period of extra time right for free. Verified against four finished
+2026 World Cup knockouts and an MLS Round One tie.
+
+Hockey's fifth entry is genuinely ambiguous: an awarded shootout goal in the regular season, a
+second overtime in the playoffs. Shootouts cannot happen in the playoffs, so ESPN's own `Final/SO`
+suffix — already parsed onto the game for the finished card — is what separates them.
+
+The rule is keyed on the **sport** rather than on `periodFormat`, because `halves` over two regular
+periods also describes college basketball, whose fifth column really is an overtime.
+
+Two things deliberately not done. **MLS Round One goes from a 90-minute draw straight to penalties**
+and ESPN still ships five entries with the two extra-time slots zero-filled; those phantom columns
+are drawn rather than detected, because from the line score alone they are identical to a genuinely
+scoreless extra time, which is the commoner case and the one that must not be erased. And **`AET` is
+nowhere in the product**: it is a result qualifier, and it is the literal value of `status.type.detail`
+on a finished extra-time match, not a period name.
+
+Four keys across all twelve locales, and eight of them print their own abbreviation rather than the
+English one. The line that emerged is that **period and result labels go native while stat
+abbreviations stay English**: `OT` is a genuine international loan in the sports that use it, whereas
+soccer is the sport every one of these languages actually covers, so each has a settled form. French
+even distinguishes the two shootouts — `TAB` for soccer's *tirs au but*, `TB` for hockey's *tirs de
+barrage*. German penalties are `i.E.` (*im Elfmeterschießen*, the shootout) rather than `n.E.` (*nach*,
+the result). The hockey `SO` column stays English in eleven of twelve, because it is the row NHL.com
+itself prints and German, Japanese, Korean and Chinese hockey coverage carry it unchanged.
+
+### The soccer demo drew each team's numbers under the other team's crest
+
+`mockGames` had Philadelphia Union at id `190` and the Red Bulls at `183`, which is the pair inverted
+and one id that belongs to neither club. The logo filenames in that same entry already carried ESPN's
+real ones, `10739` and `190`, which is what settled which side was wrong. Soccer sends no
+`boxscore.players`, so the line score and the comparison table are the whole box score, and the whole
+thing was mirrored: the Red Bulls' crest and wash beside the label PHI carrying Philadelphia's goals.
+
+No test could have caught it, because the spec declared its own copies of the demo games with ids
+matching the fixture rather than matching what ships. It reads them out of `MockGameSimulator` now,
+overriding only the crest for a data URI that needs no network, so the two cannot drift again. Four
+assertions changed value on the way past, all of them from a spec team colour to the shipped one —
+Pittsburgh's real `#CFC493` reaches 1.68:1 on the card and clamps to a dark bronze.
+
+### A game whose players have not arrived yet said whose numbers it was showing
+
+A side parses as null when every category comes back with an empty `athletes` array, which is the
+opening minutes of a football game. The tab strip only draws when both sides exist, so the block
+rendered the home team's tables with the away tab still selected and nothing on screen naming either
+team.
+
+It names the side it actually renders now, with the crest and coloured abbreviation the line score
+rows already use, and the two share one component rather than two copies of the same markup.
+`pickBySide` also learned elimination: a players block carries no `homeAway`, so an id match is its
+only direct route, and with two blocks and one of them placed there is exactly one answer for the
+other. That matters because the id being compared is ESPN's *competitor* id against its *team* id,
+which coincide in every league visible today and would otherwise take both sides down together.
+
+### The tab strip honours the contract it announces
+
+`role='tab'` tells a screen reader "tab, 1 of 2", which promises a panel to move to and arrow keys to
+move with, and neither existed. The sections sit in a `role='tabpanel'` both tabs point at, the
+selected tab is the strip's only tab stop, and Left, Right, Home and End move selection and focus
+together. The ids are built from the game id rather than from `useId`, whose output contains
+characters no `#id` selector can hold. This is the repo's first tab strip, so it sets the precedent.
+
+### DNP was read off free text rather than the boolean beside it
+
+ESPN sends `didNotPlay: true` with no `reason` often enough that it is the ordinary case, and both
+readers branched on the reason string: the row drew a line of empty stat cells instead of DNP, and
+the player sorted among the bench rather than last. That is the exact trap the comment three lines
+above the basketball sort already warned about. The flag is on the parsed athlete now and both
+readers use it.
+
+### The tab matcher was the one reader of `startTime` that was not behind a pre-game check
+
+Populating `startTime` for every state was correct, and nine of its ten production readers are
+gated on the game being pre-game. The tenth is the tab matcher's tiebreak, which used to read
+`MAX_SAFE_INTEGER` for every live game and fall through to comparing ids. It now sorts two
+equally-scored live games by kickoff, which is a better answer and an untested behaviour change that
+both a code comment and the changelog said could not happen. The comment says what is actually true,
+and the tiebreak has a test built from two copies of the same fixture with their ids ordered against
+their kickoffs on purpose.
+
+Worth stating plainly, because it was the concern the score led with: `suggestTabAssignments`
+filters to live and scheduled games, so a finished game can never be suggested for a tab.
+
+### Filipino marks plurality with a word, not with an `-s`
+
+`fil.box.onGoal` had shipped as a byte-identical copy of `fil.box.shotsOnGoal`, which put the
+hockey row's longer string into the soccer row that sits in the narrowest column on the screen. The
+soccer row reads "On goal" now and the hockey row "Mga shot sa goal".
+
+The rest of the namespace was 65% English against the file's own 12% baseline across its other 478
+multi-word strings, and the correction is not that the English nouns were wrong. Philippine
+broadcast genuinely says rebound, corner and power play, and there is no Filipino ice hockey
+vocabulary at all — the register decision the file already made is right. What was wrong is narrower:
+Filipino marks plurality with the free morpheme *mga* and never double-marks, so a plural-count
+label is *Mga* plus the **singular** English noun. That shape was already in the file before this
+namespace existed. Thirty-five keys took it or a native structure the file already owned, and the
+namespace now sits at exactly the file's established rate.
+
+Three multi-word keys are deliberate English holds rather than oversights. `thirdDown` names a
+singular down against a conversion ratio, so pluralising it would misdescribe the row. `faceoffPct`
+is a rate, where *mga* would assert a count that is not there. And "On goal" is the phrase Philippine
+football commentary uses and the shortest correct option for the column it sits in.
+
+### The rest of the pass
+
+**The column heads carry ESPN's own descriptions.** They were parsed and never read. As a `title`
+they are the only thing that can tell a reader that SACKS under passing means sacks suffered while
+SACKS under defensive means sacks recorded — the same abbreviation on two categories that can be on
+screen at once. Untranslated, like every other string we pass through from ESPN.
+
+**A category ESPN sends no display labels for is no longer dropped.** Columns are selected by its
+stable `keys` and every heading comes from our own catalog, so `keys.length` was always the condition
+that mattered.
+
+**An expanded category collapses again when the team switches.** The reader asked for all of Dallas's
+defenders, not for however many Philadelphia has.
+
+**Four parser sites dereferenced array elements with no null check**, unlike the team-stats reader
+beside them, so `"athletes": [null]` threw. Containment is asymmetric and that is why it matters: the
+network path parses inside a `catch` and degrades to an empty box score, and the demo path parses
+synchronously in an effect, where a throw reaches the top-level error boundary and blanks the whole
+popup.
+
+**The finished demo game showed a live, mid-inning box score.** mock-20 is Final in ten innings and
+it borrowed the fixture that stops in the top of the eighth, so the wrap screen drew Final/10 over an
+eight-inning line score with a blank bottom of the 8th. It has its own now: both rows the full ten,
+no unplayed half-inning, and every total summing to the row above it.
+
+**`#f4f6f8`'s luminance is 0.9192, not the 0.8977 a comment claimed**, which put the 3:1 ceiling at
+0.2731 rather than the 0.2659 in the code. The value was stricter than it needed to be, so nothing
+rendered wrong — and it is gone anyway, along with the defaulted `ceiling` parameter, because the
+large-score caller was removed in the same branch and the only live call site passes the small-text
+ceiling explicitly.
+
+**`$table-group-separator-color` was never set.** No user-visible defect: Bootstrap 5.3 applies the
+separator only through the opt-in `.table-group-divider` class, which appears nowhere in our source,
+and the automatic rule above every table group the changelog described is 5.1 and 5.2 behaviour. It
+is set to the same `#d1d5db` the tables' borders use, as a guard against the first component to opt
+in — left at `currentcolor` that would draw the table's own `#111827` as a heavy bar across a light
+card.
+
+**The demo box scores are a dynamic import.** Twenty-two kilobytes of fixtures no real game can
+reach were being parsed on every popup open, behind a branch only a `mock-` id enters. The popup
+chunk goes from 1,141,390 bytes to 1,128,148 and the fixtures move to a chunk demo mode requests for
+itself. Every other piece of demo state is still set synchronously, so only the box score arrives
+late, and it is dropped if the screen is torn down before the import lands.
+
+**European Portuguese uses one word for two things on the same screen.** *Defesas* is both a defender
+and a goalkeeper's save, so the pt_PT box score labelled the defencemen table and the goaltending row
+identically. It reads *Defensores* now, which is the one option that stays unambiguous without moving
+the clash onto the football defence section. The rest of pt_PT's position vocabulary is left alone:
+*Avançados* and *Guarda-redes* are the *hóquei em patins* terms, which is the hockey Portugal actually
+covers, and they are deliberately European rather than Brazilian.
+
+### Assertions that could not fail
+
+Six of them, and they clustered on exactly the two features that turned out broken.
+
+**Three compared `scrollWidth` against `clientWidth` on `.game-info-value`** to prove a figure keeps
+one line. That element carries `overflow-wrap: anywhere` and no `white-space: nowrap`, so it wraps
+rather than overflowing and horizontal overflow is impossible whatever the layout does. All three
+held with the value broken onto two lines, confirmed by squeezing the column to 24px and by swapping
+the attendance figure for a 54-character number. The two figures read the inline span's client rects
+now, one per line it occupies. The venue block is measured intrinsically off an absolutely positioned
+clone, the way the label column beside it already was, because it legitimately stacks two lines and a
+client-rect count says nothing about a block box.
+
+**One read `borderTopColor` off a `tbody`** to prove the group separator was themed, on an element
+Reboot leaves at `border-width: 0`. It asserts the absence now, with a note saying why.
+
+**One looked for ESPN's `On Target %` in the comparison labels**, a string no locale file contains
+and which every label renders through the translator — so the derived column could have arrived under
+our own label and the assertion would still have passed. It pins the whole label list in order
+instead, which also covers the ordering rule and the conditional penalty rows.
+
+**And the nine-inning fit was mounted bare**, measuring the table against 320px rather than the 305
+the shell actually gets. It measures 263px now, the figure the source comments always claimed, with
+the twelve numeric columns fitting to the pixel and nothing to spare.
+
+The line score's header row had no locale coverage at all, which is where the four new period keys
+land and which is the tightest row in the product. Two tests measure it as a whole row at the
+shipping width — a soccer match that went to penalties, and a hockey shootout — in all twelve
+locales, asserting per-cell clipping rather than table width, because the table is fixed-layout and a
+wide heading overflows its cell instead of widening anything. Every locale fits, with about 34px a
+column out of 263.
+
+Measuring the row rather than substituting one locale's label into a column the browser sized for
+English is deliberate. That mistake is recorded twice below for producing the same false positive
+both times.
+
 ## The chart stops turning navy into grey, and the finished card says Final/OT — 2026-09-07
 
 A pass over the cards from the entry below, and one fix that reaches every detail screen in the

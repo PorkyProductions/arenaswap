@@ -13,6 +13,7 @@ const athlete = (name: string, stats: string[], extra: Partial<BoxScoreAthlete> 
 	stats,
 	starter: false,
 	batOrder: 0,
+	didNotPlay: false,
 	didNotPlayReason: '',
 	...extra,
 });
@@ -22,11 +23,12 @@ const category = (
 	keys: string[],
 	athletes: BoxScoreAthlete[],
 	totals: string[] = [],
+	descriptions: string[] = keys,
 ): BoxScoreCategory => ({
 	name,
 	keys,
 	labels: keys,
-	descriptions: keys,
+	descriptions,
 	totals,
 	athletes,
 });
@@ -43,7 +45,7 @@ const goalieKeys = ['goalsAgainst', 'shotsAgainst', 'saves', 'savePct', 'timeOnI
 
 describe('periodLabels', () => {
 	test('numbers the regulation quarters and names what comes after', () => {
-		expect(periodLabels(6, 4, 'quarters')).toEqual([
+		expect(periodLabels({ periodCount: 6, regularPeriods: 4, periodFormat: 'quarters', sportType: 'basketball' })).toEqual([
 			{ kind: 'number', value: 1 },
 			{ kind: 'number', value: 2 },
 			{ kind: 'number', value: 3 },
@@ -55,23 +57,96 @@ describe('periodLabels', () => {
 
 	test('extra innings are just numbered', () => {
 		// A 12th inning reads "12". A fifth quarter does not read "5".
-		expect(periodLabels(12, 9, 'innings').slice(9)).toEqual([
+		expect(periodLabels({ periodCount: 12, regularPeriods: 9, periodFormat: 'innings', sportType: 'baseball' }).slice(9)).toEqual([
 			{ kind: 'number', value: 10 },
 			{ kind: 'number', value: 11 },
 			{ kind: 'number', value: 12 },
 		]);
 	});
 
-	test('college basketball plays halves and soccer plays two of them', () => {
-		expect(periodLabels(2, 2, 'halves')).toEqual([
+	test('hockey overtime follows the third period', () => {
+		expect(periodLabels({ periodCount: 4, regularPeriods: 3, periodFormat: 'periods', sportType: 'hockey' })[3])
+			.toEqual({ kind: 'overtime', index: 1 });
+	});
+
+	// ESPN's soccer linescores are positional — [1H, 2H, ET1, ET2, PENS] — so what a column means
+	// is its index rather than its distance past regulation.
+	test('a match settled in ninety minutes is two halves', () => {
+		expect(periodLabels({ periodCount: 2, regularPeriods: 2, periodFormat: 'halves', sportType: 'soccer' })).toEqual([
 			{ kind: 'number', value: 1 },
 			{ kind: 'number', value: 2 },
 		]);
-		expect(periodLabels(3, 2, 'halves')[2]).toEqual({ kind: 'overtime', index: 1 });
 	});
 
-	test('hockey overtime follows the third period', () => {
-		expect(periodLabels(4, 3, 'periods')[3]).toEqual({ kind: 'overtime', index: 1 });
+	test('a match that went to extra time names both periods of it', () => {
+		expect(periodLabels({ periodCount: 4, regularPeriods: 2, periodFormat: 'halves', sportType: 'soccer' })).toEqual([
+			{ kind: 'number', value: 1 },
+			{ kind: 'number', value: 2 },
+			{ kind: 'named', labelKey: 'box.periodEt1' },
+			{ kind: 'named', labelKey: 'box.periodEt2' },
+		]);
+	});
+
+	test('a fifth column on a soccer match is the shootout, never a second overtime', () => {
+		expect(periodLabels({ periodCount: 5, regularPeriods: 2, periodFormat: 'halves', sportType: 'soccer' })[4])
+			.toEqual({ kind: 'named', labelKey: 'box.periodPen' });
+	});
+
+	test('a match live in the first period of extra time reads ET1', () => {
+		// Positional slicing gets this for free; counting past regulation would call it OT.
+		expect(periodLabels({ periodCount: 3, regularPeriods: 2, periodFormat: 'halves', sportType: 'soccer' })[2])
+			.toEqual({ kind: 'named', labelKey: 'box.periodEt1' });
+	});
+
+	test('MLS\'s zero-filled extra time is still drawn as extra time', () => {
+		// Round One goes from a 90-minute draw straight to penalties by rule and ESPN still emits
+		// five entries. From the line score alone that is identical to a scoreless real extra
+		// time, so the phantom columns are drawn rather than guessed away.
+		expect(periodLabels({ periodCount: 5, regularPeriods: 2, periodFormat: 'halves', sportType: 'soccer' }).slice(2)).toEqual([
+			{ kind: 'named', labelKey: 'box.periodEt1' },
+			{ kind: 'named', labelKey: 'box.periodEt2' },
+			{ kind: 'named', labelKey: 'box.periodPen' },
+		]);
+	});
+
+	test('college basketball plays halves and its fifth column is still an overtime', () => {
+		// 'halves' over two regular periods describes NCAAB as well as soccer, which is why the
+		// extra-time rule is keyed on the sport instead.
+		expect(periodLabels({ periodCount: 2, regularPeriods: 2, periodFormat: 'halves', sportType: 'basketball' })).toEqual([
+			{ kind: 'number', value: 1 },
+			{ kind: 'number', value: 2 },
+		]);
+		expect(periodLabels({ periodCount: 4, regularPeriods: 2, periodFormat: 'halves', sportType: 'basketball' }).slice(2)).toEqual([
+			{ kind: 'overtime', index: 1 },
+			{ kind: 'overtime', index: 2 },
+		]);
+	});
+
+	test('a hockey shootout is named as one, and a second overtime is not', () => {
+		// Both arrive as a fifth entry. Shootouts cannot happen in the playoffs, so ESPN's own
+		// Final designation suffix is what separates them.
+		expect(periodLabels({
+			periodCount: 5, regularPeriods: 3, periodFormat: 'periods', sportType: 'hockey', finalPeriodSuffix: 'SO',
+		}).slice(3)).toEqual([
+			{ kind: 'overtime', index: 1 },
+			{ kind: 'named', labelKey: 'box.periodSo' },
+		]);
+		expect(periodLabels({
+			periodCount: 5, regularPeriods: 3, periodFormat: 'periods', sportType: 'hockey', finalPeriodSuffix: '2OT',
+		}).slice(3)).toEqual([
+			{ kind: 'overtime', index: 1 },
+			{ kind: 'overtime', index: 2 },
+		]);
+	});
+
+	test('a regulation hockey game is never relabelled by a stray suffix', () => {
+		expect(periodLabels({
+			periodCount: 3, regularPeriods: 3, periodFormat: 'periods', sportType: 'hockey', finalPeriodSuffix: 'SO',
+		})).toEqual([
+			{ kind: 'number', value: 1 },
+			{ kind: 'number', value: 2 },
+			{ kind: 'number', value: 3 },
+		]);
 	});
 });
 
@@ -100,6 +175,30 @@ describe('buildSections column selection', () => {
 		// Indices point into ESPN's own parallel arrays, so AB and AVG are skipped rather than
 		// shifting everything after them.
 		expect(sections[0].columns.map(column => column.index)).toEqual([0, 2, 4, 5, 6, 7]);
+	});
+
+	test('carries ESPN\'s own description for the column it kept', () => {
+		// The only thing that can tell a reader SACKS under passing is sacks suffered while SACKS
+		// under defensive is sacks recorded — the same abbreviation on two categories at once.
+		const sections = buildSections('football', team([
+			category(
+				'passing',
+				['completions/passingAttempts', 'passingYards', 'sacks-sackYardsLost'],
+				[athlete('J. Hurts', ['16/24', '188', '1-8'])],
+				[],
+				['Completions/Passing Attempts', 'Passing Yards', 'Sacks-Sack Yards Lost'],
+			),
+		]));
+		expect(sections[0].columns.map(column => column.description)).toEqual([
+			'Completions/Passing Attempts', 'Passing Yards', 'Sacks-Sack Yards Lost',
+		]);
+	});
+
+	test('a column ESPN sends no description for carries an empty one rather than a stray label', () => {
+		const sections = buildSections('basketball', team([
+			category('', ['minutes', 'points'], [athlete('T. Maxey', ['29', '24'])], [], []),
+		]));
+		expect(sections[0].columns.map(column => column.description)).toEqual(['', '']);
 	});
 
 	test('drops a column the league did not send instead of rendering it empty', () => {
@@ -231,7 +330,7 @@ describe('buildSections row handling', () => {
 	test('basketball reads starters, then the bench, then everyone who did not play', () => {
 		const sections = buildSections('basketball', team([
 			category('', ['minutes', 'points'], [
-				athlete('Z. Collins', [], { didNotPlayReason: "COACH'S DECISION" }),
+				athlete('Z. Collins', [], { didNotPlay: true, didNotPlayReason: "COACH'S DECISION" }),
 				athlete('A. Dosunmu', ['14', '4']),
 				athlete('C. White', ['28', '19'], { starter: true }),
 				athlete('D. Terry', ['9', '2']),
@@ -242,6 +341,19 @@ describe('buildSections row handling', () => {
 			// Within each group ESPN's own order is kept, because it tracks the rotation.
 			'C. White', 'N. Vucevic', 'A. Dosunmu', 'D. Terry', 'Z. Collins',
 		]);
+	});
+
+	test('a did-not-play row with no reason still sorts last', () => {
+		// ESPN sends the flag without the reason often enough that this is the ordinary case, and
+		// a truthiness check on the reason would sort the player among the bench.
+		const sections = buildSections('basketball', team([
+			category('', ['minutes', 'points'], [
+				athlete('unstated', [], { didNotPlay: true }),
+				athlete('A. Dosunmu', ['14', '4']),
+				athlete('C. White', ['28', '19'], { starter: true }),
+			]),
+		]));
+		expect(sections[0].athletes.map(a => a.name)).toEqual(['C. White', 'A. Dosunmu', 'unstated']);
 	});
 
 	test('hockey skaters sort by points, then goals, then time on ice', () => {

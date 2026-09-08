@@ -26,7 +26,7 @@ import {
 } from './gameDetailChartOptions';
 import { resolveTeamColorPair } from '@arenaswap/ui/src/components/colorUtils';
 import useSummaryData from './useSummaryData';
-import { coversWholeGame } from './wrapCoverage';
+import { chartHistory, coversWholeGame } from './wrapCoverage';
 import { resolveDecorations, type holidayDecorationPrefs } from '../../../utils/holidayDecorations';
 import { favoriteScoreFlashColors, scorelineOf, type gameScoreline } from '../../../utils/favoriteScoreFlash';
 import type { BettingDisplayPrefs, WeatherDisplayPrefs } from './gameCardTypes';
@@ -96,12 +96,12 @@ const gameDetailView = ({
 	onBack,
 }: gameDetailViewProps) => {
 	const orderedScoreHistory = useMemo(
-		() => scoreHistory.toSorted((a, b) => a.timestamp - b.timestamp),
-		[scoreHistory],
+		() => chartHistory(scoreHistory.toSorted((a, b) => a.timestamp - b.timestamp), game),
+		[scoreHistory, game],
 	);
 	const orderedPowerScoreHistory = useMemo(
-		() => powerScoreHistory.toSorted((a, b) => a.timestamp - b.timestamp),
-		[powerScoreHistory],
+		() => chartHistory(powerScoreHistory.toSorted((a, b) => a.timestamp - b.timestamp), game),
+		[powerScoreHistory, game],
 	);
 	const fallbackPowerScore = orderedPowerScoreHistory[orderedPowerScoreHistory.length - 1];
 	const activePowerScore = excitementResult ?? fallbackPowerScore;

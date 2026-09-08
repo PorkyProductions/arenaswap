@@ -202,8 +202,11 @@ export class MockGameSimulator {
 				id: 'mock-9',
 				league: 'mls',
 				sportType: 'soccer',
-				homeTeam: { id: '190', name: 'Philadelphia Union', abbreviation: 'PHI', score: 2, logo: `${espnCdn}/soccer/500/10739.png`, color: '#051c2c' },
-				awayTeam: { id: '183', name: 'New York Red Bull', abbreviation: 'NYR', score: 1, logo: `${espnCdn}/soccer/500/190.png`, color: '#b91f31' },
+				// The ids are ESPN's own and the logo filenames already carried them: Philadelphia
+				// Union is 10739 and the Red Bulls are 190. They had been transposed, which drew
+				// each side's numbers under the other side's crest on the demo box score.
+				homeTeam: { id: '10739', name: 'Philadelphia Union', abbreviation: 'PHI', score: 2, logo: `${espnCdn}/soccer/500/10739.png`, color: '#051c2c' },
+				awayTeam: { id: '190', name: 'New York Red Bull', abbreviation: 'NYR', score: 1, logo: `${espnCdn}/soccer/500/190.png`, color: '#b91f31' },
 				venueName: 'Subaru Park',
 				venueLocation: 'Chester, PA',
 				period: 2, clockSeconds: 742, status: 'in',
@@ -417,6 +420,19 @@ export class MockGameSimulator {
 		}
 	}
 
+	// Deep copies, so consumers can't mutate internal state.
+	private copies = (): Game[] => this.games.map(g => ({
+		...g,
+		homeTeam: { ...g.homeTeam },
+		awayTeam: { ...g.awayTeam },
+		bso: g.bso ? { ...g.bso } : undefined,
+	}));
+
+	// The slate as constructed, before any tick has advanced it. Anything that needs the shipped
+	// demo games reads them from here: a test that redeclares them by hand is how the soccer
+	// game's team ids and its box-score fixture drifted apart with every test still green.
+	seed = (): Game[] => this.copies();
+
 	tick = (): Game[] => {
 		for (const game of this.games) {
 			const simState = this.state.get(game.id)!;
@@ -433,13 +449,7 @@ export class MockGameSimulator {
 			}
 		}
 
-		// Deep copies, so consumers can't mutate internal state.
-		return this.games.map(g => ({
-			...g,
-			homeTeam: { ...g.homeTeam },
-			awayTeam: { ...g.awayTeam },
-			bso: g.bso ? { ...g.bso } : undefined,
-		}));
+		return this.copies();
 	};
 
 	private advanceLive = (game: Game, simState: SimState): void => {

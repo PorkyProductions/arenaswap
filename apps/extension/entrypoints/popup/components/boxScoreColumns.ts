@@ -242,26 +242,79 @@ export const lineScoreHeadingKey = (periodFormat: string | undefined) => (
 	periodHeadingKeys[periodFormat as PeriodFormat] ?? periodHeadingKeys.periods
 );
 
+export type BoxPeriodLabelKey = 'box.periodEt1' | 'box.periodEt2' | 'box.periodPen' | 'box.periodSo';
+
 export type PeriodLabel =
 	| { kind: 'number'; value: number }
-	| { kind: 'overtime'; index: number };
+	| { kind: 'overtime'; index: number }
+	| { kind: 'named'; labelKey: BoxPeriodLabelKey };
+
+// Soccer's `linescores` are positionally fixed rather than counted: [1H, 2H, ET1, ET2, PENS]. Two
+// entries at full time, four after extra time, five if it went to penalties, and index 4 is always
+// the shootout. Slicing the list to the entry count is also what gets a match live in the first
+// period of extra time right, at three entries.
+//
+// MLS Round One goes from a 90-minute draw straight to penalties by rule, and ESPN still emits
+// five entries with indices 2 and 3 zero-filled. Those phantom columns are drawn rather than
+// detected: from the line score alone they are identical to a genuinely scoreless extra time,
+// which is the commoner case of the two and the one that must not be erased.
+const soccerPeriodLabels: PeriodLabel[] = [
+	{ kind: 'number', value: 1 },
+	{ kind: 'number', value: 2 },
+	{ kind: 'named', labelKey: 'box.periodEt1' },
+	{ kind: 'named', labelKey: 'box.periodEt2' },
+	{ kind: 'named', labelKey: 'box.periodPen' },
+];
+
+export interface PeriodLabelInput {
+	periodCount: number;
+	regularPeriods: number;
+	periodFormat: string | undefined;
+	sportType: SportType | undefined;
+	// ESPN's own suffix off the Final designation, already parsed onto the game. 'SO' is the only
+	// value that moves a heading: a hockey shootout and a second overtime both arrive as a fifth
+	// entry, and a shootout cannot happen in the playoffs, so the suffix separates the two.
+	finalPeriodSuffix?: string;
+}
 
 // Extra innings are just numbered — a 12th inning reads "12". A fifth quarter does not read "5";
 // it reads OT, and the ones after it 2OT and 3OT.
-export const periodLabels = (
-	periodCount: number,
-	regularPeriods: number,
-	periodFormat: string | undefined,
-): PeriodLabel[] => Array.from({ length: periodCount }, (_, index) => (
-	periodFormat === 'innings' || index < regularPeriods
-		? { kind: 'number' as const, value: index + 1 }
-		: { kind: 'overtime' as const, index: index - regularPeriods + 1 }
-));
+export const periodLabels = ({
+	periodCount,
+	regularPeriods,
+	periodFormat,
+	sportType,
+	finalPeriodSuffix,
+}: PeriodLabelInput): PeriodLabel[] => {
+	// Keyed on the sport rather than on `periodFormat`: 'halves' over two regular periods also
+	// describes NCAAB, whose fifth column is an overtime and not extra time.
+	if (sportType === 'soccer') {
+		return Array.from({ length: periodCount }, (_, index) => (
+			soccerPeriodLabels[index] ?? { kind: 'number' as const, value: index + 1 }
+		));
+	}
+
+	const shootoutIndex = sportType === 'hockey' && finalPeriodSuffix === 'SO' && periodCount > regularPeriods
+		? periodCount - 1
+		: -1;
+
+	return Array.from({ length: periodCount }, (_, index) => (
+		index === shootoutIndex
+			? { kind: 'named' as const, labelKey: 'box.periodSo' as const }
+			: periodFormat === 'innings' || index < regularPeriods
+				? { kind: 'number' as const, value: index + 1 }
+				: { kind: 'overtime' as const, index: index - regularPeriods + 1 }
+	));
+};
 
 export interface BoxScoreColumn {
 	labelKey: BoxColumnLabelKey;
 	// Position in the category's own `labels` / `stats` arrays, which are parallel.
 	index: number;
+	// ESPN's own description of the column, which is the only thing that can tell a reader that
+	// SACKS under passing means sacks suffered while SACKS under defensive means sacks recorded.
+	// English, like every other ESPN string we pass through rather than translate.
+	description: string;
 }
 
 export interface BoxScoreSection {
@@ -294,7 +347,7 @@ const toSeconds = (value: string): number => {
 const indexOfKey = (category: BoxScoreCategory, statKey: string): number => category.keys.indexOf(statKey);
 
 const basketballRank = (athlete: BoxScoreAthlete): number => (
-	athlete.didNotPlayReason ? 2 : athlete.starter ? 0 : 1
+	athlete.didNotPlay ? 2 : athlete.starter ? 0 : 1
 );
 
 const orderAthletes = (
@@ -367,7 +420,9 @@ export const buildSections = (sportType: SportType | undefined, team: BoxScoreTe
 		// both.
 		const columns = spec.columns.flatMap(column => {
 			const index = indexOfKey(category, column.statKey);
-			return index === -1 ? [] : [{ labelKey: column.labelKey, index }];
+			return index === -1
+				? []
+				: [{ labelKey: column.labelKey, index, description: category.descriptions[index] ?? '' }];
 		});
 		if (columns.length === 0) return [];
 

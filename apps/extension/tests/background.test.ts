@@ -1,5 +1,6 @@
 import { pollWinProbabilityMs } from '@arenaswap/core';
-import { createDefaultUserPreferences, createFavoriteTeamKey, normalizeUserPreferences, pollIntervalMs } from '@arenaswap/core/constants';
+import { createDefaultUserPreferences, createFavoriteTeamKey, historyWindowMs, normalizeUserPreferences, pollIntervalMs } from '@arenaswap/core/constants';
+import { chartHistory, coversWholeGame } from '../entrypoints/popup/components/wrapCoverage';
 import type { Game, LeagueId, TabRegistration, UserPreferences } from '@arenaswap/core/types';
 import { prefsStorageUpdatedAtKey } from '../utils/prefsStorage';
 
@@ -1126,3 +1127,196 @@ describe('keeping finished games', () => {
 	});
 });
 
+// The two paths this PR shipped that no existing test could see: the history a wrap screen reads,
+// and the scheduled per-league poll. Every other case in this file drives GET_STATE with
+// forceRefresh, which routes through tick() — production polling is tickLeague, and the two merge
+// their results differently.
+const gameAt = (startMs: number, status: Game['status']): Game => ({
+	id: 'wrapper',
+	league: 'nba' as LeagueId,
+	sportType: 'basketball',
+	status,
+	period: status === 'post' ? 4 : 3,
+	clockSeconds: status === 'post' ? 0 : 300,
+	startTime: new Date(startMs).toISOString(),
+	homeTeam: { id: 'h', name: 'Home', abbreviation: 'HOM', score: 112 },
+	awayTeam: { id: 'a', name: 'Away', abbreviation: 'AWY', score: 104 },
+});
+
+describe('a game that goes final while the worker is up', () => {
+	const nbaOnly = { enabledLeagues: ['nba' as LeagueId], keepFinalGames: true };
+
+	const stateIds = async (): Promise<string[]> => (
+		((await sendMessage({ type: 'GET_STATE' }) as { games: Game[] }).games).map(g => g.id).toSorted()
+	);
+
+	// The failure this reproduces: retainedFinalGames was only ever written inside refreshSlate,
+	// which runs at worker startup and on a preference change and never on a timer. So a game that
+	// went final mid-session survived only as long as the dateless scoreboard kept returning it,
+	// and vanished at the Eastern-day rollover a couple of hours old against a promised 24.
+	// A second game in the same league, live throughout, so the league never drops to the dormant
+	// poll interval and every advance below genuinely lands a tickLeague.
+	const alsoPlaying: Game = {
+		id: 'other', league: 'nba' as LeagueId, sportType: 'basketball', status: 'in',
+		period: 2, clockSeconds: 400, startTime: new Date(Date.UTC(2026, 8, 7, 23, 30, 0)).toISOString(),
+		homeTeam: { id: 'h2', name: 'H2', abbreviation: 'HH', score: 40 },
+		awayTeam: { id: 'a2', name: 'A2', abbreviation: 'AA', score: 38 },
+	};
+
+	// Fires the scheduled per-league poll and proves it actually ran, so nothing below can pass by
+	// virtue of no poll having happened at all. The interval is adaptive — computeLeagueIntervalMs
+	// reads the best live score in the league — so this steps forward until one lands rather than
+	// hardcoding a delay that a scoring change would silently invalidate.
+	const pollOnce = async () => {
+		fetchMock.mockClear();
+		for (let step = 0; step < 40 && fetchMock.mock.calls.length === 0; step++) {
+			jest.advanceTimersByTime(pollIntervalMs);
+			await drain();
+		}
+		expect(fetchMock).toHaveBeenCalled();
+	};
+
+	test('is still there after the dateless scoreboard stops returning it', async () => {
+		const startMs = Date.UTC(2026, 8, 7, 23, 0, 0);
+		await loadBackground({
+			prefs: nbaOnly,
+			initialSystemTime: startMs,
+			fetchReturnValue: { games: [gameAt(startMs, 'in'), alsoPlaying], leagueLogos: {} },
+		});
+
+		// The scheduled poll finds it final. This is the only place the game is ever seen as post.
+		fetchMock.mockResolvedValue({ games: [gameAt(startMs, 'post'), alsoPlaying], leagueLogos: {} });
+		jest.setSystemTime(startMs + (2.5 * 60 * 60 * 1000));
+		await pollOnce();
+		expect(await stateIds()).toEqual(['other', 'wrapper']);
+
+		// Eastern midnight rolls over and the dateless scoreboard drops it. Nothing refetches the
+		// range, because nothing restarted the worker.
+		fetchMock.mockResolvedValue({ games: [alsoPlaying], leagueLogos: {} });
+		jest.setSystemTime(startMs + (3 * 60 * 60 * 1000));
+		await pollOnce();
+		expect(await stateIds()).toEqual(['other', 'wrapper']);
+	});
+
+	test('and still ages out on its own schedule once it is past the window', async () => {
+		const startMs = Date.UTC(2026, 8, 7, 23, 0, 0);
+		await loadBackground({
+			prefs: nbaOnly,
+			initialSystemTime: startMs,
+			fetchReturnValue: { games: [gameAt(startMs, 'post'), alsoPlaying], leagueLogos: {} },
+		});
+		await pollOnce();
+		expect(await stateIds()).toEqual(['other', 'wrapper']);
+
+		// 24 hours past the 2.5-hour estimated wrap, plus a few minutes.
+		fetchMock.mockResolvedValue({ games: [alsoPlaying], leagueLogos: {} });
+		jest.setSystemTime(startMs + (26.6 * 60 * 60 * 1000));
+		await pollOnce();
+		expect(await stateIds()).toEqual(['other']);
+	});
+
+	test('is never scored, so the switcher cannot reach it', async () => {
+		const startMs = Date.UTC(2026, 8, 7, 23, 0, 0);
+		await loadBackground({
+			prefs: nbaOnly,
+			initialSystemTime: startMs,
+			fetchReturnValue: { games: [gameAt(startMs, 'post'), alsoPlaying], leagueLogos: {} },
+		});
+		await pollOnce();
+		const state = await sendMessage({ type: 'GET_STATE' }) as { scores: { gameId: string }[] };
+		expect(state.scores.map(score => score.gameId)).toEqual(['other']);
+	});
+});
+
+describe('the history a wrap screen reads', () => {
+	const startMs = Date.UTC(2026, 8, 7, 18, 0, 0);
+	const basketballAllowanceMs = 2.5 * 60 * 60 * 1000;
+
+	const walkAWholeGame = async (keepFinalGames = true): Promise<{ scoreHistory: Record<string, { timestamp: number }[]>; powerScoreHistory: Record<string, { timestamp: number }[]> }> => {
+		await loadBackground({
+			prefs: { enabledLeagues: ['nba' as LeagueId], keepFinalGames },
+			initialSystemTime: startMs,
+			fetchReturnValue: {
+				games: [{
+					id: 'played', league: 'nba' as LeagueId, sportType: 'basketball', status: 'in',
+					period: 1, clockSeconds: 700, startTime: new Date(startMs).toISOString(),
+					homeTeam: { id: 'h', name: 'Home', abbreviation: 'HOM', score: 0 },
+					awayTeam: { id: 'a', name: 'Away', abbreviation: 'AWY', score: 0 },
+				}],
+				leagueLogos: {},
+			},
+		});
+		// Two-minute polls from tip-off to a couple of minutes short of the estimated wrap. Real
+		// polling is far denser; the point is the span, and the snapshots inside the scorer's own
+		// five-minute window are kept at whatever density they arrive at.
+		for (let minute = 2; minute <= 140; minute += 2) {
+			jest.setSystemTime(startMs + (minute * 60 * 1000));
+			await sendMessage({ type: 'GET_STATE', forceRefresh: true });
+		}
+		return await sendMessage({ type: 'GET_STATE' }) as never;
+	};
+
+	const finishedGame = {
+		sportType: 'basketball' as const,
+		startTime: new Date(startMs).toISOString(),
+	};
+
+	// This is the assertion the whole chart gate rests on, and nothing used to make it. Under a
+	// rolling per-sport window the retained span was capped at five minutes for basketball, while
+	// coversWholeGame needs 0.8 x the 2.5-hour allowance — two hours. It was unsatisfiable in every
+	// sport by an order of magnitude, so the wrap screen's three charts could never draw.
+	test('covers the whole game, so the wrap screen draws its charts', async () => {
+		const { scoreHistory, powerScoreHistory } = await walkAWholeGame();
+		const now = startMs + (140 * 60 * 1000);
+		expect(coversWholeGame(scoreHistory.played!, finishedGame, now)).toBe(true);
+		expect(coversWholeGame(powerScoreHistory.played!, finishedGame, now)).toBe(true);
+	});
+
+	test('reaches from tip-off to the end rather than from either one alone', async () => {
+		const { powerScoreHistory } = await walkAWholeGame();
+		const snapshots = powerScoreHistory.played!;
+		expect(snapshots[0]!.timestamp).toBe(startMs);
+		expect(snapshots[snapshots.length - 1]!.timestamp).toBe(startMs + (140 * 60 * 1000));
+		expect(snapshots.length).toBeGreaterThan(2);
+	});
+
+	// The tail is thinned rather than kept whole, so a long game cannot fill session storage. The
+	// cap is a backstop above this.
+	test('thins the tail instead of growing without bound', async () => {
+		const { powerScoreHistory } = await walkAWholeGame();
+		expect(powerScoreHistory.played!.length).toBeLessThan(200);
+	});
+
+	// Both maps are written to session storage on every poll, so the tail is only paid for by the
+	// setting that can display it. With Keep finished games off a finished game leaves the list
+	// entirely, there is no wrap screen to draw on, and this is the window it has always been.
+	test('is not kept at all when nothing could draw it', async () => {
+		const { powerScoreHistory } = await walkAWholeGame(false);
+		const snapshots = powerScoreHistory.played!;
+		const end = startMs + (140 * 60 * 1000);
+		expect(snapshots[0]!.timestamp).toBeGreaterThanOrEqual(end - historyWindowMs);
+		expect(coversWholeGame(snapshots, finishedGame, end)).toBe(false);
+	});
+
+	// A live screen keeps drawing the window it always drew. Widening a running chart is a separate
+	// decision from making the wrap's charts possible at all.
+	test('is windowed back down for a game that is still being played', async () => {
+		const { powerScoreHistory } = await walkAWholeGame();
+		const now = startMs + (140 * 60 * 1000);
+		const live = chartHistory(powerScoreHistory.played!, { sportType: 'basketball', status: 'in' }, now);
+		expect(live.length).toBeLessThan(powerScoreHistory.played!.length);
+		expect(live[0]!.timestamp).toBeGreaterThanOrEqual(now - historyWindowMs);
+		expect(coversWholeGame(live, finishedGame, now)).toBe(false);
+
+		const final = chartHistory(powerScoreHistory.played!, { sportType: 'basketball', status: 'post' }, now);
+		expect(final).toEqual(powerScoreHistory.played!);
+	});
+
+	// A game the worker only started watching late still carries a stub, which is the case the gate
+	// exists to catch and the one a length check misses.
+	test('still reports a late start as not covering the game', async () => {
+		const lateStart = { timestamp: startMs + (basketballAllowanceMs * 0.5) };
+		const lateEnd = { timestamp: startMs + (basketballAllowanceMs * 0.95) };
+		expect(coversWholeGame([lateStart, lateEnd], finishedGame, startMs + basketballAllowanceMs)).toBe(false);
+	});
+});

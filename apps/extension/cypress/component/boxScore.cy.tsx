@@ -1,6 +1,8 @@
 import GameDetailView from '../../entrypoints/popup/components/gameDetailView';
 import BoxScore from '../../entrypoints/popup/components/boxScore';
 import { parseBoxScore } from '../../entrypoints/popup/components/boxScoreParse';
+import type { BoxScore as ParsedBoxScore } from '../../entrypoints/popup/components/boxScoreParse';
+import { MockGameSimulator } from '@arenaswap/core';
 import type { Game } from '@arenaswap/core/types';
 import de from '../../locales/de.json';
 import en from '../../locales/en.json';
@@ -22,46 +24,33 @@ const locales = { de, en, es, fil, fr, it: itLocale, ja, ko, pt_BR: ptBR, pt_PT:
 // purpose: an opaque one would paint over a placeholder that failed to hide.
 const crestPixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
-// The ids are the demo-mode ones on purpose: `useSummaryData` short-circuits anything starting
-// `mock-` to `mockBoxScorePayloads`, so these mount the real parser over the real fixtures with no
-// network at all. Team ids have to match the fixture's, since that is what resolves the two sides.
-const games: Record<string, Game> = {
-	baseball: {
-		id: 'mock-4', league: 'mlb', sportType: 'baseball', status: 'in',
-		period: 8, clockSeconds: 0, topOfInning: true,
-		venueName: 'Citizens Bank Park',
-		homeTeam: { id: '22', name: 'Philadelphia Phillies', abbreviation: 'PHI', score: 3, color: '#E81828', logo: crestPixel },
-		awayTeam: { id: '21', name: 'New York Mets', abbreviation: 'NYM', score: 2, color: '#002D72', logo: crestPixel },
-	},
-	basketball: {
-		id: 'mock-2', league: 'nba', sportType: 'basketball', status: 'in',
-		period: 3, clockSeconds: 284,
-		venueName: 'Xfinity Mobile Arena',
-		homeTeam: { id: '20', name: 'Philadelphia 76ers', abbreviation: 'PHI', score: 68, color: '#006BB6', logo: crestPixel },
-		awayTeam: { id: '4', name: 'Chicago Bulls', abbreviation: 'CHI', score: 65, color: '#CE1141', logo: crestPixel },
-	},
-	football: {
-		id: 'mock-5', league: 'nfl', sportType: 'football', status: 'in',
-		period: 4, clockSeconds: 480,
-		venueName: 'Lincoln Financial Field',
-		homeTeam: { id: '21', name: 'Philadelphia Eagles', abbreviation: 'PHI', score: 17, color: '#004C54', logo: crestPixel },
-		awayTeam: { id: '6', name: 'Dallas Cowboys', abbreviation: 'DAL', score: 14, color: '#041E42', logo: crestPixel },
-	},
-	hockey: {
-		id: 'mock-3', league: 'nhl', sportType: 'hockey', status: 'in',
-		period: 3, clockSeconds: 412,
-		venueName: 'Xfinity Mobile Arena',
-		homeTeam: { id: '15', name: 'Philadelphia Flyers', abbreviation: 'PHI', score: 2, color: '#F74902', logo: crestPixel },
-		awayTeam: { id: '16', name: 'Pittsburgh Penguins', abbreviation: 'PIT', score: 1, color: '#FCB514', logo: crestPixel },
-	},
-	soccer: {
-		id: 'mock-9', league: 'mls', sportType: 'soccer', status: 'in',
-		period: 2, clockSeconds: 742,
-		venueName: 'Subaru Park',
-		homeTeam: { id: '183', name: 'Philadelphia Union', abbreviation: 'PHI', score: 2, color: '#071B2C', logo: crestPixel },
-		awayTeam: { id: '190', name: 'New York Red Bulls', abbreviation: 'NYR', score: 1, color: '#ED1E36', logo: crestPixel },
-	},
+// The shipped demo games rather than a redeclaration of them. `useSummaryData` short-circuits
+// anything starting `mock-` to `mockBoxScorePayloads`, so these mount the real parser over the
+// real fixtures with no network at all — and the team ids are what resolve the two sides, so a
+// spec that declared its own stayed green while demo mode drew each team's numbers under the other
+// team's crest. Only the crests are swapped, for a data URI that needs no network.
+const seededGames = new MockGameSimulator().seed();
+
+const demoGame = (id: string): Game => {
+	const game = seededGames.find(candidate => candidate.id === id)!;
+	return {
+		...game,
+		homeTeam: { ...game.homeTeam, logo: crestPixel },
+		awayTeam: { ...game.awayTeam, logo: crestPixel },
+	};
 };
+
+const games: Record<string, Game> = {
+	baseball: demoGame('mock-4'),
+	basketball: demoGame('mock-2'),
+	football: demoGame('mock-5'),
+	hockey: demoGame('mock-3'),
+	soccer: demoGame('mock-9'),
+};
+
+// The one finished demo game, kept out of the per-sport loops: its ten innings plus R-H-E scroll
+// sideways by design, so a "no cell past the popup edge" sweep does not describe it.
+const finalGame = demoGame('mock-20');
 
 const preGame: Game = {
 	...games.basketball,
@@ -94,6 +83,38 @@ const mount = (game: Game) => {
 		/>,
 	);
 };
+
+// A parsed box score mounted at the width the card actually gets. The popup is 320px, the detail
+// screen's own scrollbar takes 15 of them, and `.game-detail-shell` spends `--gd-inset` on each
+// side — so a bare mount measures the table against about 40px of room it will never have.
+const mountBox = (game: Game, box: ParsedBoxScore) => {
+	cy.mount(
+		<div className='game-detail-shell' style={{ width: '305px' }}>
+			<BoxScore game={game} boxScore={box} />
+		</div>,
+	);
+};
+
+// A line score of `count` periods and nothing else, for the header row the period labels render
+// in. Every entry reads 0, so what is being measured is the headings rather than the digits.
+const mountPeriodLine = (game: Game, count: number) => {
+	const periods = Array.from({ length: count }, () => ({ displayValue: '0' }));
+	const homeId = game.homeTeam.id;
+	const awayId = game.awayTeam.id;
+	const payload = { header: { competitions: [{ competitors: [
+		{ homeAway: 'away', team: { id: awayId, abbreviation: game.awayTeam.abbreviation }, score: '1', linescores: periods },
+		{ homeAway: 'home', team: { id: homeId, abbreviation: game.homeTeam.abbreviation }, score: '1', linescores: periods },
+	] }] } };
+	mountBox(game, parseBoxScore(payload, homeId, awayId, game.homeTeam.abbreviation, game.awayTeam.abbreviation));
+};
+
+// A soccer match that went to penalties: five entries, which is the widest the row gets and the
+// only shape where PEN sits alongside ET1 and ET2.
+const soccerPenalties = () => mountPeriodLine(games.soccer, 5);
+
+// Hockey's fifth entry is the shootout goal rather than a second overtime, and ESPN's own Final
+// designation suffix is what says so.
+const hockeyShootout = () => mountPeriodLine({ ...games.hockey, finalPeriodSuffix: 'SO' }, 5);
 
 // The ink a cell inherits when no team colour reaches it. Asserting a computed colour is merely
 // readable, or merely not the raw team colour, passes with the whole feature removed — so every
@@ -148,10 +169,54 @@ describe('box score', () => {
 			});
 		});
 
+		it('reads the finished demo game as a completed ten innings', () => {
+			// The wrap screen says Final/10, so the line score under it has to be a finished
+			// ten-inning game: both rows the same length, no blank half-inning, and every total
+			// summing to what the row above it says.
+			mount(finalGame);
+			cy.get('.gd-box-line-table thead th, .gd-box-line-table thead td').then($th => {
+				expect([...$th].map(el => el.textContent?.trim())).to.deep.equal(
+					['', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'R', 'H', 'E'],
+				);
+			});
+			cy.get('.gd-box-line-table tbody tr').eq(0).find('td').then($td => {
+				expect([...$td].map(el => el.textContent?.trim())).to.deep.equal(
+					['0', '1', '0', '0', '0', '1', '0', '0', '0', '0', '2', '8', '1'],
+				);
+			});
+			cy.get('.gd-box-line-table tbody tr').eq(1).find('td').then($td => {
+				expect([...$td].map(el => el.textContent?.trim())).to.deep.equal(
+					['1', '0', '0', '0', '0', '1', '0', '0', '0', '1', '3', '8', '1'],
+				);
+			});
+			// The R column is the score on the wrap screen above it.
+			cy.get('.gd-box-line-table tbody tr').eq(0).find('.gd-box-line-total').first()
+				.should('have.text', String(finalGame.awayTeam.score));
+			cy.get('.gd-box-line-table tbody tr').eq(1).find('.gd-box-line-total').first()
+				.should('have.text', String(finalGame.homeTeam.score));
+		});
+
 		it('gives a clock sport one total column and no hits or errors', () => {
 			mount(games.football);
 			cy.get('.gd-box-line-table thead th, .gd-box-line-table thead td').then($th => {
 				expect([...$th].map(el => el.textContent?.trim())).to.deep.equal(['', '1', '2', '3', '4', 'T']);
+			});
+		});
+
+		it('puts each side of the soccer match under its own crest', () => {
+			// Soccer sends no `boxscore.players`, so the line score and the comparison table below
+			// it are the whole box score. The demo fixture had the two sides transposed, which put
+			// each team's numbers beside the other team's crest and abbreviation.
+			mount(games.soccer);
+			cy.get('.gd-box-line-table tbody tr').eq(0).then($row => {
+				expect($row.find('.gd-box-line-abbr').text()).to.equal(games.soccer.awayTeam.abbreviation);
+				expect($row.find('.gd-box-line-total').first().text())
+					.to.equal(String(games.soccer.awayTeam.score));
+			});
+			cy.get('.gd-box-line-table tbody tr').eq(1).then($row => {
+				expect($row.find('.gd-box-line-abbr').text()).to.equal(games.soccer.homeTeam.abbreviation);
+				expect($row.find('.gd-box-line-total').first().text())
+					.to.equal(String(games.soccer.homeTeam.score));
 			});
 		});
 
@@ -176,12 +241,7 @@ describe('box score', () => {
 				{ homeAway: 'away', team: { id: '21', abbreviation: 'NYM' }, score: String(count), linescores: innings },
 				{ homeAway: 'home', team: { id: '22', abbreviation: 'PHI' }, score: String(count), linescores: innings },
 			] }] } };
-			cy.mount(
-				<BoxScore
-					game={games.baseball}
-					boxScore={parseBoxScore(payload, '22', '21', 'PHI', 'NYM')}
-				/>,
-			);
+			mountBox(games.baseball, parseBoxScore(payload, '22', '21', 'PHI', 'NYM'));
 		};
 
 		it('fits a full nine innings plus R-H-E inside the card without scrolling', () => {
@@ -197,6 +257,33 @@ describe('box score', () => {
 			cy.get('.gd-box-line-table td, .gd-box-line-table th').each($cell => {
 				expect($cell[0].scrollWidth, 'no inning is squeezed narrower than its own digits')
 					.to.be.at.most($cell[0].clientWidth + 1);
+			});
+		});
+
+		it('names soccer\'s extra time and shootout instead of counting overtimes', () => {
+			// ESPN's soccer linescores are positional — [1H, 2H, ET1, ET2, PENS] — so a fifth
+			// column is the shootout rather than a third overtime.
+			soccerPenalties();
+			cy.get('.gd-box-line-table thead th').then($th => {
+				expect([...$th].map(el => el.textContent?.trim())).to.deep.equal(
+					['1', '2', en.box.periodEt1, en.box.periodEt2, en.box.periodPen, en.box.lineTotal],
+				);
+			});
+		});
+
+		it('names a hockey shootout as one and a second overtime as one', () => {
+			hockeyShootout();
+			cy.get('.gd-box-line-table thead th').then($th => {
+				expect([...$th].map(el => el.textContent?.trim())).to.deep.equal(
+					['1', '2', '3', en.box.overtime, en.box.periodSo, en.box.lineTotal],
+				);
+			});
+			// Same five entries with a playoff suffix, where a shootout cannot happen.
+			mountPeriodLine({ ...games.hockey, finalPeriodSuffix: '2OT' }, 5);
+			cy.get('.gd-box-line-table thead th').then($th => {
+				expect([...$th].map(el => el.textContent?.trim())).to.deep.equal(
+					['1', '2', '3', en.box.overtime, en.box.overtimeNumbered.replace('{count}', '2'), en.box.lineTotal],
+				);
 			});
 		});
 
@@ -221,6 +308,115 @@ describe('box score', () => {
 			cy.get('.gd-box-tabs .nav-link').eq(1).click();
 			cy.get('.gd-box-tabs .nav-link.active').should('contain.text', 'PHI');
 			cy.get('.gd-box-name').should('contain.text', 'T. Maxey');
+		});
+
+		it('completes the tab pattern its roles announce', () => {
+			// `role='tab'` announces "tab, 1 of 2", which tells the reader a panel exists to move
+			// to. A tab naming a panel that is not in the document is a promise the screen breaks.
+			mount(games.basketball);
+			cy.get('.gd-box-tabs .nav-link').eq(0).then($away => {
+				const panelId = $away.attr('aria-controls');
+				expect(panelId, 'the tab names a panel').to.be.a('string').and.not.equal('');
+				cy.document().then(doc => {
+					const panel = doc.getElementById(panelId!);
+					expect(panel, 'and that panel is on the screen').to.not.equal(null);
+					expect(panel!.getAttribute('role')).to.equal('tabpanel');
+					expect(panel!.getAttribute('aria-labelledby')).to.equal($away.attr('id'));
+					expect(panel!.querySelectorAll('.gd-box-table')).to.have.length.greaterThan(0);
+				});
+			});
+			// Roving: the strip is one tab stop and the arrow keys move inside it.
+			cy.get('.gd-box-tabs .nav-link').eq(0).should('have.attr', 'tabindex', '0');
+			cy.get('.gd-box-tabs .nav-link').eq(1).should('have.attr', 'tabindex', '-1');
+		});
+
+		it('moves the selection with the arrow keys and takes focus with it', () => {
+			mount(games.basketball);
+			cy.get('.gd-box-tabs .nav-link').eq(0).focus().trigger('keydown', { key: 'ArrowRight' });
+			cy.get('.gd-box-tabs .nav-link.active').should('contain.text', 'PHI');
+			cy.focused().should('contain.text', 'PHI');
+			cy.get('.gd-box-name').should('contain.text', 'T. Maxey');
+			cy.get('.gd-box-tabs .nav-link').eq(1).should('have.attr', 'tabindex', '0');
+
+			cy.focused().trigger('keydown', { key: 'ArrowLeft' });
+			cy.get('.gd-box-tabs .nav-link.active').should('contain.text', 'CHI');
+			cy.focused().should('contain.text', 'CHI');
+
+			cy.focused().trigger('keydown', { key: 'End' });
+			cy.get('.gd-box-tabs .nav-link.active').should('contain.text', 'PHI');
+			cy.focused().trigger('keydown', { key: 'Home' });
+			cy.get('.gd-box-tabs .nav-link.active').should('contain.text', 'CHI');
+
+			// The panel follows the selection rather than staying labelled by the first tab.
+			cy.get('[role="tabpanel"]').then($panel => {
+				cy.get('.gd-box-tabs .nav-link.active')
+					.should('have.attr', 'id', $panel.attr('aria-labelledby'));
+			});
+		});
+
+		it('names the one side it has when the other sent no players', () => {
+			// Every category arriving with an empty `athletes` array parses to a null side, which
+			// is the opening minutes of a football game. There is no tab strip to name the team,
+			// so the block has to name it itself — and it must be the side actually rendered.
+			const payload = { boxscore: { players: [
+				{
+					team: { id: '6', abbreviation: 'DAL' },
+					statistics: [{ name: 'passing', labels: ['YDS'], keys: ['passingYards'], athletes: [] }],
+				},
+				{
+					team: { id: '21', abbreviation: 'PHI' },
+					statistics: [{
+						name: 'passing',
+						labels: ['C/ATT', 'YDS'],
+						keys: ['completions/passingAttempts', 'passingYards'],
+						athletes: [{ athlete: { shortName: 'J. Hurts' }, stats: ['3/4', '41'] }],
+					}],
+				},
+			] } };
+			mountBox(games.football, parseBoxScore(payload, '21', '6', 'PHI', 'DAL'));
+
+			cy.get('.gd-box-tabs').should('not.exist');
+			cy.get('.gd-box-players .gd-box-player').should('have.text', 'J. Hurts');
+			// The home side is what rendered, so the home team is what the block may name.
+			cy.get('.gd-box-players .gd-box-line-abbr')
+				.should('have.length', 1)
+				.and('have.text', games.football.homeTeam.abbreviation);
+			cy.get('.gd-box-players .gd-box-line-crest').should('have.length', 1);
+		});
+
+		it('says DNP for a player ESPN flagged without giving a reason', () => {
+			const payload = { boxscore: { players: [
+				{
+					team: { id: '4', abbreviation: 'CHI' },
+					statistics: [{
+						labels: ['MIN', 'PTS'],
+						keys: ['minutes', 'points'],
+						athletes: [
+							{ starter: true, athlete: { shortName: 'C. White' }, stats: ['28', '19'] },
+							{ didNotPlay: true, athlete: { shortName: 'Z. Collins' }, stats: [] },
+						],
+					}],
+				},
+			] } };
+			mountBox(games.basketball, parseBoxScore(payload, '20', '4', 'PHI', 'CHI'));
+
+			cy.get('.gd-box-dnp').should('have.length', 1).and('have.text', en.box.didNotPlay);
+			// And last, rather than sorted in among the bench.
+			cy.get('.gd-box-players tbody tr').last().should('contain.text', 'Z. Collins');
+		});
+
+		it('collapses an expanded category again when the team switches', () => {
+			// The reader asked for all of Dallas's defenders, not for however many Philadelphia
+			// happens to have.
+			mount(games.football);
+			cy.contains('.gd-box-subheading', en.box.defensive).next('table').as('defense');
+			cy.get('@defense').find('tbody tr').should('have.length', 6);
+			cy.get('.gd-box-more').click();
+			cy.get('@defense').find('tbody tr').should('have.length', 8);
+
+			cy.get('.gd-box-tabs .nav-link').eq(1).click();
+			cy.contains('.gd-box-subheading', en.box.defensive).next('table')
+				.find('tbody tr').should('have.length', 6);
 		});
 
 		it('gives basketball one table with the condensed column order', () => {
@@ -326,13 +522,19 @@ describe('box score', () => {
 				.then($td => expect([...$td].map(el => el.textContent?.trim())).to.deep.equal(['53.2', '46.8']));
 		});
 
-		it('appends the penalty rows only because this match had one', () => {
+		it('prints the rows a match panel prints, in that order, and no others', () => {
+			// Pinned to the whole list rather than asserting one row is absent. The previous
+			// version looked for ESPN's own 'On Target %' string, which no locale file contains
+			// and which every label renders through `i18n.t` — so the derived column could have
+			// been rendered under our own translated label and the assertion would still pass.
+			// It is the ordering rule and the conditional penalty rows in one measurement now.
 			mount(games.soccer);
-			cy.get('.gd-box-compare-label').then($labels => {
-				const text = [...$labels].map(el => el.textContent?.trim());
-				expect(text).to.include(en.box.penaltyGoals);
-				// Derived from the two rows above it, and 100% off a single shot.
-				expect(text).to.not.include('On Target %');
+			cy.get('.gd-box-compare tbody .gd-box-compare-label').then($labels => {
+				expect([...$labels].map(el => el.textContent?.trim())).to.deep.equal([
+					en.box.possession, en.box.shotsTaken, en.box.onGoal, en.box.corners,
+					en.box.savesMade, en.box.offsides, en.box.fouls, en.box.yellowCards,
+					en.box.redCards, en.box.penaltyKicks, en.box.penaltyGoals,
+				]);
 			});
 		});
 
@@ -363,9 +565,13 @@ describe('box score', () => {
 				expect(style.color).to.equal('rgb(17, 24, 39)');
 				expect(style.backgroundColor).to.equal('rgba(0, 0, 0, 0)');
 			});
-			// The 2px group separator is `currentcolor` by default, a black bar across the card.
+			// An absence, deliberately. Bootstrap 5.3 draws the group separator only through the
+			// opt-in `.table-group-divider` class, which nothing in our source uses, so the
+			// `tbody` here has no top border at all — and reading a colour off a border that is
+			// not drawn is an assertion that cannot fail. `$table-group-separator-color` is set in
+			// the stylesheet as a guard for the first component that does opt in.
 			cy.get('.gd-box-table tbody').first().then($tbody => {
-				expect(getComputedStyle($tbody[0]).borderTopColor).to.equal('rgb(209, 213, 219)');
+				expect(getComputedStyle($tbody[0]).borderTopWidth).to.equal('0px');
 			});
 		});
 
@@ -432,13 +638,13 @@ describe('box score', () => {
 
 		it('darkens a gold abbreviation until it is actually readable', () => {
 			mount(games.hockey);
-			// Pittsburgh's #FCB514 reaches 1.71:1 untouched — the case an eyeball lets through. Pinned
+			// Pittsburgh's #CFC493 reaches 1.68:1 untouched — the case an eyeball lets through. Pinned
 			// to the exact clamped value rather than to "readable", which the inherited ink also is.
 			cy.get('.gd-box-line-table tbody tr').eq(0).find('.gd-box-line-abbr').then($abbr => {
 				const color = getComputedStyle($abbr[0]).color;
-				expect(color, 'the raw gold is gone').to.not.equal('rgb(252, 181, 20)');
+				expect(color, 'the raw gold is gone').to.not.equal('rgb(207, 196, 147)');
 				expect(color, 'and a team colour did arrive, rather than nothing').to.not.equal(inheritedCardInk);
-				expect(color, 'clamped to a dark bronze').to.equal('rgb(138, 99, 11)');
+				expect(color, 'clamped to a dark bronze').to.equal('rgb(114, 108, 80)');
 				expect(contrastOnCard(color)).to.be.at.least(4.5);
 			});
 			// The other side is the Flyers' orange, 3.40:1 raw, so it moves too.
@@ -475,14 +681,24 @@ describe('box score', () => {
 	});
 
 	describe('localization', () => {
-		const headingKeys = ['heading', 'byInning', 'teamStats', 'batting', 'pitching', 'totals'] as const;
+		// Each key measured in the element it actually renders in. `box.heading` is the only one of
+		// these that reaches `.gd-setup-heading`; the four period and section words render in
+		// `.gd-box-subheading`, which is 0.55rem, uppercased and letter-spaced, and the team-stats
+		// heading needs a sport that has a comparison table at all.
+		const headingCases: [keyof typeof en.box, keyof typeof games, string, number][] = [
+			['heading', 'baseball', '.gd-box > .gd-setup-heading', 0],
+			['byInning', 'baseball', '.gd-box-line .gd-box-subheading', 0],
+			['teamStats', 'hockey', '.gd-box-compare .gd-box-subheading', 0],
+			['batting', 'baseball', '.gd-box-players .gd-box-subheading', 0],
+			['pitching', 'baseball', '.gd-box-players .gd-box-subheading', 1],
+		];
 
-		it('fits every locale\'s section headings on one line', () => {
-			mount(games.baseball);
-			for (const [code, bundle] of Object.entries(locales)) {
-				for (const key of headingKeys) {
+		for (const [key, sport, selector, index] of headingCases) {
+			it(`fits every locale's box.${key} on one line`, () => {
+				mount(games[sport]);
+				for (const [code, bundle] of Object.entries(locales)) {
 					const value = (bundle as typeof en).box[key];
-					cy.get('.gd-setup-heading').first().then($el => {
+					cy.get(selector).eq(index).then($el => {
 						const el = $el[0];
 						const original = el.textContent;
 						el.textContent = value;
@@ -492,7 +708,68 @@ describe('box score', () => {
 						el.textContent = original;
 					});
 				}
-			}
+			});
+		}
+
+		// `box.totals` is out of the loop above rather than measured in it: it renders in a
+		// `tfoot th.gd-box-name`, which carries `max-width: 0` and an ellipsis and physically
+		// cannot wrap however long the word is.
+		it('ellipsizes the totals label rather than wrapping it', () => {
+			mount(games.baseball);
+			cy.get('.gd-box-players tfoot th').first().then($th => {
+				expect($th.text()).to.equal(en.box.totals);
+				const style = getComputedStyle($th[0]);
+				expect(style.textOverflow).to.equal('ellipsis');
+				expect(style.whiteSpace).to.equal('nowrap');
+			});
+		});
+
+		// The line score's header row is the tightest in the product, and the period keys land in
+		// it in three scripts. Measured as a whole row for the same reason the column sets below
+		// are: substituting one locale's label into a column the browser sized for English
+		// measures it against a box it will never render in, which is what once reported both
+		// Chinese locales overflowing a row they fit.
+		const measurePeriodHeadRow = (labelsFor: (bundle: typeof en) => string[]) => {
+			cy.get('.gd-box-line-table').then($table => {
+				const table = $table[0];
+				const heads = [...table.querySelectorAll('thead th')] as HTMLElement[];
+				const teamCell = table.querySelector('thead .gd-box-line-team') as HTMLElement;
+				const originals = heads.map(head => head.textContent);
+
+				for (const [code, bundle] of Object.entries(locales)) {
+					const labels = labelsFor(bundle as typeof en);
+					expect(labels, 'the label set matches what this row renders').to.have.length(heads.length);
+					heads.forEach((head, index) => { head.textContent = labels[index]; });
+
+					// The table is `table-layout: fixed`, so a heading too wide for its column
+					// overflows the cell rather than widening the table. The clipping is what has
+					// to be asserted; a table-level width check cannot see it.
+					for (const head of heads) {
+						expect(head.scrollWidth, `${code} "${head.textContent}" is not clipped`)
+							.to.be.at.most(head.clientWidth + 1);
+					}
+					expect(table.getBoundingClientRect().right, `${code} stays inside the card`)
+						.to.be.at.most(320);
+					expect(teamCell.getBoundingClientRect().width, `${code} leaves the team column its width`)
+						.to.be.greaterThan(40);
+				}
+
+				heads.forEach((head, index) => { head.textContent = originals[index]; });
+			});
+		};
+
+		it('fits every locale\'s soccer period headings in the line score', () => {
+			soccerPenalties();
+			measurePeriodHeadRow(bundle => [
+				'1', '2', bundle.box.periodEt1, bundle.box.periodEt2, bundle.box.periodPen, bundle.box.lineTotal,
+			]);
+		});
+
+		it('fits every locale\'s hockey shootout heading in the line score', () => {
+			hockeyShootout();
+			measurePeriodHeadRow(bundle => [
+				'1', '2', '3', bundle.box.overtime, bundle.box.periodSo, bundle.box.lineTotal,
+			]);
 		});
 
 		// Measured as whole rows rather than one label at a time. Substituting a single locale's

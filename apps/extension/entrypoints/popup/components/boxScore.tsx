@@ -1,6 +1,6 @@
 import { i18n } from '#i18n';
-import { useState } from 'react';
-import type { CSSProperties } from 'react';
+import { useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import { leagueConfigMap } from '@arenaswap/core/constants';
 import type { Game, LeagueId } from '@arenaswap/core/types';
 import Crest from '@arenaswap/ui/src/components/crest';
@@ -21,12 +21,33 @@ interface boxScoreProps {
 
 type side = 'away' | 'home';
 
-const periodHeading = (label: PeriodLabel): string => (
-	label.kind === 'number'
-		? String(label.value)
-		: label.index === 1
-			? i18n.t('box.overtime')
-			: i18n.t('box.overtimeNumbered', { count: String(label.index) })
+const sides: side[] = ['away', 'home'];
+
+const periodHeading = (label: PeriodLabel): string => {
+	if (label.kind === 'number') return String(label.value);
+	if (label.kind === 'named') return i18n.t(label.labelKey);
+	return label.index === 1
+		? i18n.t('box.overtime')
+		: i18n.t('box.overtimeNumbered', { count: String(label.index) });
+};
+
+// A crest beside the abbreviation in the team's own ink, which is how the pre-game leader rows and
+// the line score both say which team a row belongs to.
+const TeamIdentity = ({ abbreviation, ink, logo }: {
+	abbreviation: string;
+	ink: string;
+	logo?: string;
+}) => (
+	<span className='gd-box-line-id'>
+		<Crest
+			logo={logo}
+			abbreviation={abbreviation}
+			className='gd-box-line-crest'
+			fallback='blank'
+			loading='lazy'
+		/>
+		<span className='gd-box-line-abbr' style={{ color: ink }}>{abbreviation}</span>
+	</span>
 );
 
 // The pre-game leader rows carry their team by a crest, an abbreviation in the team's own colour
@@ -48,16 +69,7 @@ const LineRow = ({ row, periodCount, showHitsErrors, color, ink, logo }: {
 }) => (
 	<tr style={{ backgroundImage: teamRowWash(color) }}>
 		<th scope='row' className='gd-box-line-team'>
-			<span className='gd-box-line-id'>
-				<Crest
-					logo={logo}
-					abbreviation={row.abbreviation}
-					className='gd-box-line-crest'
-					fallback='blank'
-					loading='lazy'
-				/>
-				<span className='gd-box-line-abbr' style={{ color: ink }}>{row.abbreviation}</span>
-			</span>
+			<TeamIdentity abbreviation={row.abbreviation} ink={ink} logo={logo} />
 		</th>
 		{Array.from({ length: periodCount }, (_, index) => (
 			<td key={index}>{row.periods[index]}</td>
@@ -83,8 +95,9 @@ const PlayerRow = ({ athlete, columns, indent }: {
 			{athlete.position && <span className='gd-box-position'>{athlete.position}</span>}
 		</th>
 		{/* ESPN's reason is an English string — "COACH'S DECISION" — so the row says DNP and stops
-		    rather than shipping one untranslated cell into eleven other languages. */}
-		{athlete.didNotPlayReason
+		    rather than shipping one untranslated cell into eleven other languages. The flag rather
+		    than the reason: the reason is regularly absent on a row that really did not play. */}
+		{athlete.didNotPlay
 			? <td className='gd-box-dnp' colSpan={columns.length}>{i18n.t('box.didNotPlay')}</td>
 			: columns.map(column => <td key={column.index}>{athlete.stats[column.index] ?? ''}</td>)}
 	</tr>
@@ -105,7 +118,12 @@ const SectionTable = ({ section, isBatting }: { section: BoxScoreSection; isBatt
 						{/* oxlint-disable-next-line jsx-a11y/control-has-associated-label */}
 						<td className='gd-box-name' />
 						{section.columns.map(column => (
-							<th scope='col' key={column.index}>{i18n.t(column.labelKey)}</th>
+							// ESPN's own description, untranslated like every other string we pass
+							// through from it. It is the only thing that says SACKS under passing
+							// is sacks suffered and SACKS under defensive is sacks recorded.
+							<th scope='col' key={column.index} title={column.description || undefined}>
+								{i18n.t(column.labelKey)}
+							</th>
 						))}
 					</tr>
 				</thead>
@@ -149,6 +167,26 @@ const SectionTable = ({ section, isBatting }: { section: BoxScoreSection; isBatt
 const boxScore = ({ game, boxScore: box }: boxScoreProps) => {
 	// Away first, which is the order every convention in every sport lists the two teams in.
 	const [selected, setSelected] = useState<side>('away');
+	// A `role='tab'` announces "tab, 1 of 2", which promises the reader a panel to move to and
+	// arrow keys to move with. These ids are the panel half of that; `onTabKeyDown` is the rest.
+	// Built off the game id rather than `useId`, whose output carries characters no `#id` selector
+	// can hold — and only one game detail screen is ever mounted at a time.
+	const tabId = (which: side) => `gd-box-tab-${game.id}-${which}`;
+	const panelId = `gd-box-panel-${game.id}`;
+	const tabRefs = useRef<Partial<Record<side, HTMLButtonElement | null>>>({});
+
+	const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, which: side) => {
+		const index = sides.indexOf(which);
+		const next = event.key === 'ArrowRight' ? sides[(index + 1) % sides.length]
+			: event.key === 'ArrowLeft' ? sides[(index + sides.length - 1) % sides.length]
+				: event.key === 'Home' ? sides[0]
+					: event.key === 'End' ? sides[sides.length - 1]
+						: undefined;
+		if (!next) return;
+		event.preventDefault();
+		setSelected(next);
+		tabRefs.current[next]?.focus();
+	};
 
 	const config = leagueConfigMap[game.league as LeagueId];
 	// The same pair, and the same fallbacks, the pre-game block resolves — so a team reads as one
@@ -160,7 +198,13 @@ const boxScore = ({ game, boxScore: box }: boxScoreProps) => {
 	const homeInk = readableTeamInkOnCard(homeColor);
 	const comparison = buildComparison(game.sportType, box.teamComparison);
 	const teams = { away: box.away, home: box.home };
-	const active = teams[selected] ?? teams.away ?? teams.home;
+	// A side whose every category arrived with empty athletes parses to null, which is the opening
+	// minutes of a football game. The block still renders, and it renders whichever side exists
+	// rather than the selected one — so the identity below has to name the side actually shown.
+	const activeSide: side = teams[selected] ? selected : box.away ? 'away' : 'home';
+	const active = teams[activeSide];
+	const activeTeam = activeSide === 'away' ? game.awayTeam : game.homeTeam;
+	const activeInk = activeSide === 'away' ? awayInk : homeInk;
 	const sections = active ? buildSections(game.sportType, active) : [];
 	const hasBothSides = box.away !== null && box.home !== null;
 
@@ -196,8 +240,13 @@ const boxScore = ({ game, boxScore: box }: boxScoreProps) => {
 									    a screen reader's announcement with its player. */}
 									{/* oxlint-disable-next-line jsx-a11y/control-has-associated-label */}
 									<td className='gd-box-line-team' />
-									{periodLabels(line.periodCount, config?.regularPeriods ?? line.periodCount, config?.periodFormat)
-										.map((label, index) => <th scope='col' key={index}>{periodHeading(label)}</th>)}
+									{periodLabels({
+										periodCount: line.periodCount,
+										regularPeriods: config?.regularPeriods ?? line.periodCount,
+										periodFormat: config?.periodFormat,
+										sportType: game.sportType,
+										finalPeriodSuffix: game.finalPeriodSuffix,
+									}).map((label, index) => <th scope='col' key={index}>{periodHeading(label)}</th>)}
 									<th scope='col' className='gd-box-line-total'>
 										{showHitsErrors ? i18n.t('box.runs') : i18n.t('box.lineTotal')}
 									</th>
@@ -265,18 +314,25 @@ const boxScore = ({ game, boxScore: box }: boxScoreProps) => {
 				<div className='gd-box-players'>
 					{/* One team at a time. Both sides' tables stacked would run to 34 rows for a
 					    basketball game before the reader reaches the second one. */}
-					{hasBothSides && (
+					{hasBothSides ? (
 						<ul className='nav nav-tabs gd-box-tabs' role='tablist'>
-							{(['away', 'home'] as side[]).map(which => {
+							{sides.map(which => {
 								const team = which === 'away' ? game.awayTeam : game.homeTeam;
 								return (
 									<li className='nav-item' role='presentation' key={which}>
 										<button
 											type='button'
 											role='tab'
-											aria-selected={selected === which}
-											className={`nav-link${selected === which ? ' active' : ''}`}
+											id={tabId(which)}
+											aria-selected={activeSide === which}
+											aria-controls={panelId}
+											// Roving: the strip is one tab stop and the arrow keys
+											// move inside it.
+											tabIndex={activeSide === which ? 0 : -1}
+											ref={element => { tabRefs.current[which] = element; }}
+											className={`nav-link${activeSide === which ? ' active' : ''}`}
 											onClick={() => setSelected(which)}
+											onKeyDown={event => onTabKeyDown(event, which)}
 										>
 											<Crest
 												logo={team.logo}
@@ -291,10 +347,33 @@ const boxScore = ({ game, boxScore: box }: boxScoreProps) => {
 								);
 							})}
 						</ul>
+					) : (
+						// One side, no strip, and so nothing else on the screen saying whose
+						// numbers these are.
+						<div className='gd-box-subheading'>
+							<TeamIdentity
+								abbreviation={activeTeam.abbreviation}
+								ink={activeInk}
+								logo={activeTeam.logo}
+							/>
+						</div>
 					)}
-					{sections.map(section => (
-						<SectionTable key={section.name} section={section} isBatting={section.name === 'batting'} />
-					))}
+					<div
+						{...(hasBothSides
+							? { id: panelId, role: 'tabpanel', 'aria-labelledby': tabId(activeSide) }
+							: {})}
+					>
+						{sections.map(section => (
+							// Keyed on the side as well as the category, so an expanded football
+							// defense collapses again when the reader switches teams: the request
+							// was for these players, not for however many the other side has.
+							<SectionTable
+								key={`${activeSide}-${section.name}`}
+								section={section}
+								isBatting={section.name === 'batting'}
+							/>
+						))}
+					</div>
 				</div>
 			)}
 		</div>

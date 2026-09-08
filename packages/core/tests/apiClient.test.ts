@@ -2426,7 +2426,11 @@ describe('finished games', () => {
 			expect(result.games.map(g => g.id)).toEqual(['final-1']);
 		});
 
-		test('asks ESPN for yesterday only when it wants finals', async () => {
+		// Written out as literal dates under a pinned clock rather than as arithmetic on the answer.
+		// The previous version asserted the opening date was the plain one minus one, which is both
+		// the expression under test and wrong across the start of a month.
+		const openingDate = async (now: string, options: Record<string, unknown>): Promise<string[]> => {
+			jest.useFakeTimers().setSystemTime(new Date(now));
 			const urls: string[] = [];
 			const fetchMock = jest.fn().mockImplementation(async (input: RequestInfo | URL) => {
 				urls.push(toUrl(input));
@@ -2434,17 +2438,28 @@ describe('finished games', () => {
 			});
 			(globalThis as { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch;
 			const { fetchGamesWithLeagueLogos } = loadApiClient();
+			await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: true, upcomingDays: 7, ...options });
+			jest.useRealTimers();
+			return datesRange(urls.find(u => u.includes('dates='))!);
+		};
 
-			await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: true, upcomingDays: 7 });
-			const plain = urls.find(u => u.includes('dates='))!;
-			urls.length = 0;
+		// Two local days back, not one. Retention runs 24 hours past the estimated wrap, so a game
+		// still inside the window kicked off up to 27.5 hours ago — which is the day before
+		// yesterday for anyone whose local clock has passed midnight.
+		test('reaches back two days for finals and not at all without them', async () => {
+			const plain = await openingDate('2026-09-07T12:00:00.000Z', {});
+			const withFinals = await openingDate('2026-09-07T12:00:00.000Z', { includeFinal: true });
 
-			await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: true, upcomingDays: 7, includeFinal: true });
-			const withFinals = urls.find(u => u.includes('dates='))!;
+			// The clock is UTC and ESPN files by US Eastern, so a UTC day opens on the previous
+			// Eastern date. Both ends go through that same translation.
+			expect(plain[0]).toBe('20260906');
+			expect(withFinals[0]).toBe('20260904');
+			expect(withFinals[1]).toBe(plain[1]);
+		});
 
-			// Same closing date, one day earlier opening date.
-			expect(datesRange(plain)[1]).toBe(datesRange(withFinals)[1]);
-			expect(Number(datesRange(withFinals)[0])).toBe(Number(datesRange(plain)[0]) - 1);
+		test('and crosses the start of a month while doing it', async () => {
+			const withFinals = await openingDate('2026-10-01T12:00:00.000Z', { includeFinal: true });
+			expect(withFinals[0]).toBe('20260928');
 		});
 	});
 });

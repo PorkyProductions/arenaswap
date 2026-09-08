@@ -63,24 +63,28 @@ const resolveReadableSeriesColor = (value: string | undefined, fallback: string)
 	for (let step = 0; step < 24 && luminance(brightened) < seriesLuminanceFloor; step++) {
 		brightened = brighten(brightened, 1.18);
 	}
+	// Scaling has a ceiling, and a pure blue is sitting on it: its brightest channel is already 255
+	// while the other two round straight back to themselves, so the loop above runs 24 times and
+	// returns the colour it was given. Mixing toward white is the only way up from there, so a hue
+	// that cannot clear the floor by scaling gives up some of its saturation rather than staying
+	// unreadable. Nothing that already clears the floor reaches this — all five of the league navies
+	// the scaling was written for finish the loop above with room to spare.
+	for (let step = 0; step < 24 && luminance(brightened) < seriesLuminanceFloor; step++) {
+		brightened = mixTowardWhite(brightened, 0.12);
+	}
 	return brightened;
 };
 
-// The mirror of the above, for a score printed on a game card. The card is #f4f6f8 (luminance
-// 0.8977), and a score is large bold text, so WCAG again wants 3:1 — which puts the ceiling at
-// luminance 0.2659. Almost every team colour is already under it; the ones that are not are the
-// golds and yellows, which are unreadable on a light plate at any size.
-const cardTextLuminanceCeiling = 0.2659;
-
-// Small text does not get the 3:1 large-text allowance — it needs 4.5:1, which on the #f8fafc
-// detail cards puts the ceiling at 0.173 rather than 0.2659. Same climb, stricter bar: half the
-// league fails it, and the Penguins' and Bruins' gold reaches only 1.7:1 untouched.
+// The mirror of the above, for team text printed on one of the light detail cards. Those are
+// #f8fafc (luminance 0.9536) and the text is small, so it needs 4.5:1 rather than the 3:1 a chart
+// line or a large score gets — which puts the ceiling at luminance 0.173. Half the league fails
+// it, and the Penguins' and Bruins' gold reaches only 1.7:1 untouched.
 const smallCardTextLuminanceCeiling = 0.173;
 
 const resolveReadableCardTextColor = (
 	value: string | undefined,
 	fallback: string,
-	ceiling = cardTextLuminanceCeiling,
+	ceiling: number,
 ): string => {
 	if (!value || !hexToRgb(value)) return fallback;
 	let darkened = value;

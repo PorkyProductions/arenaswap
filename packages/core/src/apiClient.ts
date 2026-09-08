@@ -479,9 +479,11 @@ const parseEvent = (event: EspnEvent, league: LeagueId): Game | null => {
 		status: state,
 		// Every state, not just `pre`. A game's start is a fact about the game rather than about
 		// how far through it is, and the retention window for finished games has nothing else to
-		// anchor on — ESPN publishes no completion timestamp. Every other reader of this field is
-		// already behind a pre-game check, so nothing that used to see undefined here now sees a
-		// date it would misread.
+		// anchor on — ESPN publishes no completion timestamp. Every reader that displays this field
+		// is behind a pre-game check, so nothing that used to see undefined now shows a date it
+		// would misread. The one reader that is not is the tab matcher's tiebreak, which used to
+		// read MAX_SAFE_INTEGER for every live game and now sorts two equally-scored ones by
+		// kickoff — a better answer than the id comparison it used to fall through to.
 		startTime: event.date,
 		broadcasts: parseBroadcasts(comp),
 		odds: parseOdds(comp),
@@ -574,9 +576,10 @@ const fetchLeagueGames = async (config: LeagueConfig, options: LeagueFetchOption
 		return { leagueId: config.id, games: parsedGames, logoUrl };
 	}
 
-	// One day back covers the whole 24-hour window in every zone that matters: a game inside it
-	// started at most about 27 hours ago, which is yesterday or today in local terms.
-	const upcomingDates = buildUpcomingDatesRangeQuery(upcomingDays, new Date(), includeFinal ? 1 : 0);
+	// Retention runs 24 hours past the estimated wrap, so a game still inside the window kicked off
+	// as long as 27.5 hours ago. That is two local days back, not one: 27.5 hours before 00:30 local
+	// is 21:00 the day before yesterday. One day back leaves a hole at the tail of a late kickoff.
+	const upcomingDates = buildUpcomingDatesRangeQuery(upcomingDays, new Date(), includeFinal ? 2 : 0);
 	const upcomingParams = new URLSearchParams(baseParams);
 	upcomingParams.set('dates', upcomingDates);
 	const upcomingUrl = `${scoreboardUrl}?${upcomingParams.toString()}`;

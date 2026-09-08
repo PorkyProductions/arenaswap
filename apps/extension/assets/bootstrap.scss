@@ -44,6 +44,11 @@ $table-color:            #111827;
 // cannot drift apart.
 $table-bg:               transparent;
 $table-border-color:     #d1d5db;
+// Bootstrap 5.3 draws this only through the opt-in .table-group-divider class, which nothing in
+// our source uses, so it is a guard rather than an active fix: left at the default currentcolor,
+// the first table to ask for a divider would draw the table's own #111827 as a heavy bar across
+// the light card.
+$table-group-separator-color: #d1d5db;
 $table-striped-color:    #111827;
 $table-striped-bg:       rgba(17, 24, 39, 0.045);
 $table-active-color:     #111827;
@@ -1626,7 +1631,7 @@ button.game-info-attribution {
 
 	// Final games only — see detailHero. The weight lives on the element as a Bootstrap utility,
 	// since `.fw-bold` is `!important` and would beat a font-weight set here.
-	&.is-loser { color: #9aa4b0; }
+	&.is-loser { color: $score-loser-color; }
 }
 
 .game-detail-period {

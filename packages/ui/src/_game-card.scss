@@ -213,7 +213,7 @@ $pre-game-time-color: shade-color($warning, 60%);
 	// Half of what says who won on a final card; the other half is the weight, which is a
 	// Bootstrap utility on the element because `.fw-bold` is `!important` and would win here.
 	&.is-loser {
-		color: #9aa4b0;
+		color: $score-loser-color;
 	}
 }
 

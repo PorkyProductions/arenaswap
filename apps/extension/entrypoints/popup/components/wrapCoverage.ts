@@ -1,4 +1,4 @@
-import { estimatedWrapMs } from '@arenaswap/core/constants';
+import { estimatedWrapMs, historyWindowMs, sportTypeConfigMap } from '@arenaswap/core/constants';
 import type { Game } from '@arenaswap/core/types';
 
 // The charts on a live screen are a running read on a game in progress — a partial line is the
@@ -9,6 +9,11 @@ import type { Game } from '@arenaswap/core/types';
 // History only covers the minutes the background was actually polling. MV3 tears the worker down,
 // the browser gets closed, leagues get switched on halfway through — so a finished game routinely
 // carries a stub of history rather than none, which is exactly the case a length check misses.
+//
+// This only asks a question worth asking because the background keeps a thinned sample of the
+// whole game rather than a rolling window of the last few minutes. Under a rolling window the two
+// fractions below are unsatisfiable in every sport by an order of magnitude: basketball's window is
+// five minutes against a span of two hours, so no chart could ever have drawn.
 
 // A snapshot inside this share of the game's estimated length counts as "from the start". Polls
 // are seconds apart, so the slack is for a late first wake rather than for a sampling gap.
@@ -19,6 +24,22 @@ const startToleranceFraction = 0.1;
 const endCoverageFraction = 0.9;
 
 interface timestamped { timestamp: number }
+
+// The background keeps every snapshot inside the scorer's rolling window at full resolution and a
+// thinned sample of everything before it, so a finished game has a line covering the whole game
+// rather than the last few minutes of it. A live screen stays on the window it has always drawn:
+// the tail exists for the record of a game that is over, and widening a running chart is a
+// different decision from making the wrap's charts possible at all.
+export const chartHistory = <T extends timestamped>(
+	history: readonly T[],
+	game: Pick<Game, 'sportType' | 'status'>,
+	now: number = Date.now(),
+): T[] => {
+	if (game.status === 'post') return [...history];
+	const windowMs = sportTypeConfigMap[game.sportType]?.historyWindowMs ?? historyWindowMs;
+	const recent = history.filter(snapshot => snapshot.timestamp >= now - windowMs);
+	return recent.length > 0 ? recent : history.slice(-1);
+};
 
 const gameSpan = (game: Pick<Game, 'sportType' | 'startTime'>, now: number): { startMs: number; lengthMs: number } | null => {
 	if (!game.startTime) return null;

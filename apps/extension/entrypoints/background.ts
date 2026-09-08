@@ -63,19 +63,65 @@ const getHistoryWindowMsForGame = (game: Game): number => {
 	return sportConfig.historyWindowMs ?? historyWindowMs;
 };
 
-const maxHistoryWindowMs = Math.max(
-	historyWindowMs,
-	...Object.values(sportTypeConfigMap).map(config => config.historyWindowMs ?? historyWindowMs),
-);
-
-// Backstop only — the time window is the real policy. Stops the arrays growing without bound if
-// polling ever runs faster than expected. Soccer's 20-minute window at the 6s eager floor is 200
-// snapshots, so this leaves headroom without letting a runaway loop fill session storage.
+// Backstop only — the thinning below is the real policy. Stops the arrays growing without bound if
+// polling ever runs faster than expected. A thinned football game is about 100 coarse samples plus
+// soccer's worst-case 200 inside its window, so this leaves headroom without letting a runaway loop
+// fill session storage.
 const maxSnapshotsPerGame = 400;
 
-const trimSnapshots = <T extends { timestamp: number }>(snapshots: T[], cutoff: number): void => {
-	while (snapshots.length > 1 && snapshots[0]!.timestamp < cutoff) snapshots.shift();
-	if (snapshots.length > maxSnapshotsPerGame) snapshots.splice(0, snapshots.length - maxSnapshotsPerGame);
+// Snapshots older than the scorer's window are only ever drawn as a chart line, and a wrap screen
+// draws the whole game rather than the last few minutes of it — so the tail is thinned to this
+// spacing instead of being discarded. Two minutes puts about 100 samples across a football game's
+// first three hours, which is more than 300px of chart can resolve anyway.
+const coarseSampleIntervalMs = 120_000;
+
+// Dropping the oldest snapshots would take the start of the game with them, and the start is the
+// end the chart gate measures from. So the cap is met by thinning the already-coarse tail further,
+// which costs resolution rather than span.
+const thinToCap = <T extends { timestamp: number }>(coarse: T[], recent: T[]): T[] => {
+	let kept = coarse;
+	while (kept.length + recent.length > maxSnapshotsPerGame && kept.length > 2) {
+		kept = kept.filter((_, index) => index % 2 === 0 || index === kept.length - 1);
+	}
+	return [...kept, ...recent].slice(-maxSnapshotsPerGame);
+};
+
+// What the scorer sees, which is byte-identical to what the old single-window trim left behind.
+const recentSnapshots = <T extends { timestamp: number }>(snapshots: readonly T[], cutoff: number): T[] => {
+	const recent = snapshots.filter(snapshot => snapshot.timestamp >= cutoff);
+	return recent.length > 0 ? recent : snapshots.slice(-1);
+};
+
+// Everything inside the scorer's window is kept exactly as it arrived, because that is the slice
+// computePowerScore reads. Everything before it is thinned rather than dropped — but only when the
+// wrap screen it exists for is reachable at all. A finished game leaves the list entirely unless
+// Keep finished games is on, so with the setting off there is nothing to draw the tail on and this
+// is the plain window it has always been, at the storage cost it has always had. That matters
+// because both maps are written to session storage on every poll, and a busy Saturday is thirty
+// live games at once.
+const retainSnapshots = <T extends { timestamp: number }>(
+	snapshots: T[],
+	cutoff: number,
+	keepWholeGame: boolean,
+): T[] => {
+	if (!keepWholeGame) return recentSnapshots(snapshots, cutoff);
+	const coarse: T[] = [];
+	const recent: T[] = [];
+	for (const snapshot of snapshots) {
+		if (snapshot.timestamp >= cutoff) {
+			recent.push(snapshot);
+			continue;
+		}
+		const previous = coarse[coarse.length - 1];
+		if (!previous || snapshot.timestamp - previous.timestamp >= coarseSampleIntervalMs) coarse.push(snapshot);
+	}
+	// A game whose entire history predates the window still has to report a current value, and the
+	// thinning may not have kept its newest snapshot.
+	if (recent.length === 0) {
+		const newest = snapshots[snapshots.length - 1];
+		if (newest && coarse[coarse.length - 1] !== newest) coarse.push(newest);
+	}
+	return thinToCap(coarse, recent);
 };
 
 const capitalizeFirst = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -147,14 +193,11 @@ export default defineBackground(() => {
 				if (!Array.isArray(snapshots)) return;
 				const valid = snapshots.filter(isScoreSnapshotLike);
 				if (valid.length === 0) return;
-				// Runs before the first fetch, so there is no Game to read a per-sport window from
-				// yet. Trimming to the widest window keeps the sports that use one — the global value
-				// would discard 15 of soccer's 20 minutes on every worker wake — and the next
-				// updateHistory pass re-trims to the sport's real window.
-				const cutoff = valid[valid.length - 1]!.timestamp - maxHistoryWindowMs;
-				const trimmed = valid.filter(s => s.timestamp >= cutoff).slice(-maxSnapshotsPerGame);
-				if (trimmed.length === 0) return;
-				history.set(gameId, trimmed);
+				// Taken as persisted. What was written out was already thinned by retainSnapshots, and
+				// re-applying a window here would throw away the coarse tail of the game on every
+				// worker wake — which MV3 does constantly, so the wrap screen would never see a full
+				// game. The cap is kept as the same backstop it is everywhere else.
+				history.set(gameId, valid.slice(-maxSnapshotsPerGame));
 			});
 		}
 
@@ -163,10 +206,7 @@ export default defineBackground(() => {
 				if (!Array.isArray(snapshots)) return;
 				const valid = snapshots.filter(isPowerScoreSnapshotLike);
 				if (valid.length === 0) return;
-				const cutoff = valid[valid.length - 1]!.timestamp - maxHistoryWindowMs;
-				const trimmed = valid.filter(s => s.timestamp >= cutoff).slice(-maxSnapshotsPerGame);
-				if (trimmed.length === 0) return;
-				powerScoreHistory.set(gameId, trimmed);
+				powerScoreHistory.set(gameId, valid.slice(-maxSnapshotsPerGame));
 			});
 		}
 	};
@@ -182,8 +222,7 @@ export default defineBackground(() => {
 				homeScore: game.homeTeam.score,
 				awayScore: game.awayTeam.score,
 			});
-			trimSnapshots(snapshots, now - getHistoryWindowMsForGame(game));
-			history.set(game.id, snapshots);
+			history.set(game.id, retainSnapshots(snapshots, now - getHistoryWindowMsForGame(game), prefs.keepFinalGames));
 		});
 	};
 
@@ -215,8 +254,7 @@ export default defineBackground(() => {
 				stalled: score.stalled ?? false,
 				reason: score.reason,
 			});
-			trimSnapshots(snapshots, now - getHistoryWindowMsForGame(game));
-			powerScoreHistory.set(score.gameId, snapshots);
+			powerScoreHistory.set(score.gameId, retainSnapshots(snapshots, now - getHistoryWindowMsForGame(game), prefs.keepFinalGames));
 		});
 	};
 
@@ -514,6 +552,18 @@ export default defineBackground(() => {
 		prefs.keepFinalGames ? retainedFinalGames.filter(g => isWithinFinalRetention(g)) : []
 	);
 
+	// refreshSlate only runs at worker startup and when preferences change, so a game that goes
+	// final while the worker is already up never passes through it. Recorded here instead, on every
+	// poll: otherwise the game survives only as long as the dateless scoreboard keeps returning it,
+	// and the Eastern-day rollover drops it a couple of hours old against a promised 24. The fresh
+	// copy replaces any retained one, so a score corrected after the whistle is the one that sticks.
+	const absorbFinalGames = (fresh: Game[]) => {
+		if (!prefs.keepFinalGames) return;
+		const byId = new Map(retainedFinalGames.map(game => [game.id, game]));
+		fresh.filter(game => game.status === 'post').forEach(game => byId.set(game.id, game));
+		retainedFinalGames = [...byId.values()].filter(game => isWithinFinalRetention(game));
+	};
+
 	// A changedLeagueId scopes stall tracking and history to just that league; null processes
 	// every live game.
 	const afterFetch = async (changedLeagueId: LeagueId | null, allowTabSwitch: boolean) => {
@@ -540,9 +590,13 @@ export default defineBackground(() => {
 		const postseasonBoostPoints = prefs.postseasonBoostPoints;
 		const scores = liveGames.map(g => {
 			const stallCount = clockStallMap.get(g.id)?.stallCount ?? 0;
+			// The window, not the whole retained series: the thinned tail below it exists for the wrap
+			// screen's charts, and feeding three hours of a game to a scorer tuned to the last few
+			// minutes would change every signal it computes.
+			const scored = recentSnapshots(history.get(g.id) ?? [], Date.now() - getHistoryWindowMsForGame(g));
 			const baseScore = applyDisabledSignals(
 				normalizePowerScoreResult(
-					computePowerScore(g, history.get(g.id) ?? [], stallCount, winProbHistory.get(g.id) ?? []),
+					computePowerScore(g, scored, stallCount, winProbHistory.get(g.id) ?? []),
 				),
 				prefs.disabledSignals,
 			);
@@ -663,6 +717,7 @@ export default defineBackground(() => {
 				logError('Failed to fetch games.', err);
 				return;
 			}
+			absorbFinalGames(games);
 			const freshGameIds = new Set(games.map(g => g.id));
 			const stillUpcoming = upcomingGames.filter(g => !freshGameIds.has(g.id));
 			const stillFinal = liveRetainedFinals().filter(g => !freshGameIds.has(g.id));
@@ -676,11 +731,15 @@ export default defineBackground(() => {
 		let fetchSucceeded = false;
 		try {
 			const fetchResult = await fetchGamesWithLeagueLogos([leagueId], { includeUpcoming: false, includeFinal: prefs.keepFinalGames });
+			absorbFinalGames(fetchResult.games);
 			const freshGameIds = new Set(fetchResult.games.map(g => g.id));
-			const otherGames = games.filter(g => g.league !== leagueId);
+			// Every league's finals are rebuilt from the retained list rather than carried through
+			// with the other leagues' games, so one league's poll re-checks the whole set's
+			// retention instead of each league only ageing out when its own turn comes round.
+			const otherGames = games.filter(g => g.league !== leagueId && g.status !== 'post');
 			const leagueUpcoming = upcomingGames.filter(g => g.league === leagueId && !freshGameIds.has(g.id));
-			const leagueFinal = liveRetainedFinals().filter(g => g.league === leagueId && !freshGameIds.has(g.id));
-			games = [...otherGames, ...fetchResult.games, ...leagueUpcoming, ...leagueFinal];
+			const retainedFinals = liveRetainedFinals().filter(g => !freshGameIds.has(g.id));
+			games = [...otherGames, ...fetchResult.games, ...leagueUpcoming, ...retainedFinals];
 			leagueLogos = { ...leagueLogos, ...fetchResult.leagueLogos };
 			const hasLiveGames = fetchResult.games.some(g => g.status === 'in');
 			pollModeTracker.recordPollResult(leagueId, hasLiveGames);

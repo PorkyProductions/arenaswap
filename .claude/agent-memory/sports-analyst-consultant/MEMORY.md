@@ -12,3 +12,4 @@
 - [football_field_markings_geometry.md](football_field_markings_geometry.md) — Rulebook-verified NFL/NCAA field marking dimensions, the 120x30 compression factor, and what survives at 289x75px
 - [boxscore_columns_by_sport.md](boxscore_columns_by_sport.md) — Decided box score categories, ordered columns (max 6) and row ordering per sport at 320px
 - [boxscore_espn_stat_key_traps.md](boxscore_espn_stat_key_traps.md) — ESPN stat keys/labels that lie: SOG=shootout goals, YTDG, passing-vs-defensive sacks, IP's dot separator
+- [boxscore_period_labels_et_shootout.md](boxscore_period_labels_et_shootout.md) — Soccer ET1/ET2/PEN and hockey SO headings; verified linescores shape, MLS phantom ET, why period is unreliable

@@ -58,6 +58,12 @@ const mountPanel = (game: Game, gameDurationMins: number | null) => {
 	);
 };
 
+// `.game-info-value` wraps rather than overflowing — it carries `overflow-wrap: anywhere` and no
+// `white-space: nowrap` — so comparing its scrollWidth against its clientWidth holds however badly
+// the row breaks. An inline run reports one client rect per line it occupies, which is the thing
+// these assertions are actually claiming.
+const lineCount = (el: HTMLElement): number => el.getClientRects().length;
+
 const expectedTime = (startIso: string, mins: number): string => (
 	new Date(new Date(startIso).getTime() + (mins * 60_000))
 		.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
@@ -116,11 +122,28 @@ describe('game info panel', () => {
 		cy.get('.game-info-row').eq(1).should('contain.text', 'Kansas City, MO');
 	});
 
+	// Two lines, and each has to fit the column on its own. The scrollWidth comparison this replaced
+	// could not fail: `.game-info-value` wraps, so a name too long for the column breaks onto a
+	// second line rather than overflowing, and the assertion held either way. Measured intrinsically
+	// off an absolutely positioned clone, the same way the label column below is measured.
 	it('keeps the longest venue block inside the panel', () => {
-		mountDetail({ ...liveGame, venueName: 'Mercedes-Benz Superdome', venueLocation: 'New Orleans, Louisiana' });
-		cy.get('.game-info-row').eq(1).find('.game-info-value').should($value => {
-			const el = $value[0];
-			expect(el.scrollWidth, 'venue block does not overflow its column').to.be.at.most(el.clientWidth);
+		mountDetail({
+			...liveGame,
+			venueName: 'Mercedes-Benz Superdome',
+			venueLocation: 'New Orleans, Louisiana',
+			weather: undefined,
+		});
+		cy.get('.game-info-row').eq(1).find('.game-info-value').then(([value]: JQuery<HTMLElement>) => {
+			const column = value.getBoundingClientRect().width;
+			for (const selector of ['.game-info-venue-name', '.game-info-venue-location']) {
+				const line = value.querySelector(selector) as HTMLElement;
+				const probe = line.cloneNode(true) as HTMLElement;
+				probe.style.cssText = 'width:auto;display:inline-block;white-space:nowrap;position:absolute;visibility:hidden';
+				value.appendChild(probe);
+				expect(probe.getBoundingClientRect().width, `${selector} fits the value column on one line`)
+					.to.be.at.most(column);
+				probe.remove();
+			}
 		});
 	});
 
@@ -227,9 +250,8 @@ describe('game info panel', () => {
 
 		it('keeps the time on one line beside its label', () => {
 			mountPanel(finalGame, 194);
-			cy.get('.game-info-row').last().find('.game-info-value').should($value => {
-				const el = $value[0];
-				expect(el.scrollWidth, 'the time does not overflow its column').to.be.at.most(el.clientWidth);
+			cy.get('.game-info-row').last().find('.game-info-value-strong').should($value => {
+				expect(lineCount($value[0]), 'the time occupies a single line').to.equal(1);
 			});
 		});
 	});
@@ -279,9 +301,8 @@ describe('game info panel', () => {
 
 		it('keeps the number on one line beside its label', () => {
 			mountDetail({ ...finalGame, attendance: 105000 });
-			cy.get('.game-info-row').eq(2).find('.game-info-value').should($value => {
-				const el = $value[0];
-				expect(el.scrollWidth, 'the figure does not overflow its column').to.be.at.most(el.clientWidth);
+			cy.get('.game-info-row').eq(2).find('.game-info-value-strong').should($value => {
+				expect(lineCount($value[0]), 'the figure occupies a single line').to.equal(1);
 			});
 		});
 	});

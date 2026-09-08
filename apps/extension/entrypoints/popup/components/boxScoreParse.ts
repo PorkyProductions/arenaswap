@@ -89,6 +89,9 @@ export interface BoxScoreAthlete {
 	// in the order is 1-9 and 0 means "not batting".
 	batOrder: number;
 	// Basketball is the only sport that reports this, as a flag plus a reason and an empty `stats`.
+	// The flag is what both readers branch on: ESPN sends `didNotPlay: true` with no `reason`
+	// often enough that a truthy check on the reason renders a row of empty cells instead of DNP.
+	didNotPlay: boolean;
 	didNotPlayReason: string;
 }
 
@@ -166,34 +169,44 @@ const pickBySide = <T extends { team?: RawTeamRef; homeAway?: string }>(
 	blocks: T[] | undefined,
 	teamId: string,
 	side: 'home' | 'away',
+	otherTeamId: string,
 ): T | undefined => {
 	if (!Array.isArray(blocks)) return undefined;
-	const byId = teamId ? blocks.find(block => block.team?.id === teamId) : undefined;
-	return byId ?? blocks.find(block => block.homeAway === side);
+	const byId = teamId ? blocks.find(block => block?.team?.id === teamId) : undefined;
+	if (byId) return byId;
+	const bySide = blocks.find(block => block?.homeAway === side);
+	if (bySide) return bySide;
+	// Elimination, for the `players` blocks that carry no `homeAway` at all. The id we compare is
+	// ESPN's competitor id against its team id, and the two coincide in every league visible
+	// today; the day they diverge, one side still resolving is enough to place the other.
+	if (blocks.length !== 2 || !otherTeamId) return undefined;
+	const otherIndex = blocks.findIndex(block => block?.team?.id === otherTeamId);
+	return otherIndex === -1 ? undefined : blocks[1 - otherIndex];
 };
 
-const parseAthlete = (entry: RawAthleteEntry): BoxScoreAthlete => ({
-	id: asText(entry.athlete?.id),
+const parseAthlete = (entry: RawAthleteEntry | null | undefined): BoxScoreAthlete => ({
+	id: asText(entry?.athlete?.id),
 	// `shortName` is already initialled — "J. Wood", "P. Crow-Armstrong" — which is what fits the
 	// one name column a 320px popup has room for. `displayName` is the fallback for a league that
 	// sends only the long form.
-	name: entry.athlete?.shortName || entry.athlete?.displayName || '',
+	name: entry?.athlete?.shortName || entry?.athlete?.displayName || '',
 	// The entry's own position beats the athlete's: a two-way player is listed at the position
 	// they played in this game, not the one on their profile.
-	position: asText(entry.position?.abbreviation || entry.athlete?.position?.abbreviation),
-	stats: asTextList(entry.stats),
-	starter: entry.starter === true,
-	batOrder: typeof entry.batOrder === 'number' ? entry.batOrder : 0,
-	didNotPlayReason: entry.didNotPlay === true ? asText(entry.reason) : '',
+	position: asText(entry?.position?.abbreviation || entry?.athlete?.position?.abbreviation),
+	stats: asTextList(entry?.stats),
+	starter: entry?.starter === true,
+	batOrder: typeof entry?.batOrder === 'number' ? entry.batOrder : 0,
+	didNotPlay: entry?.didNotPlay === true,
+	didNotPlayReason: entry?.didNotPlay === true ? asText(entry.reason) : '',
 });
 
-const parseCategory = (category: RawStatCategory): BoxScoreCategory => ({
-	name: asText(category.name || category.type),
-	labels: asTextList(category.labels),
-	keys: asTextList(category.keys),
-	descriptions: asTextList(category.descriptions),
-	totals: asTextList(category.totals),
-	athletes: Array.isArray(category.athletes) ? category.athletes.map(parseAthlete) : [],
+const parseCategory = (category: RawStatCategory | null | undefined): BoxScoreCategory => ({
+	name: asText(category?.name || category?.type),
+	labels: asTextList(category?.labels),
+	keys: asTextList(category?.keys),
+	descriptions: asTextList(category?.descriptions),
+	totals: asTextList(category?.totals),
+	athletes: Array.isArray(category?.athletes) ? category.athletes.map(parseAthlete) : [],
 });
 
 const parseTeamBlock = (
@@ -205,8 +218,10 @@ const parseTeamBlock = (
 		.map(parseCategory)
 		// A category with no columns cannot be rendered as a table, and one with no athletes is
 		// what ESPN sends for a phase that never happened — an empty `puntReturns`, or hockey's
-		// `skaters` alongside the `forwards` and `defenses` it duplicates.
-		.filter(category => category.labels.length > 0 && category.athletes.length > 0);
+		// `skaters` alongside the `forwards` and `defenses` it duplicates. `keys` is the column
+		// list that matters: selection reads it and every heading comes from our own catalog, so
+		// a category ESPN sends no display labels for still renders.
+		.filter(category => category.keys.length > 0 && category.athletes.length > 0);
 	if (categories.length === 0) return null;
 	return {
 		teamId: asText(block.team?.id),
@@ -235,8 +250,8 @@ export const parseTeamComparison = (
 	awayTeamId: string,
 ): TeamComparisonRow[] => {
 	const teams = (data as RawSummary)?.boxscore?.teams;
-	const awayStats = flatTeamStats(pickBySide(teams, awayTeamId, 'away'));
-	const homeStats = flatTeamStats(pickBySide(teams, homeTeamId, 'home'));
+	const awayStats = flatTeamStats(pickBySide(teams, awayTeamId, 'away', homeTeamId));
+	const homeStats = flatTeamStats(pickBySide(teams, homeTeamId, 'home', awayTeamId));
 	if (awayStats.length === 0 || homeStats.length === 0) return [];
 
 	// Keyed on `name` and ordered by the away team's list. Position would not do it: the two sides
@@ -261,9 +276,9 @@ const parseLineRow = (
 	fallbackAbbreviation: string,
 ): LineScoreRow => {
 	const periods = Array.isArray(competitor?.linescores) ? competitor.linescores : [];
-	const withHitsErrors = periods.filter(period => typeof period.hits === 'number');
+	const withHitsErrors = periods.filter(period => typeof period?.hits === 'number');
 	const sum = (pick: (period: RawLinePeriod) => number | undefined): number => (
-		periods.reduce((total, period) => total + (pick(period) ?? 0), 0)
+		periods.reduce((total, period) => total + (period ? pick(period) ?? 0 : 0), 0)
 	);
 
 	return {
@@ -287,8 +302,8 @@ export const parseLineScore = (
 	awayAbbreviation: string,
 ): LineScore | null => {
 	const competitors = (data as RawSummary)?.header?.competitions?.[0]?.competitors;
-	const away = pickBySide(competitors, awayTeamId, 'away');
-	const home = pickBySide(competitors, homeTeamId, 'home');
+	const away = pickBySide(competitors, awayTeamId, 'away', homeTeamId);
+	const home = pickBySide(competitors, homeTeamId, 'home', awayTeamId);
 	if (!away || !home) return null;
 
 	const periodCount = Math.max(
@@ -314,10 +329,10 @@ export const parseBoxScore = (
 	const players = (data as RawSummary)?.boxscore?.players;
 	return {
 		lineScore: parseLineScore(data, homeTeamId, awayTeamId, homeAbbreviation, awayAbbreviation),
-		// Players blocks carry no `homeAway` of their own, so the id match is the only route and the
-		// side fallback inside `pickBySide` will never fire for them.
-		away: parseTeamBlock(pickBySide(players, awayTeamId, 'away'), awayAbbreviation),
-		home: parseTeamBlock(pickBySide(players, homeTeamId, 'home'), homeAbbreviation),
+		// Players blocks carry no `homeAway` of their own, so the id match is the only direct route
+		// and the elimination step inside `pickBySide` is the whole fallback.
+		away: parseTeamBlock(pickBySide(players, awayTeamId, 'away', homeTeamId), awayAbbreviation),
+		home: parseTeamBlock(pickBySide(players, homeTeamId, 'home', awayTeamId), homeAbbreviation),
 		teamComparison: parseTeamComparison(data, homeTeamId, awayTeamId),
 	};
 };

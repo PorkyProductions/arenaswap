@@ -4,7 +4,8 @@
 //
 // Five games, one per sport we ship a live demo game for, so every table on this screen — the
 // R-H-E line, both clock-sport line scores, all four category shapes and the team comparison — is
-// reachable in September without waiting on a real slate.
+// reachable in September without waiting on a real slate. A sixth covers the finished game, whose
+// line score has to read as a completed one rather than as a live game's.
 
 interface mockRow {
 	name: string;
@@ -202,6 +203,93 @@ const baseball = {
 	},
 };
 
+// ── mock-20 · MLB · NYM 2 @ PHI 3, final in ten innings ──────────────────────
+// The one finished demo game, and it needs its own line score: the fixture above stops in the top
+// of the eighth, so borrowing it drew Final/10 over an eight-inning card with a blank bottom of
+// the 8th. Both rows run the full ten here, and every total sums to what the row above it says.
+const baseballFinal = {
+	header: { competitions: [{ competitors: [
+		competitor('away', '21', 'NYM', '2', [
+			{ displayValue: '0', hits: 1, errors: 0 },
+			{ displayValue: '1', hits: 2, errors: 0 },
+			{ displayValue: '0', hits: 0, errors: 0 },
+			{ displayValue: '0', hits: 1, errors: 1 },
+			{ displayValue: '0', hits: 0, errors: 0 },
+			{ displayValue: '1', hits: 2, errors: 0 },
+			{ displayValue: '0', hits: 0, errors: 0 },
+			{ displayValue: '0', hits: 1, errors: 0 },
+			{ displayValue: '0', hits: 0, errors: 0 },
+			{ displayValue: '0', hits: 1, errors: 0 },
+		]),
+		// The home side bats in the bottom of the tenth and the winning run ends it, so both rows
+		// are the same length rather than the away side running one half-inning long.
+		competitor('home', '22', 'PHI', '3', [
+			{ displayValue: '1', hits: 2, errors: 0 },
+			{ displayValue: '0', hits: 0, errors: 0 },
+			{ displayValue: '0', hits: 1, errors: 0 },
+			{ displayValue: '0', hits: 1, errors: 0 },
+			{ displayValue: '0', hits: 0, errors: 1 },
+			{ displayValue: '1', hits: 1, errors: 0 },
+			{ displayValue: '0', hits: 0, errors: 0 },
+			{ displayValue: '0', hits: 1, errors: 0 },
+			{ displayValue: '0', hits: 0, errors: 0 },
+			{ displayValue: '1', hits: 2, errors: 0 },
+		]),
+	] }] },
+	boxscore: {
+		players: [
+			{
+				team: { id: '21', abbreviation: 'NYM' },
+				statistics: [
+					category('batting', battingKeys, battingLabels, [
+						{ name: 'F. Lindor', position: 'SS', starter: true, batOrder: 1, stats: ['1-5', '5', '0', '1', '0', '0', '0', '1'] },
+						{ name: 'J. Soto', position: 'RF', starter: true, batOrder: 2, stats: ['2-5', '5', '1', '2', '1', '1', '0', '0'] },
+						{ name: 'P. Alonso', position: '1B', starter: true, batOrder: 3, stats: ['1-4', '4', '1', '1', '0', '0', '1', '2'] },
+						{ name: 'B. Nimmo', position: 'LF', starter: true, batOrder: 4, stats: ['0-4', '4', '0', '0', '0', '0', '1', '1'] },
+						{ name: 'M. Vientos', position: '3B', starter: true, batOrder: 5, stats: ['1-4', '4', '0', '1', '1', '0', '0', '1'] },
+						{ name: 'J. Baty', position: '2B', starter: true, batOrder: 6, stats: ['1-3', '3', '0', '1', '0', '0', '0', '0'] },
+						{ name: 'T. Nimmo', position: 'PH', batOrder: 6, stats: ['0-1', '1', '0', '0', '0', '0', '0', '1'] },
+						{ name: 'L. Torrens', position: 'C', starter: true, batOrder: 7, stats: ['1-4', '4', '0', '1', '0', '0', '0', '1'] },
+						{ name: 'T. Taylor', position: 'CF', starter: true, batOrder: 8, stats: ['1-4', '4', '0', '1', '0', '0', '0', '2'] },
+					], ['8-34', '34', '2', '8', '2', '1', '2', '9']),
+					category('pitching', pitchingKeys, pitchingLabels, [
+						{ name: 'K. Senga', position: 'SP', starter: true, stats: ['5.2', '4', '1', '1', '2', '7'] },
+						{ name: 'R. Garrett', position: 'RP', stats: ['2.1', '2', '1', '1', '1', '2'] },
+						{ name: 'E. Diaz', position: 'RP', stats: ['1.0', '1', '0', '0', '0', '2'] },
+						{ name: 'H. Brazoban', position: 'RP', stats: ['0.1', '1', '1', '1', '0', '0'] },
+					], ['9.1', '8', '3', '3', '3', '11']),
+				],
+			},
+			{
+				team: { id: '22', abbreviation: 'PHI' },
+				statistics: [
+					category('batting', battingKeys, battingLabels, [
+						{ name: 'K. Schwarber', position: 'DH', starter: true, batOrder: 1, stats: ['1-4', '4', '1', '1', '1', '1', '1', '1'] },
+						{ name: 'T. Turner', position: 'SS', starter: true, batOrder: 2, stats: ['2-5', '5', '1', '2', '0', '0', '0', '0'] },
+						{ name: 'B. Harper', position: '1B', starter: true, batOrder: 3, stats: ['1-5', '5', '0', '1', '1', '0', '0', '1'] },
+						{ name: 'A. Bohm', position: '3B', starter: true, batOrder: 4, stats: ['1-5', '5', '1', '1', '0', '0', '0', '1'] },
+						{ name: 'N. Castellanos', position: 'RF', starter: true, batOrder: 5, stats: ['1-4', '4', '0', '1', '1', '0', '0', '1'] },
+						{ name: 'B. Marsh', position: 'LF', starter: true, batOrder: 6, stats: ['0-4', '4', '0', '0', '0', '0', '1', '2'] },
+						{ name: 'J. Realmuto', position: 'C', starter: true, batOrder: 7, stats: ['1-4', '4', '0', '1', '0', '0', '0', '0'] },
+						{ name: 'B. Stott', position: '2B', starter: true, batOrder: 8, stats: ['1-4', '4', '0', '1', '0', '0', '0', '1'] },
+						{ name: 'J. Rojas', position: 'CF', starter: true, batOrder: 9, stats: ['0-3', '3', '0', '0', '0', '0', '0', '2'] },
+					], ['8-38', '38', '3', '8', '3', '1', '2', '9']),
+					category('pitching', pitchingKeys, pitchingLabels, [
+						{ name: 'Z. Wheeler', position: 'SP', starter: true, stats: ['7.0', '5', '1', '1', '1', '9'] },
+						{ name: 'M. Strahm', position: 'RP', stats: ['1.0', '1', '1', '1', '1', '1'] },
+						{ name: 'J. Romano', position: 'RP', stats: ['1.0', '1', '0', '0', '0', '2'] },
+						{ name: 'O. Kerkering', position: 'RP', stats: ['1.0', '1', '0', '0', '0', '1'] },
+					], ['10.0', '8', '2', '2', '2', '13']),
+				],
+			},
+		],
+		teams: [
+			{ team: { id: '21' }, homeAway: 'away', statistics: [{ name: 'batting', displayName: 'Batting', stats: [{ name: 'atBats', displayValue: '34' }] }] },
+			{ team: { id: '22' }, homeAway: 'home', statistics: [{ name: 'batting', displayName: 'Batting', stats: [{ name: 'atBats', displayValue: '38' }] }] },
+		],
+	},
+};
+
 // ── mock-5 · NFL · DAL 14 @ PHI 17, fourth quarter ───────────────────────────
 const passingKeys = ['completions/passingAttempts', 'passingYards', 'yardsPerPassAttempt', 'passingTouchdowns', 'interceptions', 'sacks-sackYardsLost'];
 const passingLabels = ['C/ATT', 'YDS', 'AVG', 'TD', 'INT', 'SACKS'];
@@ -395,12 +483,12 @@ const hockey = {
 const soccer = {
 	header: { competitions: [{ competitors: [
 		competitor('away', '190', 'NYR', '1', [{ displayValue: '1' }, { displayValue: '0' }]),
-		competitor('home', '183', 'PHI', '2', [{ displayValue: '0' }, { displayValue: '2' }]),
+		competitor('home', '10739', 'PHI', '2', [{ displayValue: '0' }, { displayValue: '2' }]),
 	] }] },
 	boxscore: {
 		teams: [
 			// Soccer lists the home team first, which is what the side matching is for.
-			teamStats('183', 'home', [
+			teamStats('10739', 'home', [
 				['foulsCommitted', 'Fouls', '11'],
 				['yellowCards', 'Yellow Cards', '2'],
 				['redCards', 'Red Cards', '0'],
@@ -438,5 +526,5 @@ export const mockBoxScorePayloads: Record<string, unknown> = {
 	'mock-4': baseball,
 	'mock-5': football,
 	'mock-9': soccer,
-	'mock-20': baseball,
+	'mock-20': baseballFinal,
 };

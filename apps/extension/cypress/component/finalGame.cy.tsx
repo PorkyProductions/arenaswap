@@ -75,6 +75,26 @@ const mountCard = (game: Game, excitementResult?: PowerScoreResult) => {
 	cy.mount(<GameCard {...cardProps} game={game} excitementResult={excitementResult} />);
 };
 
+// Both arguments come back off a computed style, so they arrive as 'rgb(r, g, b)' rather than as
+// hex. Reading the plate rather than hardcoding it is the point: a card whose background moved
+// would otherwise leave the ink measured against a colour it no longer sits on.
+const channelsOf = (color: string): number[] => (
+	(color.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map(Number)
+);
+
+const relativeLuminance = (color: string): number => {
+	const [red, green, blue] = channelsOf(color).map(value => {
+		const channel = value / 255;
+		return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+	});
+	return (0.2126 * red!) + (0.7152 * green!) + (0.0722 * blue!);
+};
+
+const contrastRatio = (a: string, b: string): number => {
+	const [high, low] = [relativeLuminance(a), relativeLuminance(b)].toSorted((x, y) => y - x);
+	return (high! + 0.05) / (low! + 0.05);
+};
+
 // A history whose ends bracket the whole game, and one that only picks it up near the end.
 const spanning = (): PowerScoreSnapshot[] => (
 	[0, 0.5, 0.95].map(fraction => ({
@@ -222,8 +242,22 @@ describe('a finished game', () => {
 					.to.be.greaterThan(Number(loser.fontWeight));
 				expect(loser.color, 'and a lighter ink').to.not.equal(winner.color);
 				// Pinned, so this cannot pass on whatever a cell happens to inherit.
-				expect(loser.color).to.equal('rgb(154, 164, 176)');
+				expect(loser.color).to.equal('rgb(124, 135, 148)');
 				expect(winner.color).to.equal('rgb(17, 24, 39)');
+			});
+		});
+
+		// Receded is not the same as illegible. A 2.1rem semibold score is large text, so the dimmed
+		// side still owes 3:1 against the plate it sits on — the same bar the chart and card colour
+		// helpers are built around. The #9aa4b0 this replaced reached 2.33:1 here.
+		it('dims the loser without dropping it under 3:1', () => {
+			mountCard(finalGame);
+			cy.get('.game-card.is-final').then(([card]: JQuery<HTMLElement>) => {
+				const plate = getComputedStyle(card!).backgroundColor;
+				cy.get('.game-score-value.is-loser').then(([loser]: JQuery<HTMLElement>) => {
+					const ink = getComputedStyle(loser!).color;
+					expect(contrastRatio(ink, plate), `${ink} on ${plate}`).to.be.at.least(3);
+				});
 			});
 		});
 

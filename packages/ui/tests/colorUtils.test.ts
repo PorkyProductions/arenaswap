@@ -197,3 +197,49 @@ describe('lightening a chart colour keeps the team recognisable', () => {
 		expect(lightened('#C8102E')).toBe('#C8102E');
 	});
 });
+
+// The chart background is #0d1117, luminance 0.0055. A chart line is non-text, so it wants 3:1.
+const contrastOnChart = (hex: string): number => {
+	const parsed = hex.replace('#', '');
+	const [red, green, blue] = [0, 2, 4].map(i => Number.parseInt(parsed.slice(i, i + 2), 16));
+	const luminance = 0.2126 * srgbChannel(red!) + 0.7152 * srgbChannel(green!) + 0.0722 * srgbChannel(blue!);
+	return (luminance + 0.05) / (0.0055 + 0.05);
+};
+
+// The mirror of 'every colour it returns clears 4.5:1 on the card'. Without it the lightening side
+// was pinned only on hue and on having moved at all, so a colour that came back still unreadable
+// satisfied every assertion in the block above.
+describe('every chart colour it returns clears 3:1', () => {
+	test.each([
+		['Mets navy', '#002D72'],
+		['Yankees navy', '#0C2340'],
+		['Packers green', '#203731'],
+		['Vikings purple', '#4F2683'],
+		['Dodgers blue', '#005A9C'],
+		['a pure blue', '#0000ff'],
+		['navy', '#000080'],
+		['dark blue', '#00008B'],
+		['a near-black blue', '#010040'],
+		['pure black', '#000000'],
+		['a colour that needs nothing', '#C8102E'],
+	])('%s', (_label, color) => {
+		expect(contrastOnChart(lightened(color))).toBeGreaterThanOrEqual(3);
+	});
+
+	// Scaling every channel by a common factor cannot lift a colour whose brightest channel is
+	// already 255: 255 stays 255 and Math.round(0 * 1.18) is 0, so the whole 24-step climb is a
+	// no-op and a pure blue used to come back byte-identical, at 2.31:1.
+	test('a pure blue is no longer returned unchanged', () => {
+		expect(lightened('#0000ff')).not.toBe('#0000ff');
+	});
+
+	// The five navies the scaling was written for finish the scaling loop on their own, so the
+	// mixing fallback must not touch them.
+	test('the colours scaling already handles are not mixed toward white', () => {
+		expect(lightened('#002D72')).toBe('#0057de');
+		expect(lightened('#0C2340')).toBe('#276ecf');
+		expect(lightened('#203731')).toBe('#3f6b5e');
+		expect(lightened('#4F2683')).toBe('#823fd8');
+		expect(lightened('#005A9C')).toBe('#006ab8');
+	});
+});
