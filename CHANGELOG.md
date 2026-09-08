@@ -1,5 +1,552 @@
 # Changelog
 
+## The chart stops turning navy into grey, and the finished card says Final/OT — 2026-09-07
+
+A pass over the cards from the entry below, and one fix that reaches every detail screen in the
+product rather than only the finished ones.
+
+### Mixing a colour toward white does not lighten it, it drains it
+
+Chart lines need 3:1 against the `#0d1117` background, which puts the boundary at luminance 0.1164
+and leaves most of the league's primaries under it. They were lifted by mixing 48% toward white,
+which adds the same amount to all three channels — and adding equally to three unequal channels
+pulls them together, which is the definition of desaturating. Mets navy came out `#7a92b6`, Yankees
+navy `#818d9c`, Packers green `#8b9794`. Three different teams, three greys.
+
+Scaling the channels by a common factor leaves the ratios between them, and so the hue, exactly
+where they were. `#002D72` now reaches the bar at `#0057de` — 216° before and 216° after, a blue
+that is still a blue. The climb is a loop of 18% steps rather than an inverted transfer function,
+because luminance is not linear in the scale factor and twelve iterations of arithmetic are cheaper
+to read than the algebra that avoids them.
+
+A pure black is the one colour with no hue to preserve, so it still falls back to a grey. That is
+the honest answer for it rather than a special case.
+
+One existing test pinned the old output. Its expectation moved from `#7ab1a3` to `#007c5c`; both
+clear 3:1, and only one of them is still green.
+
+### Team colour on the scores, built and then taken back off
+
+The finished card gave up its team-colour rails to read as a record rather than an option, which
+left it with no colour at all — so the scores took it instead, each in its own team's hex, darkened
+where a primary was too light for the plate and receded toward the card rather than toward grey on
+the losing side.
+
+It is not in the product. Rendered at 320px it reads as two unrelated inks sitting next to each
+other rather than as one scoreline, and the winner's emphasis has to compete with the hue instead
+of being the only thing the eye picks up. The scoreline is back to weight plus a receded grey, which
+is what every scoreboard prints and what the entry below shipped.
+
+Recorded because the two helpers it needed are gone with it. `recedeTowardCard` and
+`resolveTeamCardTextPair` are deleted rather than left sitting unused, and so is the `style` prop
+the scores needed on `FlipScore` — both that file and its test stub are byte-identical to what they
+were before. What survives is `resolveReadableCardTextColor`, the light-plate mirror of the chart
+climb above, which the box score's team abbreviations now use at the stricter 4.5:1 small-text bar.
+
+### The numbers were a different shape from the live card's
+
+They were plain spans. The live card puts its scores through `FlipScore`, which wraps them in an
+`overflow: hidden` inline-block of exactly `1em` — so side by side in the list, two cards two rows
+apart set the same figures in measurably different boxes. The finished card uses `FlipScore` too
+now. It never animates, because the value never changes; what it does is measure identically.
+
+**The colour work above found a hole in the harness on its way past.** The component config replaces
+`./flipScore` with a stub, and that stub forwarded `className` but not `style` — so every assertion
+about a team-coloured score was reading the stub's default ink and passing against a card with no
+colour on it at all. Six of them. The colour is gone now and so is the prop, but the shape of the
+mistake is worth keeping: a stub that drops a prop turns every assertion about that prop into a
+tautology, silently and in the passing direction.
+
+### Final, Final/OT, Final/10, Final/SO
+
+ESPN's own `status.type.shortDetail` already carries this: `Final`, `Final/10`, `Final/OT`,
+`Final/SO`, `Final/3OT`, all confirmed against four leagues of live scoreboards. The suffix after the
+slash is stored as-is and composed with the translated word before it, so the card reads FINAL/3OT
+in every locale without the suffix needing translating — it is a token rather than a word.
+
+Deriving it from the period was the alternative and it cannot produce `SO`. A shootout is a period
+number in our data and a different thing entirely on a scorebug.
+
+The extra-innings line under the score is gone with it. The status label says `Final/10`, so a
+second line saying `Inn 10` was the same fact twice.
+
+### The rest of the pass
+
+**The broadcast line is off the finished card.** A game you cannot watch any more has no channel
+worth naming. The venue stays, because where it was played is still true.
+
+**The attendance is off the finished card**, and stays on the wrap where there is room to label it.
+
+**Your teams sort to the top of the Final section**, across the whole section rather than within
+each league group — the result you came looking for is your team's, and it should not be a league
+header down.
+
+### A finish time, where one honestly exists
+
+There is no completion timestamp anywhere in ESPN's scoreboard. The summary endpoint does carry
+`gameInfo.gameDuration` — "3:14", hours and minutes — which makes the actual finish knowable as the
+published start plus the published length. That is one request per game, so it is reachable on the
+wrap screen and not for twenty cards in a list.
+
+So the wrap gets an **Ended** row and the cards get no time at all. The alternative was printing
+start-plus-the-sport's-typical-length on every card, which is the estimate the retention window
+already uses — fine for deciding whether to keep a game for another hour, and not fine as a time
+printed next to a final score.
+
+`gameDuration` is baseball-only among the leagues sampled, so the row is absent on the other sports
+rather than blank. Anything that is not `h:mm` is ignored rather than guessed at.
+
+### Coverage
+
+9 colour tests, five of them the five teams that came back grey, each asserting the hue survives
+within five degrees — integer channel rounding shifts it by one or two, and the bar is that the
+colour is still the colour rather than that the arithmetic is exact.
+
+6 on ESPN's Final designations, every value transcribed off a live scoreboard, including a live
+game whose `shortDetail` reads `OT 2:41` and must not be stored as a final designation.
+
+14 on the duration parse, including the five formats that are not durations. 5 on the finish-time
+row. 37 component tests on the finished card and the wrap, up from 33.
+
+The scoreline's is pinned to both computed inks rather than to the class names, because the class
+name was what passed while the weight was silently losing to `!important` in the entry below. One
+more asserts the scores take no hue at all, so the decision above is a thing the suite knows about
+rather than something the next person reads as an oversight.
+
+Two tests were rewritten after failing for reasons that had nothing to do with the code. One
+compared a semibold loser's width against a bold live score and found them 1.2px apart, which is
+the weight difference doing exactly its job; it measures the winner now. The other nested a second
+`cy.mount` inside a `.then`, which detaches the nodes the surrounding chain still holds — a detached
+node reports an empty computed style rather than failing loudly, and this repo has been caught by it
+before.
+
+## A game that ends stops disappearing, and says how many people were there — 2026-09-07
+
+Turn on **Keep finished games** and a game that goes final leaves the live section for one of its
+own instead of vanishing from the extension entirely. It stays reachable for 24 hours. Off — which
+is the default — nothing about today moves.
+
+### The attendance figure was never on the endpoint we thought it was
+
+The issue found `gameInfo.attendance` on the summary response and proposed threading it down from
+`useSummaryData`. It is also on the **scoreboard**, on the competition, in the payload the
+background already fetches for every game on the slate. Same number: ATL @ PHI on 2026-09-06 reads
+`42793` from both.
+
+So it comes through `parseEvent` into `Game` and costs nothing — no prop threading, no dependency
+on a screen having fetched its summary, and it works in demo mode for free.
+
+The gate is not what the issue described either. On the summary endpoint the key is absent until a
+game is final; **on the scoreboard the key is always there and reads `0`** until the moment ESPN
+flips the status. Sixteen finished MLB games carried real figures and the two live ones carried
+zero, on the same request. So a falsy figure means "not announced yet" rather than an empty
+stadium, and `attendance > 0` is the whole condition — a `status === 'post'` check beside it could
+only ever agree.
+
+The row sits under the venue rather than beside the score, because how many people came is a fact
+about the building. It rode the finished card's venue line for a while too; the entry above takes it
+back off, leaving the wrap as the only place it appears. `.game-info-label` had to widen from 2.9rem
+to 3.6rem: it was sized when Watch,
+Venue and Line were the whole list, and it wraps anything past about ten characters. Attendance is
+ten in English and eleven in Portuguese. The label-column test already measured every locale's
+labels against that column, so adding one key to its list covered all twelve — and confirmed 3.6rem
+is enough for the widest of them.
+
+### ESPN publishes no completion timestamp, so 24 hours has to be measured from the start
+
+A competition carries `date` and `startDate` and nothing else. There is no field anywhere saying
+when a game ended.
+
+Recording the moment we first see a game go final was the obvious answer and is worse than it
+looks: MV3 tears the worker down constantly, so it would need `storage.local` to survive a restart,
+and a browser opened in the morning would stamp every one of yesterday's games as having just
+finished. It needs a fallback estimate for exactly the case it is meant to handle.
+
+So the estimate is the whole mechanism. A game wrapped at its start plus how long the sport
+actually takes — `sportWrapAllowanceMs`, six broadcast-window lengths rather than playing times,
+because an NFL game is sixty minutes of clock and about three and a half hours of television. They
+are deliberately generous: over-estimating a wrap keeps a game slightly longer, which is harmless,
+while under-estimating drops it out from under somebody reading it. The error is under an hour on a
+24-hour window, it needs no storage, it survives every teardown, and it is a pure function of two
+arguments.
+
+**`startTime` did not exist on a finished game.** `parseEvent` set it only for `pre`, so the anchor
+the whole window rests on was being discarded on every live and final game we have ever parsed. It
+is populated for every state now. Every existing reader — the countdown, the day grouping, the
+upcoming cutoff, the pre-game card — is already behind a pre-game check, so nothing that used to
+see undefined now sees a date it would misread. Three tests pinned the old behaviour and asserted
+an implementation detail rather than anything a user could see; they asserted the field is there
+now.
+
+### The dateless scoreboard only has today, and the per-league polls use it
+
+Finished games arrive on the same payload as live ones, so the fix is two lines: the
+`status !== 'post'` filter at `apiClient.ts:531` and `:564` becomes conditional on an
+`includeFinal` option that defaults to `false`, exactly the shape `includeUpcoming` and
+`upcomingDays` already have on the same function. Every other consumer of the package is
+byte-identical.
+
+Two things that were not two lines.
+
+**The range query had to reach backwards.** ESPN's dateless scoreboard carries the current Eastern
+day and nothing else, so a game that finished at 11pm last night is unreachable at 10am today
+unless it is asked for by name. `buildUpcomingDatesRangeQuery` takes a `pastDays` now and opens the
+window one local day earlier when finals are wanted. It goes through the same local-day-to-Eastern
+translation the forward end already used, so a Tokyo viewer reaches back from their own yesterday.
+
+**And the per-league polls would have thrown the results away.** `tickLeague` fetches one league
+from the dateless scoreboard and replaces that league's games wholesale — which is why a
+`upcomingGames` list already existed to be carried across each tick by hand. Finals need the same
+treatment, so `retainedFinalGames` sits beside it and `refreshUpcomingGames` became `refreshSlate`,
+serving both prefs rather than being gated on `showUpcomingGames` alone.
+
+The retention window is re-checked on every merge rather than only on refetch, so a game ages out
+on its own schedule instead of waiting for the next slate fetch to notice. That has a test: nine
+hours pass, the poll still cannot see the game, and nothing but the retention check can remove it.
+
+### The switcher needed no guard at all
+
+`background.ts` already narrows to `status === 'in'` before scoring, before picking a switch
+target, and before counting live games. Finals flow past all three untouched, which is why a
+finished game is never scored and can never be switched to. The bounce-back in `app.tsx` also
+handles itself: it boots you out when the selected game leaves the list, and the game no longer
+leaves — so a game finishing while you are watching it settles into its final state under you.
+
+### The card gives up everything you cannot act on
+
+No tab dropdown, no PowerScore bar, no clock, no live dot, no base diamond, no down and distance.
+No team-colour rails and no white plate either — it takes a flat `#f4f6f8` so it reads as a record
+rather than an option.
+
+What is left is the result, and **the winner carries the weight while the loser is dimmed**, which
+is the convention every scoreboard already uses and the only thing on the card that says who won
+without a word. A draw dims neither. A shootout dims neither and lets the penalties line decide it.
+
+That took two goes. Bootstrap's `.fw-bold` is `!important`, so a `font-weight` on `.is-loser` in
+this project's own stylesheet was dead on arrival — the colour changed and the weight did not. The
+weight is a utility on the element now. A test measuring both computed values caught it; one
+asserting the class name would not have.
+
+An extra-period label only appears when the game actually went past regulation, since the status
+label already reads Final and most cards would otherwise carry a line saying so twice.
+
+### No PowerScore anywhere on the wrap
+
+Not on the card and not on the detail screen. The number is a live judgement about what to watch
+next, and a game that is over is not a candidate — printing its last value reads as a verdict on
+the game rather than as the switching signal it actually was. The boost input goes with it, since
+it can only change a score nothing will ever compute again.
+
+What the wrap does carry is the box score, which #113 landed while this was being drawn: the line
+score with its R-H-E, the team comparison, and both sides' player tables. A finished game is the
+state it reads best in.
+
+**The charts only draw when they cover the whole game.** History exists for the minutes the service
+worker happened to be polling, so a game watched from the fourth quarter carries a stub rather than
+nothing — which is exactly the case a length check misses. `coversWholeGame` requires the first
+snapshot inside the first tenth of the sport's estimated length and the last one past nine tenths of
+it, so the rule scales with the sport rather than needing a threshold per league. The
+win-probability line is exempt: ESPN builds it from the full play-by-play, so it either arrives
+complete or does not arrive. A live screen is untouched — a partial line is the honest shape of a
+game that is only partly played.
+
+### Placement, and the one that was a judgement call
+
+Final sits **below** Up Next and below both live sections. Results are the one section you are never
+deciding anything from.
+
+The empty state had to learn about them. A slate of nothing but results is not an empty slate, and
+"no games right now" would otherwise have sat above a section full of cards.
+
+### Coverage
+
+12 tests on the retention window, nine of them written out as literal instants rather than
+recomputed from the arithmetic under test — the exact 24-hour boundary, one millisecond past it, a
+game ESPN called final before its allowance was up, and the window measured under three time zones
+to prove it does not move with the viewer.
+
+11 on the fetch, including the gate off by default, off explicitly, the range path applying the same
+gate as the dateless one, a game arriving from both calls being returned once, and the `dates=`
+parameter read back off the URL to confirm it reaches back exactly one day and no further.
+
+5 on the backwards range, crossing the start of a month and the start of a year. 13 on the chart
+rule, including both edges of both fractions and an assertion that the answer does not depend on
+when it is asked. 5 on the sort. 8 on the background, covering a final surviving a poll that no
+longer returns it, ageing out with no refetch involved, and never being scored.
+
+27 component tests measuring what only a browser can answer: the loser's computed weight and colour
+against the winner's, the final card's background against a live one's, the Final section's position
+against the two above it, and the status label, the section heading and the setting's label each
+measured on one line at 320px in all twelve locales.
+
+Three of those are absences — no PowerScore, no boost input, no tab dropdown — so there is a fourth
+asserting the live screen has all of them. An absence test is worth nothing until the selector is
+shown to match something. Writing that one caught a real problem: the first version looked for
+`.game-detail-breakdown`, which is not a class this project has, and passed for that reason alone.
+
+The same class of thing turned up in the existing suite. A test asserting a finished game's
+statistical leaders are stripped was running against a game the fetch filter had already removed, so
+`find` returned undefined and the assertion held whether the leaders were stripped or not.
+`includeFinal` makes that game reachable, so it is a real test now.
+
+## A live game shows its box score, out of a response we were already fetching — 2026-09-07
+
+Once a game has started, the detail screen carries the line score, both teams' totals side by side,
+and one team's full player box score at a time. Nothing in ArenaSwap had ever shown a stat line
+before; you could see how exciting a game was and not who was making it that way.
+
+### It costs no requests at all
+
+`shouldFetchSummary` already returns true for every live and finished game, in every sport — the
+detail screen fetches `/summary` for the win-probability line, the series dots and the record
+fallback. `boxscore` and `header.competitions[].competitors[].linescores` were sitting in that same
+response, unread, on every poll.
+
+The `/summary` schema in `packages/core` is not what was hiding them. That schema declares only
+`winprobability` and belongs to the background scorer; the popup's own fetch has never used it and
+reads `res.json()` raw, the same way `parseTeamRecords` reads `header`. So the strip-mode trap that
+ate the venue address, `situation.possession` and the whole pre-game competitor block does not apply
+on this path, and no schema had to widen. `boxScoreParse.ts` declares the shapes it reads as plain
+interfaces beside the existing ones.
+
+The cadence is unchanged too: the effect depends on `[gameId, league, status]`, so a box score is
+fetched once when you open a game, exactly like the win-probability chart it sits above. Reopening
+the screen is what refreshes it.
+
+### A condensed box score, not a full one with the right-hand side cut off
+
+The card has about 263px, which is a truncated name column and at most six numbers. That is the
+whole reason anything is cut, and it changes which columns are correct rather than just how many.
+
+Basketball's full order is `MIN | FG 3PT FT | REB AST STL BLK TO PF | PTS`. Truncating it at six
+gives a basketball table with no points column. The condensed convention — the one every ticker and
+game-leaders widget uses — is PTS-REB-AST straight after MIN, so that is the order here, with FG and
+3PT last because they are a shooting pair and the widest strings on the row.
+
+Baseball leads with `hits-atBats` rather than AB and H as separate columns, because "1-3" is how a
+fan says it out loud and collapsing the two buys the slot that HR gets. Pitching is the newspaper
+line unmodified — IP H R ER BB K. R and ER are usually the same number and the pair is habitual
+enough that dropping one is noticed.
+
+Hockey keeps ESPN's split between forwards and defensemen instead of merging them into one skaters
+table. The position group is what makes +/- and time on ice legible — a defenseman at 24:00 is a
+normal night and a forward at 24:00 is a workhorse — and a merged table needs a POS column, which
+spends one of six numeric slots saying what a section heading says for nothing.
+
+**Football drops five of its ten categories**: kicking, punting, both return types and fumbles. A
+kicker going 3-for-3 is nine points the reader is already looking at on the scoreboard directly
+above; what a kicking table adds over that is misses, and misses are rare. A section that is
+uninformative in most games teaches the reader to scroll past the whole block, which is worse than
+the missing rows. `interceptions` stays, because the parser drops a category with no athletes in it,
+so it costs a heading only in the games where somebody actually picked a pass off.
+
+Defense stays as the fourth, and it is the one that earns its place least obviously: it is the only
+thing on the screen that answers who is wrecking a 10-7 game from the other side of the ball.
+
+### One team at a time
+
+Both teams stacked runs to 34 rows for a basketball game before the reader reaches the second one,
+so the player tables sit behind a two-tab switcher and open on the away team — which is the order
+every convention in every sport lists the two in. The line score and the team totals are outside the
+tabs, because both are about the pair.
+
+The long football categories are capped at six rows with an expander rather than being cut. A college
+`defensive` array runs past 30 players a side, and nobody scrolls 30 rows of tackles to reach the
+next heading. The cap is the component's; `buildSections` hands over every row it parsed.
+
+### The line score carries its teams the way the leader rows do
+
+A pre-game leader row says which team a player belongs to with three things at once: a crest, the
+abbreviation set in the team's own colour, and a wash of that colour fading out to the right. A line
+score row is the same shape, so it takes the same treatment — crest, coloured abbreviation, and the
+wash — and the team-stats column heads take the colour too.
+
+On the line score the wash is doing more than decorating. The two rows *are* the two teams, so it
+answers which is which before the reader has parsed either abbreviation, and it fades out by 72% so
+the R-H-E totals at the end land on the plain card. `rowWash` moved out of `pregameStats` into
+`colorUtils` as `teamRowWash`, since a formula with two callers in two files is how the two drift.
+
+There is no tinted disc under these crests. The disc exists because a navy crest disappears on the
+dark popup; these sit on the light `.gd-setup` card, where a bare crest reads fine and a white disc
+would be the thing that vanishes. And no accessible name on the crest either — the abbreviation is
+immediately beside it, so a second copy is noise to a screen reader.
+
+**The crest costs the innings, which is why the nine-inning fit is a test and not a calculation.**
+The team column went from 2.2rem to 3.5rem to hold a 13px crest beside a three-letter abbreviation,
+and every rem of that comes out of the twelve numeric columns beside it. A full nine innings plus
+R-H-E still lands inside the card, measured with the crests in place.
+
+### Half the league's colours are unreadable as small text on a light card
+
+Printing a team's raw colour as a 9px label is the obvious implementation and it is wrong for about
+half the teams we track. The cards are `#f8fafc`, luminance 0.9536, and small text wants 4.5:1 —
+which caps the ink at luminance 0.173. **Pittsburgh's and Boston's gold sits at 0.54 and reaches
+1.71:1**, which is less text than a suggestion of text. The Phillies' red misses by a hair at 4.37:1,
+which is the case an eyeball lets through.
+
+So a label is darkened until it clears, and only as far as it has to be: gold lands on a dark bronze,
+a red moves a shade, and a navy already at 12.4:1 is left exactly as it was. Darkened rather than
+replaced with grey, because the whole point is that the row reads as that team's colour. The wash
+keeps the raw colour — at 16% alpha it is a background rather than text, and no contrast rule
+applies to it.
+
+The pre-game leader rows had been printing the same raw colour on the same light card since they
+shipped, so they take the clamp too. Fixing only the new block would have left a gold team legible
+in one half of the detail screen and not the other, which is the opposite of what this change was
+for.
+
+This is the one place the work overlapped another branch. The finished-game card needed the same
+climb for its scores, at 3:1 rather than 4.5:1 because those are large and bold, and had already
+landed `resolveReadableCardTextColor` with the ceiling hardcoded. Rather than ship a second
+near-identical function, that one took a defaulted `ceiling` parameter and both callers read the
+same climb — the large-score behaviour is byte-identical.
+
+### The line score, and the half-inning that has not happened
+
+It opens with the scoring by inning, quarter, period or half — which unit is not a per-sport list
+somebody has to maintain, it is `leagueConfigMap[league].periodFormat`, which already carries exactly
+those four values. Extra innings are numbered, because a 12th inning reads "12"; a fifth quarter does
+not read "5", it reads OT.
+
+Baseball is the only sport that sends per-inning `hits` and `errors`, which is what turns the row
+into the R-H-E every box score opens with. It is also the only one whose two rows are different
+lengths: the away side of a live game has one more half-inning than the home side, and printing a 0
+there would claim the home team batted and failed to score. It is blank instead.
+
+`table-layout: fixed` keeps the columns even so a two-digit inning cannot steal room from the ones
+beside it. That same property divides the width evenly however many columns there are, so a 13th
+inning squeezed all sixteen down to 14px and clipped their digits — the table takes a `min-width`
+computed from its own column count now, which makes it overflow into a horizontal scroll instead. A
+full nine innings plus R-H-E lands inside the card and never scrolls; both cases have a test.
+
+### Soccer's box score is the one it actually has
+
+There is no `boxscore.players` for soccer at all, in any competition sampled, so the tabbed
+one-team-at-a-time shape cannot serve it. It gets the team comparison instead — possession, shots, on
+goal, corners, saves, offsides, fouls and both card colours, in the order every match panel prints
+them, with the two penalty rows appended only when one of them is not zero.
+
+That table renders for football, basketball and hockey too. Baseball is the exception, and by shape
+rather than by a sport list: every other sport sends flat `{ name, label, displayValue }` rows meant
+to be printed, and baseball sends a nested tree of about 100 season-shaped stats. Its team line is
+already the R-H-E above.
+
+### The stat keys that mean something other than what they say
+
+The reason columns are selected by ESPN's stable `keys` and never by its display `labels`:
+
+- **`SOG` is shootout goals**, not shots on goal, while ESPN's own published NHL glossary defines SOG
+  as shots on goal. The column that holds shots on goal is `shotsTotal`, labelled `S`, which is
+  NHL.com's own label — so nothing in this codebase is labelled SOG mapping to a key ESPN calls
+  something else
+- **`YTDG` is year-to-date goals**, a season total sitting inside a game box score. Rendered as G it
+  would show somebody a 22-goal night
+- **`SOS` / `SOSA` are shootout saves and shootout shots against.** `SHFT` is shifts, not
+  short-handed anything. `BS` is shots this player blocked, not his that were blocked
+- **`sacks` means opposite things in two categories that can be on screen at once** — sacks suffered
+  under `passing`, sacks recorded under `defensive` — and it arrives as `sacks-sackYardsLost` in the
+  first and `sacks` in the second. Both are decimals, because a sack splits between two players
+- **Baseball's innings-pitched key is `fullInnings.partInnings`**, the one composite ESPN joins with a
+  dot instead of a hyphen. A generic hyphen-splitter misses it and a path-style getter tries to walk
+  it as a nested property. And "5.2" is five innings and two outs, so nothing does arithmetic on it
+- **`skaters` replaces `forwards` and `defenses` rather than supplementing them.** It is empty in
+  every game sampled; populated, rendering all three would list every player twice
+
+Two rows are dropped rather than rendered. **A goalie with no time on ice** is the backup, who
+arrives all zeros and would print a `.000` save percentage — the most wrong-looking number this
+screen could carry. And a **did-not-play** row says DNP rather than a line of zeros; ESPN's reason is
+an English string ("COACH'S DECISION") and shipping one untranslated cell into eleven other languages
+is worse than not naming the reason.
+
+Nothing anywhere leans on truthiness. A legitimate stat is regularly `0`, `0-0` or `.000`, which is
+the same trap that ate a rookie's `0-0` in the pre-game leaders block.
+
+### Four more Bootstrap tokens that render light on a dark theme
+
+This is the third time the same gap has cost something — the Up Next pager and the docs site's
+dropdown found it first. The box score is the first `.table` and the first `.nav` in the extension,
+so all of these were unset:
+
+- `$table-bg` is `var(--as-body-bg)` and `$table-color` is the emphasis colour, so an unstyled table
+  is a `#0d1117` slab with light ink, sitting on a light `.gd-setup` card
+- **`$table-group-separator-color` is `currentcolor`**, and Bootstrap draws it at 2px above every
+  table group but the first. That is the rule under the header and above a totals row, and
+  `currentcolor` here is the table's own `#111827` — a heavy black bar across the card
+- `$nav-tabs-link-active-bg` is `var(--as-body-bg)`, which punches a dark hole in the card behind the
+  selected team's tab
+- `$nav-link-color` is the link colour, and `#F75C03` on `#f8fafc` reaches 3.0:1 — under what an
+  unselected tab's label needs as body text
+
+All four are set through the Sass variables rather than re-specified on the component, so the next
+table or tab strip in the popup inherits the fix. Each is asserted off the computed style rather than
+trusted to the stylesheet, since a stylesheet that looks right and resolves to a light default is the
+entire class of bug.
+
+The issue asked for the table on "the existing dark theme". The detail screen's cards are
+deliberately light surfaces — `#f8fafc` on `#111827` — so a dark table would have been the one dark
+block between two light ones. The `$table-*` overrides are tuned to the cards instead.
+
+### Strings
+
+98 keys in a new `box` namespace across all twelve locales. They split into abbreviations and words,
+and the two are translated differently: a column head is the tightest string in the product at about
+26px, and takes each language's own official box-score abbreviation where one exists and the English
+one where it does not — the rule the pre-game leaders block already set. A team-comparison row has
+the full width of the card, so those are words.
+
+The namespace is self-contained rather than reusing the seven leader abbreviations it overlaps.
+They are different features, and the two blocks never render on the same screen — one is pre-game
+only and the other only exists once a game has started — so there is no visible inconsistency to
+trade against the coupling.
+
+### Coverage
+
+60 unit tests. 23 on the parse, every payload transcribed off a live response: the padded half-inning,
+the R-H-E sums, both sides resolved by id against a `header` that lists the home team first, the
+`homeAway` fallback for synthesized college-hockey ids, a stat only one side reports being dropped
+rather than shifting the rows under it, and baseball's nested tree reading as no comparison table.
+37 on the column layer, including the batting order with a substitute inside its slot, hockey sorted
+by points with `20:14` read as minutes rather than as 20.14, basketball's did-not-play group last,
+`skaters` displacing the two categories it duplicates, and the totals row realigned to the columns
+kept rather than the ones ESPN sent.
+
+36 component tests measuring what only a browser can answer: nine innings plus R-H-E fitting the card
+with the crests in place and thirteen scrolling instead of crushing, no cell past 320px in any of the
+five sports, a long name truncating while no stat is clipped, and the four computed colours above.
+
+Eight more on the two colour helpers, and the ones that matter are the contrast assertions: every
+team abbreviation on every sport's screen is read back off the computed style and required to clear
+4.5:1, and the gold case is pinned on its own since it is the one that fails by a mile. Two of those
+assert a colour that already passes comes through untouched, because a clamp that moves a good colour
+is its own bug.
+
+**Half of those assertions were worthless as first written**, and the finished-game card branch is
+what surfaced it: a Cypress stub there had been forwarding `className` and not `style`, so six colour
+assertions were reading the stub's default ink and passing against a card carrying no colour at all.
+The same hole was in these — "the abbreviation is not the raw gold" and "the abbreviation clears
+4.5:1" are both true of the inherited `#111827` the cell falls back to, so both passed with the
+feature deleted. They are pinned to exact computed values now, and each is checked against the
+inherited ink as well, so a colour that never arrives fails rather than reads as readable. All four
+were run with the inline colours stripped out and confirmed failing; before the change, two of them
+passed that way.
+
+The locale measurements are taken as **whole header rows** rather than one label at a time, and the
+first attempt got that wrong in a way this changelog has already recorded once: substituting a single
+locale's label into a column the browser sized for English measures it against a box it will never
+render in. It reported both Chinese locales overflowing. They do not — the columns share the row's
+width, and Chinese spells these headings out (安打-打数 against H-AB) at the expense of the name
+column, which drops from 155px to 106px and still holds a name. Measured properly, every locale fits
+every column set in all four table shapes with nothing overflowing the card, which is also what
+confirmed the translators' choice to print what CPBL and CBA actually print rather than falling back
+to English.
+
+Demo mode carries a box score for all five sports — `mock-2` through `mock-5` and `mock-9` — shaped
+as raw ESPN payloads so the demo path runs through the real parser rather than around it. A
+fabricated parsed object would let the parser and the screen drift apart with nothing noticing. The
+football fixture has eight defenders against a cap of six so the expander is reachable, and the
+hockey one carries the all-zero backup goalie precisely so the row that gets dropped is the row most
+likely to rot unnoticed.
+
 ## The popup opens 590KB lighter and stops asking ESPN for what it already has — 2026-09-07
 
 Four measured wins, none of which changes anything on screen.
