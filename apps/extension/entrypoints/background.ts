@@ -1,6 +1,6 @@
 import { i18n } from '#i18n';
 import { randomInRange } from '@porkyproductions/hat';
-import { fetchGamesWithLeagueLogos, fetchWinProbability, computePowerScore, computeScoringOpportunityBoost, isPlayFrozen, normalizePowerScoreResult, scoreMaxTotal, MockGameSimulator, createPollModeTracker, isObjectRecord, isScoreSnapshotLike, isPowerScoreSnapshotLike, normalizeGameBoosts, computeLeagueIntervalMs, pollWinProbabilityMs as winProbPollIntervalMs, logWarn, logError } from '@arenaswap/core';
+import { fetchGamesWithLeagueLogos, fetchWinProbability, computePowerScore, isWithinFinalRetention, computeScoringOpportunityBoost, isPlayFrozen, normalizePowerScoreResult, scoreMaxTotal, MockGameSimulator, createPollModeTracker, isObjectRecord, isScoreSnapshotLike, isPowerScoreSnapshotLike, normalizeGameBoosts, computeLeagueIntervalMs, pollWinProbabilityMs as winProbPollIntervalMs, logWarn, logError } from '@arenaswap/core';
 import { computeStandbyStreamDecision } from '../utils/standbyStreamLogic';
 import { loadStoredUserPreferences } from '../utils/prefsStorage';
 import {
@@ -92,6 +92,10 @@ const getOpenTabIds = async (): Promise<Set<number>> => {
 export default defineBackground(() => {
 	let games: Game[] = [];
 	let upcomingGames: Game[] = [];
+	// Both lists exist for the same reason: the per-league polls below use the dateless scoreboard
+	// and replace a league's games wholesale, so anything the range fetch found that the dateless
+	// call cannot see has to be carried across each tick by hand.
+	let retainedFinalGames: Game[] = [];
 	let currentScores: PowerScoreResult[] = [];
 	let leagueLogos: LeagueLogoMap = {};
 	const history = new Map<string, ScoreSnapshot[]>();
@@ -485,18 +489,30 @@ export default defineBackground(() => {
 		}, prefs.switchDelaySeconds * 1000);
 	};
 
-	const refreshUpcomingGames = async () => {
-		if (!prefs.showUpcomingGames) {
+	const refreshSlate = async () => {
+		if (!prefs.showUpcomingGames && !prefs.keepFinalGames) {
 			upcomingGames = [];
+			retainedFinalGames = [];
 			return;
 		}
 		try {
-			const result = await fetchGamesWithLeagueLogos(prefs.enabledLeagues, { includeUpcoming: true, upcomingDays: prefs.upcomingGamesDays });
-			upcomingGames = result.games.filter(g => g.status === 'pre');
+			const result = await fetchGamesWithLeagueLogos(prefs.enabledLeagues, {
+				includeUpcoming: true,
+				upcomingDays: prefs.upcomingGamesDays,
+				includeFinal: prefs.keepFinalGames,
+			});
+			upcomingGames = prefs.showUpcomingGames ? result.games.filter(g => g.status === 'pre') : [];
+			retainedFinalGames = prefs.keepFinalGames ? result.games.filter(g => g.status === 'post') : [];
 		} catch (err) {
-			logWarn('Failed to fetch upcoming games.', err);
+			logWarn('Failed to fetch the slate.', err);
 		}
 	};
+
+	// Re-checked on every merge rather than only on refetch, so a game ages out of the list on its
+	// own schedule instead of waiting for the next slate fetch to notice.
+	const liveRetainedFinals = (): Game[] => (
+		prefs.keepFinalGames ? retainedFinalGames.filter(g => isWithinFinalRetention(g)) : []
+	);
 
 	// A changedLeagueId scopes stall tracking and history to just that league; null processes
 	// every live game.
@@ -640,7 +656,7 @@ export default defineBackground(() => {
 			}, {});
 		} else {
 			try {
-				const fetchResult = await fetchGamesWithLeagueLogos(enabledLeagues, { includeUpcoming: false });
+				const fetchResult = await fetchGamesWithLeagueLogos(enabledLeagues, { includeUpcoming: false, includeFinal: prefs.keepFinalGames });
 				games = fetchResult.games;
 				leagueLogos = fetchResult.leagueLogos;
 			} catch (err) {
@@ -649,7 +665,8 @@ export default defineBackground(() => {
 			}
 			const freshGameIds = new Set(games.map(g => g.id));
 			const stillUpcoming = upcomingGames.filter(g => !freshGameIds.has(g.id));
-			games = [...games, ...stillUpcoming];
+			const stillFinal = liveRetainedFinals().filter(g => !freshGameIds.has(g.id));
+			games = [...games, ...stillUpcoming, ...stillFinal];
 		}
 
 		await afterFetch(null, allowTabSwitch);
@@ -658,11 +675,12 @@ export default defineBackground(() => {
 	const tickLeague = async (leagueId: LeagueId, allowTabSwitch: boolean) => {
 		let fetchSucceeded = false;
 		try {
-			const fetchResult = await fetchGamesWithLeagueLogos([leagueId], { includeUpcoming: false });
+			const fetchResult = await fetchGamesWithLeagueLogos([leagueId], { includeUpcoming: false, includeFinal: prefs.keepFinalGames });
 			const freshGameIds = new Set(fetchResult.games.map(g => g.id));
 			const otherGames = games.filter(g => g.league !== leagueId);
 			const leagueUpcoming = upcomingGames.filter(g => g.league === leagueId && !freshGameIds.has(g.id));
-			games = [...otherGames, ...fetchResult.games, ...leagueUpcoming];
+			const leagueFinal = liveRetainedFinals().filter(g => g.league === leagueId && !freshGameIds.has(g.id));
+			games = [...otherGames, ...fetchResult.games, ...leagueUpcoming, ...leagueFinal];
 			leagueLogos = { ...leagueLogos, ...fetchResult.leagueLogos };
 			const hasLiveGames = fetchResult.games.some(g => g.status === 'in');
 			pollModeTracker.recordPollResult(leagueId, hasLiveGames);
@@ -790,7 +808,7 @@ export default defineBackground(() => {
 		await reconcileClosedTabs().catch(err => {
 			logWarn('Failed to reconcile the tab registry against open tabs.', err);
 		});
-		await refreshUpcomingGames().catch(() => {});
+		await refreshSlate().catch(() => {});
 		await refreshScores(false).catch(err => {
 			logError('Initial score refresh failed; starting polling anyway.', err);
 		});
@@ -845,6 +863,7 @@ export default defineBackground(() => {
 			return stateReady.then(async () => {
 				const wasEnabled = prefs.enabled;
 				const prevShowUpcoming = prefs.showUpcomingGames;
+				const prevKeepFinalGames = prefs.keepFinalGames;
 				const prevUpcomingGamesDays = prefs.upcomingGamesDays;
 				const prevLeagues = new Set(prefs.enabledLeagues);
 				prefs = normalizeUserPreferences(msg.prefs);
@@ -854,19 +873,20 @@ export default defineBackground(() => {
 				// so writing again here would only double the storage.sync traffic against Chrome's
 				// 120-writes-per-minute ceiling.
 				await syncManagedTabMuteState(prefs.enabled);
-				const upcomingSettingChanged = prefs.showUpcomingGames !== prevShowUpcoming ||
+				const slateSettingChanged = prefs.showUpcomingGames !== prevShowUpcoming ||
+					prefs.keepFinalGames !== prevKeepFinalGames ||
 					(prefs.showUpcomingGames && prefs.upcomingGamesDays !== prevUpcomingGamesDays);
-				if (upcomingSettingChanged) {
-					await refreshUpcomingGames();
-					games = [...games.filter(g => g.status !== 'pre'), ...upcomingGames];
+				if (slateSettingChanged) {
+					await refreshSlate();
+					games = [...games.filter(g => g.status === 'in'), ...upcomingGames, ...liveRetainedFinals()];
 					broadcastScoresUpdated();
 				}
 				const newLeagues = new Set(prefs.enabledLeagues);
 				const leaguesChanged = prevLeagues.size !== newLeagues.size ||
 					[...prevLeagues].some(l => !newLeagues.has(l as LeagueId));
 				if (leaguesChanged && !demoMode) {
-					await refreshUpcomingGames();
-					games = [...games.filter(g => g.status !== 'pre'), ...upcomingGames];
+					await refreshSlate();
+					games = [...games.filter(g => g.status === 'in'), ...upcomingGames, ...liveRetainedFinals()];
 					broadcastScoresUpdated();
 					startLeaguePolling();
 					// A league switched off keeps its cached lines until the next sweep otherwise.

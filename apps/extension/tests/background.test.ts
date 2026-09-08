@@ -996,3 +996,133 @@ describe('mute sync resilience', () => {
 		expect(storageSessionSet).toHaveBeenCalledWith({ mutedTabIds: [2] });
 	});
 });
+
+const startedHoursAgo = (hours: number): string => (
+	new Date(Date.now() - (hours * 60 * 60 * 1000)).toISOString()
+);
+
+describe('keeping finished games', () => {
+	const finishedGame = (id: string, hoursAgo: number, league: LeagueId = 'nba'): Game => ({
+		id,
+		league,
+		sportType: 'basketball',
+		status: 'post',
+		period: 4,
+		clockSeconds: 0,
+		startTime: startedHoursAgo(hoursAgo),
+		homeTeam: { id: 'h', name: 'Home', abbreviation: 'HOM', score: 112 },
+		awayTeam: { id: 'a', name: 'Away', abbreviation: 'AWY', score: 104 },
+	});
+
+	const liveGame = (id: string, league: LeagueId = 'nba'): Game => ({
+		...finishedGame(id, 1, league),
+		status: 'in',
+		period: 3,
+		clockSeconds: 300,
+	});
+
+	const stateGames = async (): Promise<Game[]> => (
+		(await sendMessage({ type: 'GET_STATE' }) as { games: Game[] }).games
+	);
+
+	const fetchOptions = (): Record<string, unknown>[] => (
+		fetchMock.mock.calls.map(([, options]) => options as Record<string, unknown>)
+	);
+
+	test('asks the fetch for finals only when the pref is on', async () => {
+		await loadBackground({ prefs: { enabledLeagues: ['nba' as LeagueId], keepFinalGames: true } });
+		await sendMessage({ type: 'GET_STATE', forceRefresh: true });
+		expect(fetchOptions().length).toBeGreaterThan(0);
+		for (const options of fetchOptions()) expect(options.includeFinal).toBe(true);
+	});
+
+	test('and never asks for them while it is off', async () => {
+		await loadBackground({ prefs: { enabledLeagues: ['nba' as LeagueId], keepFinalGames: false } });
+		await sendMessage({ type: 'GET_STATE', forceRefresh: true });
+		expect(fetchOptions().length).toBeGreaterThan(0);
+		for (const options of fetchOptions()) expect(options.includeFinal).toBe(false);
+	});
+
+	test('a finished game reaches the popup state', async () => {
+		await loadBackground({
+			prefs: { enabledLeagues: ['nba' as LeagueId], keepFinalGames: true },
+			fetchReturnValue: { games: [finishedGame('done', 4), liveGame('playing')], leagueLogos: {} },
+		});
+		expect((await stateGames()).map(g => g.id).toSorted()).toEqual(['done', 'playing']);
+	});
+
+	// The per-league polls use the dateless scoreboard, which only carries the current Eastern day.
+	// A game the range fetch found and this one cannot see has to survive the merge, exactly as a
+	// scheduled game already does.
+	test('survives a poll that no longer returns it', async () => {
+		await loadBackground({
+			prefs: { enabledLeagues: ['nba' as LeagueId], keepFinalGames: true },
+			fetchReturnValue: { games: [finishedGame('yesterday', 20), liveGame('playing')], leagueLogos: {} },
+		});
+		expect((await stateGames()).map(g => g.id)).toContain('yesterday');
+
+		// The next poll answers with the live game alone.
+		fetchMock.mockResolvedValue({ games: [liveGame('playing')], leagueLogos: {} });
+		await sendMessage({ type: 'GET_STATE', forceRefresh: true });
+		expect((await stateGames()).map(g => g.id).toSorted()).toEqual(['playing', 'yesterday']);
+	});
+
+	test('is dropped once it has aged out, without waiting for another fetch', async () => {
+		await loadBackground({
+			prefs: { enabledLeagues: ['nba' as LeagueId], keepFinalGames: true },
+			fetchReturnValue: { games: [finishedGame('ageing', 20), liveGame('playing')], leagueLogos: {} },
+		});
+		expect((await stateGames()).map(g => g.id)).toContain('ageing');
+
+		// Nine hours on, the game is more than a day past its estimated wrap. The poll still cannot
+		// see it, so nothing but the retention check can remove it.
+		fetchMock.mockResolvedValue({ games: [liveGame('playing')], leagueLogos: {} });
+		jest.setSystemTime(Date.now() + (9 * 60 * 60 * 1000));
+		await sendMessage({ type: 'GET_STATE', forceRefresh: true });
+		expect((await stateGames()).map(g => g.id)).toEqual(['playing']);
+	});
+
+	test('turning the setting off clears the finals already in state', async () => {
+		await loadBackground({
+			prefs: { enabledLeagues: ['nba' as LeagueId], keepFinalGames: true },
+			fetchReturnValue: { games: [finishedGame('done', 4), liveGame('playing')], leagueLogos: {} },
+		});
+		expect((await stateGames()).map(g => g.id)).toContain('done');
+
+		const prefs = normalizeUserPreferences({
+			...createDefaultUserPreferences(),
+			enabledLeagues: ['nba' as LeagueId],
+			keepFinalGames: false,
+		});
+		fetchMock.mockResolvedValue({ games: [liveGame('playing')], leagueLogos: {} });
+		await sendMessage({ type: 'UPDATE_PREFS', prefs });
+		expect((await stateGames()).map(g => g.id)).toEqual(['playing']);
+	});
+
+	test('turning it on brings them in without waiting for the next poll', async () => {
+		await loadBackground({
+			prefs: { enabledLeagues: ['nba' as LeagueId], keepFinalGames: false },
+			fetchReturnValue: { games: [liveGame('playing')], leagueLogos: {} },
+		});
+		expect((await stateGames()).map(g => g.id)).toEqual(['playing']);
+
+		const prefs = normalizeUserPreferences({
+			...createDefaultUserPreferences(),
+			enabledLeagues: ['nba' as LeagueId],
+			keepFinalGames: true,
+		});
+		fetchMock.mockResolvedValue({ games: [finishedGame('done', 4), liveGame('playing')], leagueLogos: {} });
+		await sendMessage({ type: 'UPDATE_PREFS', prefs });
+		expect((await stateGames()).map(g => g.id).toSorted()).toEqual(['done', 'playing']);
+	});
+
+	test('a finished game is never scored, so it cannot be switched to', async () => {
+		await loadBackground({
+			prefs: { enabledLeagues: ['nba' as LeagueId], keepFinalGames: true },
+			fetchReturnValue: { games: [finishedGame('done', 4), liveGame('playing')], leagueLogos: {} },
+		});
+		const state = await sendMessage({ type: 'GET_STATE' }) as { scores: { gameId: string }[] };
+		expect(state.scores.map(s => s.gameId)).toEqual(['playing']);
+	});
+});
+
