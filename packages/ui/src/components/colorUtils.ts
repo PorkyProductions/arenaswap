@@ -31,11 +31,63 @@ const mixTowardWhite = (value: string, amount: number): string => {
 	return `#${[red, green, blue].map(channel => channel.toString(16).padStart(2, '0')).join('')}`;
 };
 
+// Scales every channel by the same factor, which raises lightness while leaving the ratios
+// between the channels — and so the hue — where they were. Mixing toward white instead adds an
+// equal amount to all three, which pulls them together and drains the colour: Mets navy came out
+// #7a92b6 and Yankees navy came out #818d9c, two greys that read as the same non-colour.
+const brighten = (value: string, factor: number): string => {
+	const rgb = hexToRgb(value);
+	if (!rgb) return value;
+	const scaled = [rgb.red, rgb.green, rgb.blue].map(channel => Math.min(255, Math.round(channel * factor)));
+	return `#${scaled.map(channel => channel.toString(16).padStart(2, '0')).join('')}`;
+};
+
+// A pure black or near-black has no hue to preserve, so scaling it does nothing at all. Only these
+// fall back to a grey, and they are the one case where a grey is the honest answer.
+const hasHue = (value: string): boolean => {
+	const rgb = hexToRgb(value);
+	return rgb !== null && Math.max(rgb.red, rgb.green, rgb.blue) >= 12;
+};
+
+// Chart lines are non-text, so WCAG wants 3:1 against the chart background. That background is
+// #0d1117 (luminance 0.0055), which puts the 3:1 boundary at luminance 0.1164.
+const seriesLuminanceFloor = 0.1164;
+
 const resolveReadableSeriesColor = (value: string | undefined, fallback: string): string => {
 	if (!value || !hexToRgb(value)) return fallback;
-	// Chart lines are non-text, so WCAG wants 3:1 against the chart background. That background
-	// is #0d1117 (luminance 0.0055), which puts the 3:1 boundary at luminance 0.1164.
-	return luminance(value) < 0.1164 ? mixTowardWhite(value, 0.48) : value;
+	if (luminance(value) >= seriesLuminanceFloor) return value;
+	if (!hasHue(value)) return mixTowardWhite(value, 0.48);
+	// Climbed rather than solved: luminance is not linear in the scale factor, and a loop of a
+	// dozen steps is cheaper to read than the inverse of the sRGB transfer function.
+	let brightened = value;
+	for (let step = 0; step < 24 && luminance(brightened) < seriesLuminanceFloor; step++) {
+		brightened = brighten(brightened, 1.18);
+	}
+	return brightened;
+};
+
+// The mirror of the above, for a score printed on a game card. The card is #f4f6f8 (luminance
+// 0.8977), and a score is large bold text, so WCAG again wants 3:1 — which puts the ceiling at
+// luminance 0.2659. Almost every team colour is already under it; the ones that are not are the
+// golds and yellows, which are unreadable on a light plate at any size.
+const cardTextLuminanceCeiling = 0.2659;
+
+// Small text does not get the 3:1 large-text allowance — it needs 4.5:1, which on the #f8fafc
+// detail cards puts the ceiling at 0.173 rather than 0.2659. Same climb, stricter bar: half the
+// league fails it, and the Penguins' and Bruins' gold reaches only 1.7:1 untouched.
+const smallCardTextLuminanceCeiling = 0.173;
+
+const resolveReadableCardTextColor = (
+	value: string | undefined,
+	fallback: string,
+	ceiling = cardTextLuminanceCeiling,
+): string => {
+	if (!value || !hexToRgb(value)) return fallback;
+	let darkened = value;
+	for (let step = 0; step < 24 && luminance(darkened) > ceiling; step++) {
+		darkened = brighten(darkened, 0.86);
+	}
+	return darkened;
 };
 
 const colorDistance = (a: string, b: string): number => {
@@ -73,6 +125,25 @@ export const crestBacking = (color: string | null | undefined): string => (
 	color && /^#[\da-fA-F]{6}$/.test(color)
 		? `linear-gradient(160deg, ${color}14, ${color}28), #ffffff`
 		: '#ffffff'
+);
+
+// A team-colour wash across a row, fading out to the right so whatever sits at the end of the row
+// — a leader's stat line, a line score's R-H-E — lands on the plain card rather than on colour.
+// `28` is the same alpha the matchup card and the crest disc use, so one team's colour reads the
+// same weight everywhere it appears. Read by the pre-game leader rows and the box score's line
+// score; a second copy of the formula is how the two would drift.
+export const teamRowWash = (color: string | null | undefined): string | undefined => (
+	color && /^#[\da-fA-F]{6}$/.test(color)
+		? `linear-gradient(90deg, ${color}28, ${color}00 72%)`
+		: undefined
+);
+
+// A team's own colour, darkened only as far as it must be to be read as a small label on the light
+// detail cards — the line score's team abbreviations and the pre-game leader rows, both about
+// 9px. Darkened rather than swapped for grey, so gold lands on a dark bronze and a navy or red
+// that already clears the bar is left alone.
+export const readableTeamInkOnCard = (color: string | null | undefined, fallback = '#111827'): string => (
+	resolveReadableCardTextColor(color ?? undefined, fallback, smallCardTextLuminanceCeiling)
 );
 
 export const resolveTeamColorPair = (
