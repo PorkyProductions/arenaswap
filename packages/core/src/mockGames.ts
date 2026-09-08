@@ -15,6 +15,7 @@ interface SimState {
 const clockTick = 15; // seconds of game time per tick (matches poll interval)
 const preGameTicksBeforeStart = 5;
 const resetPostGameAfterTicks = 4;
+const heldFinalGameIds = new Set(['mock-20']);
 const overtimePeriodSeconds = 300;
 const baseballInningAdvanceChance = 0.15;
 const baseballLateInningThreshold = 7;
@@ -380,6 +381,28 @@ export class MockGameSimulator {
 				startTime: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
 				broadcasts: ['NESN'],
 			},
+			// The one game that is already over when demo mode starts, so the wrap screen is
+			// reachable without waiting for a simulated game to run its course. Ten innings, so the
+			// line score has an extra column and the card carries an extra-innings label.
+			//
+			// The same two teams as the live MLB game above, and deliberately: the box score behind
+			// it is a real NYM-at-PHI payload keyed by ESPN's own team ids, so a demo game with any
+			// other pair would draw one matchup in the hero and a different one in the line score.
+			// Two games of the same series is also what a Tuesday in September actually looks like.
+			{
+				id: 'mock-20',
+				league: 'mlb',
+				sportType: 'baseball',
+				homeTeam: { id: '22', name: 'Philadelphia Phillies', abbreviation: 'PHI', score: 3, logo: `${espnCdn}/mlb/500/phi.png`, color: '#E81828', record: '81-63' },
+				awayTeam: { id: '21', name: 'New York Mets', abbreviation: 'NYM', score: 2, logo: `${espnCdn}/mlb/500/nym.png`, color: '#002D72', record: '74-70' },
+				venueName: 'Citizens Bank Park',
+				venueLocation: 'Philadelphia, Pennsylvania',
+				period: 10, clockSeconds: 0, status: 'post',
+				startTime: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+				attendance: 38416,
+				broadcasts: ['NBCSP'],
+				weather: { temperatureF: 68, conditionLabel: 'Clear' },
+			},
 		];
 
 		this.state = new Map();
@@ -530,6 +553,10 @@ export class MockGameSimulator {
 	};
 
 	private advancePost = (game: Game, simState: SimState): void => {
+		// Every other finished game is put back to live after a few ticks, which is what makes a
+		// game ending watchable. The wrap screen is the opposite: it cannot be read at all if the
+		// game restarts underneath the reader, so this one stays finished.
+		if (heldFinalGameIds.has(game.id)) return;
 		simState.postTicks++;
 		if (simState.postTicks >= resetPostGameAfterTicks) {
 			const leagueConfig = leagueConfigMap[game.league];
