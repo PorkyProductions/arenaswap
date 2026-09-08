@@ -8,6 +8,7 @@
 
 export const defaultStrings: Record<string, string> = {
 	'gameCard.live': 'LIVE',
+	'gameCard.final': 'Final',
 	'gameCard.powerScore': 'PowerScore',
 	'gameCard.watchLabel': 'Watch:',
 	'gameCard.oddsProvidedBy': 'Odds provided by:',
