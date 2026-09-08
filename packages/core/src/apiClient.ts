@@ -1,4 +1,4 @@
-import { leagueConfigMap, resolveLeagueLogoUrl } from './constants';
+import { isWithinFinalRetention, leagueConfigMap, resolveLeagueLogoUrl } from './constants';
 import {
 	EspnSummarySchema,
 	parseScoreboard,
@@ -79,10 +79,18 @@ const toQueryDate = (date: Date): string => {
 
 const localDayStart = (date: Date): Date => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-export const buildUpcomingDatesRangeQuery = (days: number, now: Date = new Date()): string => {
+// `pastDays` widens the window backwards, which is what makes a finished game from last night
+// reachable this morning: the dateless scoreboard only carries the current Eastern day, so a game
+// filed under yesterday's date has to be asked for by name.
+export const buildUpcomingDatesRangeQuery = (days: number, now: Date = new Date(), pastDays = 0): string => {
 	// ESPN's default no-dates scoreboard only reliably surfaces active and recent games; the
 	// explicit range returns every scheduled event, including this morning's pre-game ones.
-	const windowStart = localDayStart(now);
+	const firstLocalDay = localDayStart(now);
+	const windowStart = new Date(
+		firstLocalDay.getFullYear(),
+		firstLocalDay.getMonth(),
+		firstLocalDay.getDate() - pastDays,
+	);
 	// The popup's cutoff is a rolling `days * 24h` from now, so the last day it can label is the
 	// local day that instant falls in. Ending on that day's final millisecond rather than on its
 	// midnight keeps the range out of an Eastern date nothing on screen would come from.
@@ -405,6 +413,15 @@ const resolvePostseason = (event: EspnEvent, comp: EspnCompetition, league: Leag
 	return false;
 };
 
+// ESPN's own suffix, not ours. `Final/SO` for a shootout and `Final/3OT` for a triple overtime are
+// broadcast conventions this project would otherwise have to reproduce per sport from the period
+// number, and the shootout one it could not reproduce at all.
+const parseFinalPeriodSuffix = (state: Game['status'], shortDetail?: string): string | undefined => {
+	if (state !== 'post' || !shortDetail) return undefined;
+	const suffix = shortDetail.split('/')[1]?.trim();
+	return suffix ? suffix : undefined;
+};
+
 const parseTopOfInning = (shortDetail?: string): boolean | undefined => {
 	if (!shortDetail) return undefined;
 	if (shortDetail.startsWith('Top')) return true;
@@ -453,10 +470,19 @@ const parseEvent = (event: EspnEvent, league: LeagueId): Game | null => {
 		},
 		venueName: comp.venue?.fullName ?? comp.venue?.name ?? undefined,
 		venueLocation: parseVenueLocation(comp.venue?.address),
+		// 0 on every scheduled and in-progress game, so a falsy figure is "not announced yet"
+		// rather than an empty stadium.
+		attendance: comp.attendance && comp.attendance > 0 ? comp.attendance : undefined,
+		finalPeriodSuffix: parseFinalPeriodSuffix(state, status.type?.shortDetail),
 		period: status.period ?? 1,
 		clockSeconds: parseClockToSeconds(status.displayClock ?? '0:00'),
 		status: state,
-		startTime: state === 'pre' ? event.date : undefined,
+		// Every state, not just `pre`. A game's start is a fact about the game rather than about
+		// how far through it is, and the retention window for finished games has nothing else to
+		// anchor on — ESPN publishes no completion timestamp. Every other reader of this field is
+		// already behind a pre-game check, so nothing that used to see undefined here now sees a
+		// date it would misread.
+		startTime: event.date,
 		broadcasts: parseBroadcasts(comp),
 		odds: parseOdds(comp),
 		intermission: /HALFTIME|END_PERIOD|INTERMISSION/i.test(status.type?.name ?? ''),
@@ -489,6 +515,14 @@ const parseEvent = (event: EspnEvent, league: LeagueId): Game | null => {
 	};
 };
 
+export interface LeagueFetchOptions {
+	includeUpcoming?: boolean;
+	upcomingDays?: number;
+	// Off by default, so every consumer of this package that does not ask for finished games keeps
+	// getting exactly what it got before.
+	includeFinal?: boolean;
+}
+
 interface LeagueGamesResult {
 	leagueId: LeagueId;
 	games: Game[];
@@ -511,8 +545,16 @@ const fetchScoreboard = async (url: string, leagueId: LeagueId): Promise<EspnSco
 	return parsed;
 };
 
-const fetchLeagueGames = async (config: LeagueConfig, options: { includeUpcoming?: boolean; upcomingDays?: number } = {}): Promise<LeagueGamesResult> => {
-	const { includeUpcoming = true, upcomingDays = 7 } = options;
+const fetchLeagueGames = async (config: LeagueConfig, options: LeagueFetchOptions = {}): Promise<LeagueGamesResult> => {
+	const { includeUpcoming = true, upcomingDays = 7, includeFinal = false } = options;
+	// Declared once so both paths below cannot disagree about which games survive. A final game is
+	// kept only while it is inside the retention window, so an ageing one falls off on its own
+	// rather than needing a sweep.
+	const keepGame = (game: Game | null): game is Game => {
+		if (game === null) return false;
+		if (game.status !== 'post') return true;
+		return includeFinal && isWithinFinalRetention(game);
+	};
 	const baseParams = new URLSearchParams();
 	// Required for reliable coverage and to avoid 404s on date-range queries.
 	if (config.id === 'ncaab') baseParams.set('groups', '50');
@@ -528,11 +570,13 @@ const fetchLeagueGames = async (config: LeagueConfig, options: { includeUpcoming
 		const logoUrl = resolveLeagueLogoUrl(config.id, espnLogo);
 		const parsedGames = (todayResult?.events ?? [])
 			.map(event => parseEvent(event, config.id))
-			.filter((game): game is Game => game !== null && game.status !== 'post');
+			.filter(keepGame);
 		return { leagueId: config.id, games: parsedGames, logoUrl };
 	}
 
-	const upcomingDates = buildUpcomingDatesRangeQuery(upcomingDays);
+	// One day back covers the whole 24-hour window in every zone that matters: a game inside it
+	// started at most about 27 hours ago, which is yesterday or today in local terms.
+	const upcomingDates = buildUpcomingDatesRangeQuery(upcomingDays, new Date(), includeFinal ? 1 : 0);
 	const upcomingParams = new URLSearchParams(baseParams);
 	upcomingParams.set('dates', upcomingDates);
 	const upcomingUrl = `${scoreboardUrl}?${upcomingParams.toString()}`;
@@ -561,7 +605,7 @@ const fetchLeagueGames = async (config: LeagueConfig, options: { includeUpcoming
 			return true;
 		})
 		.map(event => parseEvent(event, config.id))
-		.filter((game): game is Game => game !== null && game.status !== 'post');
+		.filter(keepGame);
 
 	return { leagueId: config.id, games: parsedGames, logoUrl };
 };
@@ -572,7 +616,7 @@ const getEnabledLeagueConfigs = (enabledLeagues: LeagueId[]): LeagueConfig[] => 
 		.filter((config): config is LeagueConfig => Boolean(config))
 );
 
-export const fetchGamesWithLeagueLogos = async (enabledLeagues: LeagueId[], options: { includeUpcoming?: boolean; upcomingDays?: number } = {}): Promise<{ games: Game[]; leagueLogos: LeagueLogoMap }> => {
+export const fetchGamesWithLeagueLogos = async (enabledLeagues: LeagueId[], options: LeagueFetchOptions = {}): Promise<{ games: Game[]; leagueLogos: LeagueLogoMap }> => {
 	if (enabledLeagues.length === 0) return { games: [], leagueLogos: {} };
 	const leagueConfigs = getEnabledLeagueConfigs(enabledLeagues);
 	if (leagueConfigs.length === 0) return { games: [], leagueLogos: {} };

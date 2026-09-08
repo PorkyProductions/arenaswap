@@ -26,6 +26,7 @@ const makeEvent = (params: {
 	season?: Record<string, unknown>;
 	notes?: Record<string, unknown>[];
 	venue?: Record<string, unknown>;
+	attendance?: number;
 	homeShootoutScore?: number;
 	awayShootoutScore?: number;
 	// Merged into the competitor, for the per-competitor blocks ESPN only sends on some sports:
@@ -80,6 +81,7 @@ const makeEvent = (params: {
 			situation: params.situation,
 			...(params.notes !== undefined && { notes: params.notes }),
 			venue: params.venue ?? { fullName: 'Arena Name' },
+			...(params.attendance !== undefined && { attendance: params.attendance }),
 			broadcasts: [{ names: [' ESPN ', 'ESPN'] }],
 			geoBroadcasts: [{ media: { shortName: 'ESPN2' } }],
 			odds: params.withOdds === false
@@ -102,6 +104,8 @@ const makeEvent = (params: {
 const getCompetition = (event: Record<string, unknown>): Record<string, unknown> => (
 	(event.competitions as Record<string, unknown>[])[0]!
 );
+
+const datesRange = (url: string): string[] => new URL(url).searchParams.get('dates')!.split('-');
 
 const toUrl = (input: RequestInfo | URL): string => {
 	if (typeof input === 'string') return input;
@@ -1072,7 +1076,7 @@ describe('apiClient', () => {
 		expect(game.intermission).toBe(true);
 		expect(game.homeTeam.score).toBe(2);
 		expect(game.awayTeam.score).toBe(1);
-		expect(game.startTime).toBeUndefined();
+		expect(game.startTime).toBe('2026-10-05T00:00:00.000Z');
 	});
 
 	test('NHL: pre-game from range has correct hockey sportType and startTime', async () => {
@@ -1256,7 +1260,7 @@ describe('apiClient', () => {
 		expect(game.league).toBe('mls');
 		expect(game.status).toBe('in');
 		expect(game.clockSeconds).toBe(67 * 60);
-		expect(game.startTime).toBeUndefined();
+		expect(game.startTime).toBe('2026-10-05T00:00:00.000Z');
 	});
 
 	test('EPL: in-season live game from today returned when range endpoint is empty', async () => {
@@ -1282,7 +1286,7 @@ describe('apiClient', () => {
 		expect(game.league).toBe('epl');
 		expect(game.status).toBe('in');
 		expect(game.clockSeconds).toBe(33 * 60);
-		expect(game.startTime).toBeUndefined();
+		expect(game.startTime).toBe('2026-10-05T00:00:00.000Z');
 	});
 
 	test('soccer: HALFTIME status name sets intermission=true', async () => {
@@ -1397,7 +1401,7 @@ describe('apiClient', () => {
 		expect(result.leagueLogos.ncaab).toBeDefined();
 	});
 
-	test('all leagues: pre-game startTime is defined, live game startTime is undefined', async () => {
+	test('all leagues: every game carries its start time, whatever its state', async () => {
 		// startTime on a live game would break the popup's "Up Next" vs "Live Now" split.
 		const preGame = makeEvent({ id: 'pre', state: 'pre', period: 1, clock: '0:00', homeScore: '0', awayScore: '0', date: '2026-09-01T00:00:00.000Z' });
 		const liveGame = makeEvent({ id: 'live', state: 'in', period: 3, clock: '5:00', homeScore: '88', awayScore: '85' });
@@ -1412,7 +1416,10 @@ describe('apiClient', () => {
 		const pre = result.games.find(g => g.id === 'pre')!;
 		const live = result.games.find(g => g.id === 'live')!;
 		expect(pre.startTime).toBe('2026-09-01T00:00:00.000Z');
-		expect(live.startTime).toBeUndefined();
+		// A live game keeps its start time too. Nothing renders it — every reader is behind a
+		// pre-game check — but the retention window for finished games has nothing else to
+		// measure from, ESPN publishing no completion timestamp of any kind.
+		expect(live.startTime).toBe('2026-10-05T00:00:00.000Z');
 	});
 
 	describe('venue location parsing', () => {
@@ -2311,8 +2318,12 @@ describe('apiClient', () => {
 				id: 'post-ldr', state: 'post', period: 9, clock: '0:00', homeScore: '5', awayScore: '2',
 				homeExtra: { leaders: [leaderCategory('homeRuns', 'HR', 'J. Soto', '1-4, HR, 4 RBI, 2 R, BB')] },
 			}));
-			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false });
-			expect(result.games.find(g => g.id === 'post-ldr')?.homeTeam.leaders).toBeUndefined();
+			// includeFinal, or the game is filtered out before the assertion can see it and this
+			// passes whether the leaders are stripped or not.
+			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: true });
+			const game = result.games.find(g => g.id === 'post-ldr');
+			expect(game).toBeDefined();
+			expect(game?.homeTeam.leaders).toBeUndefined();
 		});
 
 		test('leaves leaders undefined when the key is absent, as in college football', async () => {
@@ -2324,3 +2335,166 @@ describe('apiClient', () => {
 		});
 	});
 });
+
+describe('finished games', () => {
+	const finalEvent = (over: Record<string, unknown> = {}) => makeEvent({
+		id: 'final-1', state: 'post', period: 9, clock: '0:00', homeScore: '5', awayScore: '2',
+		date: new Date().toISOString(),
+		...over,
+	});
+
+	describe('attendance off the scoreboard', () => {
+		test('a real figure comes through on a finished game', async () => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(finalEvent({ attendance: 42793 }));
+			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: true });
+			expect(result.games[0]?.attendance).toBe(42793);
+		});
+
+		test('the zero ESPN sends before a game is over reads as no figure, not an empty stadium', async () => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(makeEvent({
+				id: 'live-att', state: 'in', period: 3, clock: '5:00', homeScore: '2', awayScore: '1',
+				attendance: 0,
+			}));
+			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false });
+			expect(result.games[0]?.attendance).toBeUndefined();
+		});
+
+		test('an absent key is undefined rather than zero', async () => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(finalEvent());
+			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: true });
+			expect(result.games[0]).toBeDefined();
+			expect(result.games[0]?.attendance).toBeUndefined();
+		});
+	});
+
+	describe('the includeFinal gate', () => {
+		test('is off by default, so every existing consumer keeps what it had', async () => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(finalEvent());
+			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false });
+			expect(result.games).toHaveLength(0);
+		});
+
+		test('and off explicitly too', async () => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(finalEvent());
+			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: false });
+			expect(result.games).toHaveLength(0);
+		});
+
+		test('keeps a game that has just wrapped', async () => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(finalEvent());
+			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: true });
+			expect(result.games.map(g => g.id)).toEqual(['final-1']);
+		});
+
+		test('drops one that wrapped more than a day ago, even when asked for finals', async () => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(finalEvent({
+				date: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+			}));
+			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: true });
+			expect(result.games).toHaveLength(0);
+		});
+
+		test('never touches live or scheduled games', async () => {
+			const fetchMock = jest.fn().mockResolvedValue(createResponse({
+				events: [
+					makeEvent({ id: 'live', state: 'in', period: 3, clock: '5:00', homeScore: '2', awayScore: '1' }),
+					makeEvent({ id: 'sched', state: 'pre', period: 1, clock: '0:00', homeScore: '0', awayScore: '0' }),
+					finalEvent(),
+				],
+			}));
+			(globalThis as { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch;
+			const { fetchGamesWithLeagueLogos } = loadApiClient();
+
+			const withoutFinals = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false });
+			expect(withoutFinals.games.map(g => g.id).toSorted()).toEqual(['live', 'sched']);
+
+			const withFinals = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: true });
+			expect(withFinals.games.map(g => g.id).toSorted()).toEqual(['final-1', 'live', 'sched']);
+		});
+
+		test('the range path applies the same gate as the dateless one', async () => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(finalEvent());
+			expect((await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: true })).games).toHaveLength(0);
+
+			const { fetchGamesWithLeagueLogos: again } = mockSingleEvent(finalEvent());
+			expect((await again(['mlb'], { includeUpcoming: true, includeFinal: true })).games).toHaveLength(1);
+		});
+
+		test('a finished game arriving from both the dateless and range calls is returned once', async () => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(finalEvent());
+			const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: true, includeFinal: true });
+			expect(result.games.map(g => g.id)).toEqual(['final-1']);
+		});
+
+		test('asks ESPN for yesterday only when it wants finals', async () => {
+			const urls: string[] = [];
+			const fetchMock = jest.fn().mockImplementation(async (input: RequestInfo | URL) => {
+				urls.push(toUrl(input));
+				return createResponse({ events: [] });
+			});
+			(globalThis as { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch;
+			const { fetchGamesWithLeagueLogos } = loadApiClient();
+
+			await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: true, upcomingDays: 7 });
+			const plain = urls.find(u => u.includes('dates='))!;
+			urls.length = 0;
+
+			await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: true, upcomingDays: 7, includeFinal: true });
+			const withFinals = urls.find(u => u.includes('dates='))!;
+
+			// Same closing date, one day earlier opening date.
+			expect(datesRange(plain)[1]).toBe(datesRange(withFinals)[1]);
+			expect(Number(datesRange(withFinals)[0])).toBe(Number(datesRange(plain)[0]) - 1);
+		});
+	});
+});
+
+describe("ESPN's own Final designation", () => {
+	const withShortDetail = (state: string, shortDetail: string) => makeEvent({
+		id: 'label', state, period: 9, clock: '0:00', homeScore: '5', awayScore: '2',
+		date: new Date().toISOString(),
+		shortDetail,
+	});
+
+	// Every value here was read off a live scoreboard: MLB sends Final/10, the NHL sends Final/OT
+	// and Final/SO, the NBA sends Final/OT and college football sends Final/3OT.
+	test.each([
+		['extra innings', 'Final/10', '10'],
+		['a single overtime', 'Final/OT', 'OT'],
+		['a triple overtime', 'Final/3OT', '3OT'],
+		['a shootout', 'Final/SO', 'SO'],
+	])('reads the suffix off %s', async (_label, shortDetail, expected) => {
+		const { fetchGamesWithLeagueLogos } = mockSingleEvent(withShortDetail('post', shortDetail));
+		const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: true });
+		expect(result.games[0]?.finalPeriodSuffix).toBe(expected);
+	});
+
+	test('a game that ended in regulation has no suffix', async () => {
+		const { fetchGamesWithLeagueLogos } = mockSingleEvent(withShortDetail('post', 'Final'));
+		const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: true });
+		expect(result.games[0]).toBeDefined();
+		expect(result.games[0]?.finalPeriodSuffix).toBeUndefined();
+	});
+
+	// A live game's shortDetail carries the inning — "Top 7th" — and an in-progress overtime reads
+	// "OT 2:41". Neither is a final designation, and neither should be stored as one.
+	test('a live game gets no suffix, whatever its shortDetail says', async () => {
+		const { fetchGamesWithLeagueLogos } = mockSingleEvent(withShortDetail('in', 'OT 2:41'));
+		const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false });
+		expect(result.games[0]?.status).toBe('in');
+		expect(result.games[0]?.finalPeriodSuffix).toBeUndefined();
+	});
+
+	test('a scheduled game gets none either', async () => {
+		const { fetchGamesWithLeagueLogos } = mockSingleEvent(withShortDetail('pre', '7:05 PM ET'));
+		const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false });
+		expect(result.games[0]?.finalPeriodSuffix).toBeUndefined();
+	});
+
+	test('an empty suffix after the slash is dropped rather than stored blank', async () => {
+		const { fetchGamesWithLeagueLogos } = mockSingleEvent(withShortDetail('post', 'Final/'));
+		const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false, includeFinal: true });
+		expect(result.games[0]?.finalPeriodSuffix).toBeUndefined();
+	});
+});
+
