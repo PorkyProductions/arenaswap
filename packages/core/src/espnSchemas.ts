@@ -183,6 +183,9 @@ const EspnCompetitionNoteSchema = zod.object({
 const EspnCompetitionSchema = zod.object({
 	competitors: zod.array(EspnCompetitorSchema),
 	status: EspnCompetitionStatusSchema,
+	// Present on every state, but 0 until the game is final — ESPN fills the real figure in at the
+	// same time it flips the status. So the gate is a positive number, not a present key.
+	attendance: zod.number().optional(),
 	situation: EspnSituationSchema.optional(),
 	venue: EspnCompetitionVenueSchema.optional(),
 	broadcasts: zod.array(EspnCompetitionBroadcastSchema).optional(),

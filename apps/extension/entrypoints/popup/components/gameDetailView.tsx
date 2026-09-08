@@ -15,6 +15,7 @@ import HolidayLights from './holidayLights';
 import PowerScoreBreakdown from './powerScoreBreakdown';
 import PregameSetup from './pregameSetup';
 import PregameStats from './pregameStats';
+import BoxScore from './boxScore';
 import ProTip from './proTip';
 import { resolveStatusText } from './gameSituation';
 import {
@@ -25,6 +26,7 @@ import {
 } from './gameDetailChartOptions';
 import { resolveTeamColorPair } from '@arenaswap/ui/src/components/colorUtils';
 import useSummaryData from './useSummaryData';
+import { chartHistory, coversWholeGame } from './wrapCoverage';
 import { resolveDecorations, type holidayDecorationPrefs } from '../../../utils/holidayDecorations';
 import { favoriteScoreFlashColors, scorelineOf, type gameScoreline } from '../../../utils/favoriteScoreFlash';
 import type { BettingDisplayPrefs, WeatherDisplayPrefs } from './gameCardTypes';
@@ -94,12 +96,12 @@ const gameDetailView = ({
 	onBack,
 }: gameDetailViewProps) => {
 	const orderedScoreHistory = useMemo(
-		() => scoreHistory.toSorted((a, b) => a.timestamp - b.timestamp),
-		[scoreHistory],
+		() => chartHistory(scoreHistory.toSorted((a, b) => a.timestamp - b.timestamp), game),
+		[scoreHistory, game],
 	);
 	const orderedPowerScoreHistory = useMemo(
-		() => powerScoreHistory.toSorted((a, b) => a.timestamp - b.timestamp),
-		[powerScoreHistory],
+		() => chartHistory(powerScoreHistory.toSorted((a, b) => a.timestamp - b.timestamp), game),
+		[powerScoreHistory, game],
 	);
 	const fallbackPowerScore = orderedPowerScoreHistory[orderedPowerScoreHistory.length - 1];
 	const activePowerScore = excitementResult ?? fallbackPowerScore;
@@ -153,7 +155,7 @@ const gameDetailView = ({
 	const componentOption = useMemo(() => (
 		buildComponentContributionOption(orderedPowerScoreHistory)
 	), [orderedPowerScoreHistory]);
-	const { winProbability, seriesInfo, records } = useSummaryData(game);
+	const { winProbability, seriesInfo, records, boxScore, gameDurationMins } = useSummaryData(game);
 	const winProbabilityOption = useMemo(() => (
 		buildWinProbabilityOption(winProbability, game)
 	), [winProbability, game]);
@@ -170,6 +172,12 @@ const gameDetailView = ({
 
 	const isDelayed = game.delayed === true;
 	const isPreGame = game.status === 'pre';
+	const isFinal = game.status === 'post';
+	// A wrap draws a chart only when its line covers the whole game. The win-probability line is
+	// exempt because it is not ours: ESPN builds it from the full play-by-play, so it either
+	// arrives complete or does not arrive.
+	const chartsCoverGame = !isFinal
+		|| (coversWholeGame(orderedPowerScoreHistory, game) && coversWholeGame(orderedScoreHistory, game));
 	const [awayAccent, homeAccent] = resolveTeamColorPair(game.awayTeam, game.homeTeam, '#2274A5', '#F75C03');
 	const matchupCardStyle = isDelayed ? {
 		borderLeft: '5px solid #F1C40F',
@@ -236,7 +244,17 @@ const gameDetailView = ({
 
 			{/* Nothing has happened yet, so there is no PowerScore to break down — every signal
 			    would read zero. The screen offers what you can actually decide in advance instead. */}
-			{isPreGame ? (
+			{isFinal ? (
+				<>
+					{/* No PowerScore anywhere on a wrap. The number is a live judgement about what to
+					    watch next, and a game that is over is not a candidate — printing its last
+					    value would read as a verdict on the game rather than as the switching signal
+					    it actually was. The boost input goes for the same reason: it can only ever
+					    change a score that will never be computed again. */}
+					<BoxScore game={game} boxScore={boxScore} />
+					<GameInfoPanel game={game} bettingPrefs={bettingPrefs} weatherPrefs={weatherPrefs} gameDurationMins={gameDurationMins} />
+				</>
+			) : isPreGame ? (
 				<>
 					<PregameSetup
 						game={game}
@@ -274,17 +292,21 @@ const gameDetailView = ({
 
 					<GameBoostInput gameId={game.id} currentBoost={currentBoost} onSetGameBoost={onSetGameBoost} />
 
+					{/* Above the venue and broadcast panel: what is happening in the game beats
+					    where it is being played, once it has started. */}
+					<BoxScore game={game} boxScore={boxScore} />
+
 					<GameInfoPanel game={game} bettingPrefs={bettingPrefs} weatherPrefs={weatherPrefs} />
 				</>
 			)}
 
 			{proTipsEnabled && <ProTip context='detail' />}
 
-			{orderedPowerScoreHistory.length > 0 && (
+			{chartsCoverGame && orderedPowerScoreHistory.length > 0 && (
 				<GameDetailChart title={i18n.t('detail.chartPowerScoreTitle')} option={powerScoreOption} />
 			)}
 
-			{orderedScoreHistory.length > 0 && (
+			{chartsCoverGame && orderedScoreHistory.length > 0 && (
 				<GameDetailChart title={i18n.t('detail.chartScoreTitle')} option={scoreTrendOption} legendItems={teamLegendItems} />
 			)}
 
@@ -292,7 +314,7 @@ const gameDetailView = ({
 				<GameDetailChart title={i18n.t('detail.chartWinProbTitle')} option={winProbabilityOption} legendItems={teamLegendItems} />
 			)}
 
-			{orderedPowerScoreHistory.length > 0 && (
+			{chartsCoverGame && orderedPowerScoreHistory.length > 0 && (
 				<GameDetailChart title={i18n.t('detail.chartComponentsTitle')} option={componentOption} legendItems={componentLegendItems} />
 			)}
 

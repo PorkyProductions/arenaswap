@@ -99,6 +99,13 @@ export interface Game {
 	venueName?: string;
 	// Already comma-joined for display, e.g. 'Inglewood, CA' or 'London, England'.
 	venueLocation?: string;
+	// Only ever set on a final game: ESPN sends the key on every state and fills it in at the same
+	// moment it flips the status, so a scheduled or live game arrives at 0 and is dropped here.
+	attendance?: number;
+	// Whatever ESPN puts after the slash in `Final/3OT`, `Final/10` or `Final/SO` — taken from its
+	// own label rather than derived from the period, which is the only way `SO` is ever produced.
+	// Undefined on a game that ended in regulation, and on every game that has not ended.
+	finalPeriodSuffix?: string;
 	period: number;
 	clockSeconds: number;
 	status: 'pre' | 'in' | 'post';
@@ -144,6 +151,9 @@ export interface UserPreferences {
 	favoriteTeamIds: string[];
 	favoriteTeamBonusPoints: number;
 	showUpcomingGames: boolean;
+	// Keeps a finished game reachable for finalRetentionMs after it wrapped instead of discarding
+	// it the instant ESPN reports it final.
+	keepFinalGames: boolean;
 	proTipsEnabled: boolean;
 	notificationsEnabled: boolean;
 	standbyStreamEnabled: boolean;

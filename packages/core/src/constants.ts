@@ -1,5 +1,5 @@
 import pkg from '../package.json';
-import type { LeagueId, SignalName, UserPreferences } from './types';
+import type { Game, LeagueId, SignalName, SportType, UserPreferences } from './types';
 import {
 	allLeagueIds,
 	stallPenaltySteps,
@@ -41,6 +41,41 @@ export const appVersion = pkg.version;
 export const appDescription = pkg.description;
 
 export const pollIntervalMs = 15_000;
+
+// How long a finished game stays reachable once it has wrapped, when keepFinalGames is on.
+export const finalRetentionMs = 24 * 60 * 60 * 1000;
+
+// ESPN's scoreboard publishes no completion timestamp — a competition carries `date` and
+// `startDate` and nothing else — so a final game's wrap has to be estimated from its start plus
+// how long the sport actually takes. These are broadcast-window lengths rather than playing time:
+// an NFL game is sixty minutes of clock and about three and a half hours of television.
+//
+// They are deliberately generous. Over-estimating a wrap only keeps a game around slightly
+// longer, which is the harmless direction; under-estimating drops it while somebody is reading it.
+export const sportWrapAllowanceMs: Record<SportType, number> = {
+	football:   3.5  * 60 * 60 * 1000,
+	baseball:   3.25 * 60 * 60 * 1000,
+	softball:   2.5  * 60 * 60 * 1000,
+	basketball: 2.5  * 60 * 60 * 1000,
+	hockey:     2.75 * 60 * 60 * 1000,
+	soccer:     2.5  * 60 * 60 * 1000,
+};
+
+// The instant a final game is treated as having ended. A game with no start time cannot be placed
+// on a clock at all, so it is treated as having just wrapped rather than being dropped: ESPN sends
+// `date` on every event we have ever seen, and losing a real final over a missing field is worse
+// than keeping an old one for a day.
+export const estimatedWrapMs = (game: Pick<Game, 'sportType' | 'startTime'>, now: number): number => {
+	if (!game.startTime) return now;
+	const startMs = new Date(game.startTime).getTime();
+	if (!Number.isFinite(startMs)) return now;
+	return startMs + (sportWrapAllowanceMs[game.sportType] ?? sportWrapAllowanceMs.basketball);
+};
+
+export const isWithinFinalRetention = (
+	game: Pick<Game, 'sportType' | 'startTime'>,
+	now: number = Date.now(),
+): boolean => now - estimatedWrapMs(game, now) <= finalRetentionMs;
 // Safety net for sports not yet in sportTypeConfigMap; in practice every config defines its own.
 export const historyWindowMs = 300_000;
 
@@ -249,6 +284,7 @@ export const createDefaultUserPreferences = (): UserPreferences => ({
 	favoriteTeamIds: [],
 	favoriteTeamBonusPoints: defaultFavoriteTeamBonusPoints,
 	showUpcomingGames: true,
+	keepFinalGames: false,
 	proTipsEnabled: true,
 	notificationsEnabled: true,
 	standbyStreamEnabled: false,
@@ -290,6 +326,7 @@ export const normalizeUserPreferences = (storedPrefs: unknown): UserPreferences 
 		favoriteTeamIds: normalizeFavoriteTeamIds(candidate.favoriteTeamIds),
 		favoriteTeamBonusPoints: normalizeSecondsPreference(candidate.favoriteTeamBonusPoints, defaults.favoriteTeamBonusPoints),
 		showUpcomingGames: typeof candidate.showUpcomingGames === 'boolean' ? candidate.showUpcomingGames : defaults.showUpcomingGames,
+		keepFinalGames: typeof candidate.keepFinalGames === 'boolean' ? candidate.keepFinalGames : defaults.keepFinalGames,
 		proTipsEnabled: typeof candidate.proTipsEnabled === 'boolean' ? candidate.proTipsEnabled : defaults.proTipsEnabled,
 		notificationsEnabled: typeof candidate.notificationsEnabled === 'boolean' ? candidate.notificationsEnabled : defaults.notificationsEnabled,
 		standbyStreamEnabled: typeof candidate.standbyStreamEnabled === 'boolean' ? candidate.standbyStreamEnabled : defaults.standbyStreamEnabled,

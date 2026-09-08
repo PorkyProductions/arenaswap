@@ -64,6 +64,13 @@
 		box-shadow:   0 0 0 1px rgba(#D90368, 0.25);
 	}
 
+	// A finished game is the one card in the list you cannot act on, so it steps back rather than
+	// forward: no team-colour rails, no white plate. It reads as a record instead of an option.
+	&.is-final {
+		background:    #f4f6f8;
+		border-color:  #d7dde3;
+	}
+
 	&.is-delayed {
 		box-shadow: 0 0 0 1px rgba($warning, 0.4);
 
@@ -109,6 +116,12 @@
 .live-status-label {
 	font-size: 0.65rem;
 	letter-spacing: 0.08em;
+}
+
+.final-status-label {
+	font-size: 0.65rem;
+	letter-spacing: 0.08em;
+	color: #6b7280;
 }
 
 .delay-status-label {
@@ -196,6 +209,12 @@ $pre-game-time-color: shade-color($warning, 60%);
 	font-size: 2.1rem;
 	color: #111827;
 	letter-spacing: -0.02em;
+
+	// Half of what says who won on a final card; the other half is the weight, which is a
+	// Bootstrap utility on the element because `.fw-bold` is `!important` and would win here.
+	&.is-loser {
+		color: $score-loser-color;
+	}
 }
 
 // Tabular figures equalise single digits, but a two-digit score is still twice the width of a

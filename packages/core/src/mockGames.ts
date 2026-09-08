@@ -15,6 +15,7 @@ interface SimState {
 const clockTick = 15; // seconds of game time per tick (matches poll interval)
 const preGameTicksBeforeStart = 5;
 const resetPostGameAfterTicks = 4;
+const heldFinalGameIds = new Set(['mock-20']);
 const overtimePeriodSeconds = 300;
 const baseballInningAdvanceChance = 0.15;
 const baseballLateInningThreshold = 7;
@@ -201,8 +202,11 @@ export class MockGameSimulator {
 				id: 'mock-9',
 				league: 'mls',
 				sportType: 'soccer',
-				homeTeam: { id: '190', name: 'Philadelphia Union', abbreviation: 'PHI', score: 2, logo: `${espnCdn}/soccer/500/10739.png`, color: '#051c2c' },
-				awayTeam: { id: '183', name: 'New York Red Bull', abbreviation: 'NYR', score: 1, logo: `${espnCdn}/soccer/500/190.png`, color: '#b91f31' },
+				// The ids are ESPN's own and the logo filenames already carried them: Philadelphia
+				// Union is 10739 and the Red Bulls are 190. They had been transposed, which drew
+				// each side's numbers under the other side's crest on the demo box score.
+				homeTeam: { id: '10739', name: 'Philadelphia Union', abbreviation: 'PHI', score: 2, logo: `${espnCdn}/soccer/500/10739.png`, color: '#051c2c' },
+				awayTeam: { id: '190', name: 'New York Red Bull', abbreviation: 'NYR', score: 1, logo: `${espnCdn}/soccer/500/190.png`, color: '#b91f31' },
 				venueName: 'Subaru Park',
 				venueLocation: 'Chester, PA',
 				period: 2, clockSeconds: 742, status: 'in',
@@ -380,6 +384,28 @@ export class MockGameSimulator {
 				startTime: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString(),
 				broadcasts: ['NESN'],
 			},
+			// The one game that is already over when demo mode starts, so the wrap screen is
+			// reachable without waiting for a simulated game to run its course. Ten innings, so the
+			// line score has an extra column and the card carries an extra-innings label.
+			//
+			// The same two teams as the live MLB game above, and deliberately: the box score behind
+			// it is a real NYM-at-PHI payload keyed by ESPN's own team ids, so a demo game with any
+			// other pair would draw one matchup in the hero and a different one in the line score.
+			// Two games of the same series is also what a Tuesday in September actually looks like.
+			{
+				id: 'mock-20',
+				league: 'mlb',
+				sportType: 'baseball',
+				homeTeam: { id: '22', name: 'Philadelphia Phillies', abbreviation: 'PHI', score: 3, logo: `${espnCdn}/mlb/500/phi.png`, color: '#E81828', record: '81-63' },
+				awayTeam: { id: '21', name: 'New York Mets', abbreviation: 'NYM', score: 2, logo: `${espnCdn}/mlb/500/nym.png`, color: '#002D72', record: '74-70' },
+				venueName: 'Citizens Bank Park',
+				venueLocation: 'Philadelphia, Pennsylvania',
+				period: 10, clockSeconds: 0, status: 'post',
+				startTime: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+				attendance: 38416,
+				broadcasts: ['NBCSP'],
+				weather: { temperatureF: 68, conditionLabel: 'Clear' },
+			},
 		];
 
 		this.state = new Map();
@@ -393,6 +419,19 @@ export class MockGameSimulator {
 			});
 		}
 	}
+
+	// Deep copies, so consumers can't mutate internal state.
+	private copies = (): Game[] => this.games.map(g => ({
+		...g,
+		homeTeam: { ...g.homeTeam },
+		awayTeam: { ...g.awayTeam },
+		bso: g.bso ? { ...g.bso } : undefined,
+	}));
+
+	// The slate as constructed, before any tick has advanced it. Anything that needs the shipped
+	// demo games reads them from here: a test that redeclares them by hand is how the soccer
+	// game's team ids and its box-score fixture drifted apart with every test still green.
+	seed = (): Game[] => this.copies();
 
 	tick = (): Game[] => {
 		for (const game of this.games) {
@@ -410,13 +449,7 @@ export class MockGameSimulator {
 			}
 		}
 
-		// Deep copies, so consumers can't mutate internal state.
-		return this.games.map(g => ({
-			...g,
-			homeTeam: { ...g.homeTeam },
-			awayTeam: { ...g.awayTeam },
-			bso: g.bso ? { ...g.bso } : undefined,
-		}));
+		return this.copies();
 	};
 
 	private advanceLive = (game: Game, simState: SimState): void => {
@@ -530,6 +563,10 @@ export class MockGameSimulator {
 	};
 
 	private advancePost = (game: Game, simState: SimState): void => {
+		// Every other finished game is put back to live after a few ticks, which is what makes a
+		// game ending watchable. The wrap screen is the opposite: it cannot be read at all if the
+		// game restarts underneath the reader, so this one stays finished.
+		if (heldFinalGameIds.has(game.id)) return;
 		simState.postTicks++;
 		if (simState.postTicks >= resetPostGameAfterTicks) {
 			const leagueConfig = leagueConfigMap[game.league];

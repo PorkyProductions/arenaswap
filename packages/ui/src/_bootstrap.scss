@@ -38,6 +38,12 @@ $font-monospace:       'Lekton', monospace;
 // resolves to the dark side, and this keeps that side on-theme instead of pure black.
 $color-contrast-dark:  #0d1117;
 
+// The dimmed side of a final scoreline. Shared because two files draw it — the card and the detail
+// hero — and a receded grey that only clears contrast in one of them is the drift this avoids. It
+// has to hold 3:1 as large text on both plates the scoreline sits on, the card's #f4f6f8 and the
+// hero's white: 3.37:1 and 3.65:1. The #9aa4b0 it replaced reached 2.33:1 and 2.53:1.
+$score-loser-color:    #7c8794;
+
 * {
 	&::selection {
 		background: $primary;

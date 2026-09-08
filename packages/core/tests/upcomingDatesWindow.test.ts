@@ -92,3 +92,33 @@ describe('the scoreboard request in the viewer\'s own time zone', () => {
 		expect(new URL(datesUrl!).searchParams.get('dates')).toBe('20260905-20260913');
 	});
 });
+
+describe('reaching back for games that have already finished', () => {
+	const rangeBack = (timeZone: string, iso: string, days: number, pastDays: number): string => {
+		setTimeZone(timeZone);
+		return loadApiClient().buildUpcomingDatesRangeQuery(days, new Date(iso), pastDays);
+	};
+
+	test('no past days is the window every existing caller already gets', () => {
+		expect(rangeBack('America/New_York', '2026-09-05T18:00:00.000Z', 7, 0))
+			.toBe(rangeIn('America/New_York', '2026-09-05T18:00:00.000Z', 7));
+	});
+
+	test('one past day opens the window a day earlier and leaves the close alone', () => {
+		expect(rangeBack('America/New_York', '2026-09-05T18:00:00.000Z', 7, 1)).toBe('20260904-20260912');
+	});
+
+	test('a Tokyo viewer reaches back from their own yesterday, not Eastern\'s', () => {
+		// 09:00 Sep 6 in Tokyo opened at 11:00 Eastern on Sep 5, so their yesterday opened Sep 4.
+		expect(rangeBack('Asia/Tokyo', '2026-09-06T00:00:00.000Z', 7, 1)).toBe('20260904-20260913');
+	});
+
+	test('crossing the start of a month counts days rather than subtracting from the number', () => {
+		expect(rangeBack('America/New_York', '2026-10-01T14:00:00.000Z', 3, 1)).toBe('20260930-20261004');
+	});
+
+	test('crossing the start of a year', () => {
+		expect(rangeBack('America/New_York', '2027-01-01T14:00:00.000Z', 1, 1)).toBe('20261231-20270102');
+	});
+});
+
