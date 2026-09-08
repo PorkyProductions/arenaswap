@@ -204,6 +204,7 @@ const setupProps = {
 	onReorderLeague: () => {},
 	onResetLeagueOrder: () => {},
 	onToggleShowUpcoming: () => {},
+	onToggleKeepFinalGames: () => {},
 	onUpcomingGamesDaysChange: () => {},
 	onToggleProTips: () => {},
 	onToggleNotifications: () => {},

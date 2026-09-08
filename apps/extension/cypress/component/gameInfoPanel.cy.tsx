@@ -1,4 +1,5 @@
 import GameDetailView from '../../entrypoints/popup/components/gameDetailView';
+import GameInfoPanel from '../../entrypoints/popup/components/gameInfoPanel';
 import type { Game, PowerScoreResult } from '@arenaswap/core/types';
 import de from '../../locales/de.json';
 import en from '../../locales/en.json';
@@ -15,7 +16,7 @@ import zhCN from '../../locales/zh_CN.json';
 import zhTW from '../../locales/zh_TW.json';
 
 const locales = { de, en, es, fil, fr, it: itLocale, ja, ko, pt_BR: ptBR, pt_PT: ptPT, zh_CN: zhCN, zh_TW: zhTW };
-const labelKeys = ['infoWatch', 'infoVenue', 'infoWeather', 'infoLine'] as const;
+const labelKeys = ['infoWatch', 'infoVenue', 'infoWeather', 'infoLine', 'infoAttendance', 'infoEnded'] as const;
 
 const liveGame: Game = {
 	id: 'mock-7',
@@ -45,6 +46,22 @@ const excitement: PowerScoreResult = {
 	stalled: false,
 	reason: 'close game, lead changes',
 };
+
+const mountPanel = (game: Game, gameDurationMins: number | null) => {
+	cy.mount(
+		<GameInfoPanel
+			game={game}
+			bettingPrefs={{ bettingEnabled: false }}
+			weatherPrefs={{ temperatureUnit: 'F' }}
+			gameDurationMins={gameDurationMins}
+		/>,
+	);
+};
+
+const expectedTime = (startIso: string, mins: number): string => (
+	new Date(new Date(startIso).getTime() + (mins * 60_000))
+		.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+);
 
 const mountDetail = (game: Game, bettingEnabled = true) => {
 	cy.mount(
@@ -168,6 +185,105 @@ describe('game info panel', () => {
 		mountDetail({ ...liveGame, status: 'pre', period: 0, startTime: new Date(Date.now() + 3600_000).toISOString() });
 		cy.get('.game-info-panel').should('exist');
 		cy.get('.game-info-row').should('have.length', 3);
+	});
+
+	// The row this feeds is the only honest finish time in the product: ESPN publishes no
+	// completion timestamp, so it is the start it did publish plus the duration it did publish.
+	// Mounted directly rather than through the detail view, which would have to fetch a summary.
+	describe('the finish time', () => {
+		const finalGame: Game = {
+			...liveGame,
+			status: 'post',
+			period: 9,
+			clockSeconds: 0,
+			startTime: '2026-09-06T16:10:00.000Z',
+		};
+
+		it('adds the duration to the start rather than printing an estimate', () => {
+			mountPanel(finalGame, 194);
+			cy.contains(en.detail.infoEnded).should('exist');
+			cy.contains(expectedTime('2026-09-06T16:10:00.000Z', 194)).should('exist');
+		});
+
+		it('draws no row on a sport that reports no duration', () => {
+			mountPanel(finalGame, null);
+			cy.contains(en.detail.infoEnded).should('not.exist');
+			cy.get('.bi-flag').should('not.exist');
+		});
+
+		it('draws no row without a start time to add it to', () => {
+			mountPanel({ ...finalGame, startTime: undefined }, 194);
+			cy.contains(en.detail.infoEnded).should('not.exist');
+		});
+
+		it('sits above the attendance, since the game ended before the gate was counted', () => {
+			mountPanel({ ...finalGame, attendance: 40000 }, 194);
+			cy.get('.game-info-row').then(rows => {
+				const labels = [...rows].map(r => r.querySelector('.game-info-label')?.textContent);
+				expect(labels.indexOf(en.detail.infoEnded))
+					.to.be.lessThan(labels.indexOf(en.detail.infoAttendance));
+			});
+		});
+
+		it('keeps the time on one line beside its label', () => {
+			mountPanel(finalGame, 194);
+			cy.get('.game-info-row').last().find('.game-info-value').should($value => {
+				const el = $value[0];
+				expect(el.scrollWidth, 'the time does not overflow its column').to.be.at.most(el.clientWidth);
+			});
+		});
+	});
+
+	describe('attendance', () => {
+		const finalGame: Game = {
+			...liveGame,
+			status: 'post',
+			period: 4,
+			clockSeconds: 0,
+			venueLocation: 'Kansas City, MO',
+			attendance: 73426,
+		};
+
+		it('gets a row of its own once the game is over', () => {
+			mountDetail(finalGame);
+			cy.get('.game-info-row').should('have.length', 4);
+			cy.get('.game-info-row').eq(2).should('contain.text', 'Attendance');
+			cy.get('.game-info-row').eq(2).should('contain.text', '73,426');
+		});
+
+		it('sits under the venue, which is the fact it belongs to', () => {
+			mountDetail(finalGame);
+			cy.get('.game-info-row').eq(1).should('contain.text', 'Arrowhead Stadium');
+			cy.get('.game-info-row').eq(2).find('.bi-people').should('exist');
+		});
+
+		// The field is on every scoreboard payload and reads 0 until the game is final, so a live
+		// game that arrives carrying a zero must not draw an empty stadium.
+		it('draws no row while the game is still being played', () => {
+			mountDetail(liveGame);
+			cy.get('.game-info-row').should('have.length', 3);
+			cy.get('.bi-people').should('not.exist');
+		});
+
+		it('draws no row on a finished game ESPN never announced a figure for', () => {
+			mountDetail({ ...finalGame, attendance: undefined });
+			cy.get('.game-info-row').should('have.length', 3);
+			cy.get('.bi-people').should('not.exist');
+		});
+
+		it('groups the digits, which is what makes a five-figure crowd readable at 320px', () => {
+			mountDetail(finalGame);
+			cy.get('.game-info-row').eq(2).find('.game-info-value-strong')
+				.should('have.text', (73426).toLocaleString());
+		});
+
+		it('keeps the number on one line beside its label', () => {
+			mountDetail({ ...finalGame, attendance: 105000 });
+			cy.get('.game-info-row').eq(2).find('.game-info-value').should($value => {
+				const el = $value[0];
+				expect(el.scrollWidth, 'the figure does not overflow its column').to.be.at.most(el.clientWidth);
+			});
+		});
 	});
 
 	// The label column is fixed so the values share a left edge; a label that wraps breaks the grid.

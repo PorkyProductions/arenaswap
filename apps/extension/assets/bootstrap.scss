@@ -32,6 +32,48 @@ $pagination-disabled-bg: #0d1117;
 $pagination-hover-bg: #161b22;
 $pagination-focus-bg: #161b22;
 
+// ── Box score ────────────────────────────────────────────────────────────────
+// The box score is the first and only .table and .nav in the popup, so these are set globally
+// the way $pagination-font-size above is rather than being re-specified on the component.
+//
+// Every default here resolves against the dark popup and the box score sits on the light
+// .gd-setup card, so left alone the table would be a #0d1117 slab with light ink on it. Same
+// class of bug the pagination arrows had.
+$table-color:            #111827;
+// Transparent rather than a colour of its own, so the card it sits on shows through and the two
+// cannot drift apart.
+$table-bg:               transparent;
+$table-border-color:     #d1d5db;
+$table-striped-color:    #111827;
+$table-striped-bg:       rgba(17, 24, 39, 0.045);
+$table-active-color:     #111827;
+$table-active-bg:        rgba(17, 24, 39, 0.075);
+$table-hover-color:      #111827;
+$table-hover-bg:         rgba(17, 24, 39, 0.06);
+$table-th-font-weight:   700;
+// A 320px popup has ~263px inside the card. Bootstrap's .25rem of horizontal padding a side
+// spends 96px of that on a nine-inning line score before a single digit is drawn.
+$table-cell-padding-y-sm: 0.12rem;
+$table-cell-padding-x-sm: 0.16rem;
+
+// $nav-tabs-link-active-bg is var(--as-body-bg) by default, which would punch a dark hole in the
+// light card the selected team's tab sits on.
+$nav-tabs-link-active-bg:           #f8fafc;
+$nav-tabs-border-color:             #d1d5db;
+$nav-tabs-link-active-color:        #111827;
+$nav-tabs-link-active-border-color: #d1d5db #d1d5db #f8fafc;
+// The default hover border reaches for --as-secondary-bg, which this theme never overrode and
+// which is therefore still Bootstrap's light #e9ecef.
+$nav-tabs-link-hover-border-color:  #e5e7eb #e5e7eb #d1d5db;
+// $nav-link-color is the link colour, and #F75C03 on #f8fafc is 3.0:1 — under the 4.5:1 an
+// unselected tab's label needs as body text.
+$nav-link-color:                    #4b5563;
+$nav-link-hover-color:              #111827;
+$nav-link-font-size:                0.64rem;
+$nav-link-font-weight:              700;
+$nav-link-padding-y:                0.2rem;
+$nav-link-padding-x:                0.45rem;
+
 @import 'bootstrap/scss/bootstrap';
 
 $bootstrap-icons-font-dir: '/fonts';
@@ -1137,6 +1179,169 @@ $bootstrap-icons-font-dir: '/fonts';
 	white-space: nowrap;
 }
 
+// ── Box score ────────────────────────────────────────────────────────────────
+// The line score, the team comparison and one team's player tables, in the same light card family
+// as the blocks above. Everything below is Bootstrap's .table doing the work; these rules only
+// re-skin properties Bootstrap already sets on the same elements, plus the two column behaviours a
+// 263px card needs that no utility expresses.
+
+.gd-box-subheading {
+	font-size:      0.55rem;
+	font-weight:    700;
+	color:          #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin:         0.3rem 0 0.14rem;
+}
+
+.gd-box > .gd-box-line .gd-box-subheading:first-child,
+.gd-box > .gd-box-compare .gd-box-subheading:first-child {
+	margin-top: 0.14rem;
+}
+
+.gd-box-table {
+	font-size:     0.6rem;
+	margin-bottom: 0.2rem;
+
+	// Numbers are read down a column, which is what the monospace face is for in this project.
+	// The name column opts back out below.
+	td,
+	th:not(.gd-box-name) {
+		font-variant-numeric: tabular-nums;
+		text-align:           center;
+		white-space:          nowrap;
+	}
+
+	thead th {
+		font-size:      0.5rem;
+		color:          #4b5563;
+		letter-spacing: 0.02em;
+	}
+
+	tfoot th,
+	tfoot td { font-weight: 700; }
+}
+
+// A truncated name is still readable and a truncated stat is not, so the name column takes all the
+// slack and gives way first. `max-width: 0` is what lets a percentage-width table cell actually
+// ellipsize — without it the cell grows to its content instead.
+.gd-box-name {
+	width:         100%;
+	max-width:     0;
+	overflow:      hidden;
+	text-overflow: ellipsis;
+	white-space:   nowrap;
+	text-align:    left;
+	font-weight:   600;
+}
+
+.gd-box-name-sub { padding-left: 0.7rem !important; }
+
+.gd-box-position {
+	font-size:   0.5rem;
+	font-weight: 400;
+	color:       #6b7280;
+	margin-left: 0.2rem;
+}
+
+.gd-box-dnp {
+	font-size:  0.52rem;
+	color:      #6b7280;
+	font-style: italic;
+}
+
+.gd-box-line-team {
+	font-weight: 700;
+	text-align:  left;
+	white-space: nowrap;
+}
+
+// A flex span inside the cell rather than `display: flex` on the cell itself: a table cell that
+// stops being one drops out of the fixed layout that keeps the innings even.
+.gd-box-line-id {
+	display:     flex;
+	align-items: center;
+	gap:         0.2rem;
+}
+
+.gd-box-line-crest {
+	width:  13px;
+	height: 13px;
+}
+
+.gd-box-line-abbr {
+	font-size:      0.58rem;
+	font-weight:    700;
+	letter-spacing: 0.02em;
+}
+
+.gd-box-line-total { font-weight: 700; }
+
+// Nine innings plus R-H-E is thirteen columns. Fixed layout divides the width evenly instead of
+// letting a two-digit inning steal room from the ones beside it.
+.gd-box-line-table {
+	table-layout: fixed;
+	// Fixed layout divides the table's width evenly however many columns there are, which is what
+	// keeps a two-digit inning from stealing room from the ones beside it. It also means a 13th
+	// inning would squeeze all sixteen columns to 14px and clip their digits, so the min-width is
+	// what makes the table overflow its wrapper and scroll instead. Nine innings plus R-H-E lands
+	// under the card's width and never scrolls.
+	min-width:    calc(3.5rem + var(--gd-box-line-columns) * 1.05rem);
+
+	// Wide enough for a 13px crest and a three-letter abbreviation. Every rem spent here comes
+	// out of the innings, which is why the nine-inning fit is a test rather than a calculation.
+	.gd-box-line-team { width: 3.5rem; }
+}
+
+// The label takes the middle and the two values sit under the abbreviations that own them.
+.gd-box-compare-table {
+	td:first-child,
+	td:last-child,
+	thead th:first-child,
+	thead th:last-child { width: 3.4rem; font-weight: 600; }
+}
+
+.gd-box-compare-team {
+	font-size:      0.58rem;
+	letter-spacing: 0.02em;
+}
+
+.gd-box-compare-label {
+	width:       100%;
+	text-align:  center !important;
+	font-weight: 400 !important;
+	color:       #4b5563;
+	font-size:   0.55rem;
+}
+
+.gd-box-tabs {
+	margin-top: 0.3rem;
+
+	.nav-link {
+		display:     flex;
+		align-items: center;
+		gap:         0.22rem;
+	}
+}
+
+.gd-box-tab-crest {
+	width:  13px;
+	height: 13px;
+}
+
+// btn-link is the right component and its colour is the link orange, which only reaches 3.0:1 on
+// this card.
+.gd-box-more {
+	font-size:       0.55rem;
+	font-weight:     700;
+	color:           #4b5563;
+	text-decoration: underline;
+	padding:         0.05rem 0;
+
+	&:hover,
+	&:focus { color: #111827; }
+}
+
 // Venue / broadcast / odds / weather, as one titled section rather than four stacked centred
 // lines. Takes the chart cards' treatment, not the breakdown's white card: everything below the
 // PowerScore math reads as one dark column of sections.
@@ -1174,7 +1379,10 @@ $bootstrap-icons-font-dir: '/fonts';
 
 .game-info-label {
 	flex-shrink: 0;
-	width:       2.9rem;
+	// Sized for Attendance, which is the longest label this panel carries in every language it
+	// ships in — 2.9rem was set when Watch, Venue and Line were the whole list, and it wraps
+	// anything over about ten characters. The value column loses 11px and clips nothing.
+	width:       3.6rem;
 	font-size:   0.58rem;
 	color:       #8b949e;
 }
@@ -1415,6 +1623,10 @@ button.game-info-attribution {
 	display: inline-flex;
 	justify-content: center;
 	min-width: 2.4ch;
+
+	// Final games only — see detailHero. The weight lives on the element as a Bootstrap utility,
+	// since `.fw-bold` is `!important` and would beat a font-weight set here.
+	&.is-loser { color: #9aa4b0; }
 }
 
 .game-detail-period {

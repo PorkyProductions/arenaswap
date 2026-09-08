@@ -9,6 +9,7 @@ const defaultPrefs: UserPreferences = {
 	cooldownSeconds: 45,
 	switchDelaySeconds: 0,
 	showUpcomingGames: true,
+	keepFinalGames: false,
 	proTipsEnabled: true,
 	notificationsEnabled: false,
 	favoriteTeamBonusPoints: 0,

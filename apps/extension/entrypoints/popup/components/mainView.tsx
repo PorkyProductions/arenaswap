@@ -19,7 +19,7 @@ import GameListHeader from './gameListHeader';
 import ReviewPromptBanner from './reviewPromptBanner';
 import SuggestBanner from './suggestBanner';
 import UpcomingDayPager from './upcomingDayPager';
-import { buildFavoritePinnedComparator, buildLeagueRank, buildUpcomingComparator, getRandomLoadingMessage, groupByDate, groupByLeague, resolveSelectedDayIndex } from '../popupHelpers';
+import { buildFavoritePinnedComparator, buildFinalComparator, buildLeagueRank, buildUpcomingComparator, getRandomLoadingMessage, groupByDate, groupByLeague, resolveSelectedDayIndex } from '../popupHelpers';
 import type { BettingDisplayPrefs, WeatherDisplayPrefs } from './gameCardTypes';
 import useRestoredScroll from '../useRestoredScroll';
 
@@ -183,11 +183,23 @@ const mainView = ({
 		() => buildUpcomingComparator(leagueRank, favoriteTeamIds, scoreByGameId),
 		[leagueRank, favoriteTeamIds, scoreByGameId],
 	);
+	const sortFinalGames = useMemo(
+		() => buildFinalComparator(leagueRank, favoriteTeamIds),
+		[leagueRank, favoriteTeamIds],
+	);
 	const upcomingCutoffMs = useMemo(
 		() => Date.now() + prefs.upcomingGamesDays * 24 * 60 * 60 * 1000,
 		[prefs.upcomingGamesDays],
 	);
 	const liveGames = useMemo(() => games.filter(g => g.status === 'in'), [games]);
+	// The background already drops a game once it has aged out of the retention window, so this is
+	// only a sort: most recently wrapped first, since that is the game you came looking for.
+	const finalGames = useMemo(
+		() => (prefs.keepFinalGames
+			? games.filter(g => g.status === 'post').toSorted(sortFinalGames)
+			: []),
+		[games, prefs.keepFinalGames, sortFinalGames],
+	);
 	const upcomingGames = useMemo(
 		() => games
 			.filter(g => g.status === 'pre')
@@ -210,7 +222,8 @@ const mainView = ({
 	);
 
 	const showNoGames = !isLoading && !noLeaguesSelected && liveGames.length === 0
-		&& registry.length === 0 && (!prefs.showUpcomingGames || upcomingGames.length === 0);
+		&& registry.length === 0 && finalGames.length === 0
+		&& (!prefs.showUpcomingGames || upcomingGames.length === 0);
 
 	const bettingPrefs: BettingDisplayPrefs = {
 		bettingEnabled: prefs.bettingEnabled,
@@ -284,6 +297,27 @@ const mainView = ({
 					/>
 				),
 				first: assignedLiveGames.length === 0 && unassignedLiveGames.length === 0,
+			})}
+
+			{/* Last, under Up Next: results are the one section you are never deciding anything from,
+			    so they sit below the two that you are. */}
+			{!isLoading && !noLeaguesSelected && finalGames.length > 0 && gameSection({
+				title: i18n.t('main.sectionFinal'),
+				games: finalGames,
+				scoreMap: emptyScoreMap,
+				leagueLogos,
+				favoriteTeamIds,
+				onToggleFavoriteTeam,
+				gameBoosts,
+				openTabs,
+				registry,
+				onRegistryChange,
+				formatTabLabel,
+				onOpenGameDetail,
+				bettingPrefs,
+				weatherPrefs,
+				first: assignedLiveGames.length === 0 && unassignedLiveGames.length === 0
+					&& !(prefs.showUpcomingGames && selectedDay),
 			})}
 
 			<PopupFooter />

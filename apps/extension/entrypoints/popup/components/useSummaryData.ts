@@ -3,6 +3,9 @@ import { leagueConfigMap } from '@arenaswap/core/constants';
 import { logWarn } from '@arenaswap/core';
 import type { Game, LeagueId } from '@arenaswap/core/types';
 import { seriesSports } from './seriesDots';
+import { emptyBoxScore, parseBoxScore } from './boxScoreParse';
+import type { BoxScore } from './boxScoreParse';
+import { mockBoxScorePayloads } from './mockBoxScores';
 
 export interface SeriesCompetitor {
 	homeAway: string;
@@ -31,6 +34,11 @@ interface summaryDataResult {
 	winProbability: number[];
 	seriesInfo: SeriesInfo | null;
 	records: TeamRecords;
+	boxScore: BoxScore;
+	// Wall-clock length of a finished game, in whole minutes. The one thing that makes an actual
+	// finish time knowable: ESPN publishes no completion timestamp anywhere, so the wrap screen
+	// adds this to the start rather than printing an estimate.
+	gameDurationMins: number | null;
 }
 
 interface RecordEntry {
@@ -46,6 +54,17 @@ interface HeaderCompetitor {
 }
 
 export const emptyTeamRecords: TeamRecords = { home: null, away: null };
+
+// ESPN sends `gameInfo.gameDuration` as "3:14" — hours and minutes, not a clock time. It is
+// baseball-only among the leagues sampled, which is why the row it feeds is absent rather than
+// blank everywhere else. Anything that is not h:mm is ignored rather than guessed at.
+export const parseGameDurationMins = (data: unknown): number | null => {
+	const raw = (data as { gameInfo?: { gameDuration?: unknown } })?.gameInfo?.gameDuration;
+	if (typeof raw !== 'string') return null;
+	const matched = /^(\d{1,2}):([0-5]\d)$/.exec(raw.trim());
+	if (!matched) return null;
+	return (Number(matched[1]) * 60) + Number(matched[2]);
+};
 
 // `summary` beats `displayValue` because the NHL appends standings points there —
 // "28-28-10, 66 PTS" — twice the width of the column it has to sit in.
@@ -76,8 +95,8 @@ export const parseTeamRecords = (data: unknown, homeTeamId: string, awayTeamId: 
 };
 
 type SummaryGameArg = Pick<Game, 'id' | 'league' | 'status' | 'sportType'> & {
-	homeTeam: Pick<Game['homeTeam'], 'id' | 'score' | 'record'>;
-	awayTeam: Pick<Game['awayTeam'], 'id' | 'score' | 'record'>;
+	homeTeam: Pick<Game['homeTeam'], 'id' | 'score' | 'record' | 'abbreviation'>;
+	awayTeam: Pick<Game['awayTeam'], 'id' | 'score' | 'record' | 'abbreviation'>;
 };
 
 // Deterministic so mock charts do not change between renders.
@@ -130,6 +149,12 @@ const mockSeriesMap: Record<string, MockSeriesEntry> = {
 	},
 };
 
+// The one finished demo game, so the wrap's finish time is reachable without a live slate. 3h22m
+// on a ten-inning game, which is what one actually runs to.
+const mockGameDurationMins: Record<string, number> = {
+	'mock-20': 202,
+};
+
 const mockRecordsMap: Record<string, TeamRecords> = {
 	'mock-1': { home: '18-9', away: '15-12' },
 	'mock-2': { home: '41-30', away: '33-38' },
@@ -147,6 +172,7 @@ const mockRecordsMap: Record<string, TeamRecords> = {
 	'mock-15': { home: '45-26', away: '40-31' },
 	'mock-16': { home: '90-72', away: '98-64' },
 	'mock-17': { home: '28-16', away: '24-20' },
+	'mock-20': { home: '81-63', away: '74-70' },
 };
 
 // The scoreboard now carries both teams' records, so a pre-game screen has nothing left to ask
@@ -175,6 +201,8 @@ const useSummaryData = (game: SummaryGameArg): summaryDataResult => {
 	const [winProbability, setWinProbability] = useState<number[]>([]);
 	const [seriesInfo, setSeriesInfo] = useState<SeriesInfo | null>(null);
 	const [records, setRecords] = useState<TeamRecords>(emptyTeamRecords);
+	const [boxScore, setBoxScore] = useState<BoxScore>(emptyBoxScore);
+	const [gameDurationMins, setGameDurationMins] = useState<number | null>(null);
 	// The scoreboard's records win when it has them; the summary is the fallback for the leagues
 	// and dates where it does not.
 	const resolvedRecords: TeamRecords = {
@@ -186,10 +214,12 @@ const useSummaryData = (game: SummaryGameArg): summaryDataResult => {
 	// made basket. This effect is declared before the fetch below so the refs are already
 	// current by the time it runs.
 	const teamIdsRef = useRef({ home: game.homeTeam.id, away: game.awayTeam.id });
+	const abbreviationsRef = useRef({ home: game.homeTeam.abbreviation, away: game.awayTeam.abbreviation });
 	const scoreRef = useRef({ home: game.homeTeam.score, away: game.awayTeam.score });
 	const gameRef = useRef(game);
 	useEffect(() => {
 		teamIdsRef.current = { home: game.homeTeam.id, away: game.awayTeam.id };
+		abbreviationsRef.current = { home: game.homeTeam.abbreviation, away: game.awayTeam.abbreviation };
 		scoreRef.current = { home: game.homeTeam.score, away: game.awayTeam.score };
 		gameRef.current = game;
 	});
@@ -200,12 +230,22 @@ const useSummaryData = (game: SummaryGameArg): summaryDataResult => {
 		setWinProbability([]);
 		setSeriesInfo(null);
 		setRecords(emptyTeamRecords);
+		setBoxScore(emptyBoxScore);
+		setGameDurationMins(null);
 
 		if (gameId.startsWith('mock-')) {
 			setRecords(mockRecordsMap[gameId] ?? emptyTeamRecords);
+			setGameDurationMins(mockGameDurationMins[gameId] ?? null);
 			if (status === 'pre') return;
 			setWinProbability(generateMockWinProbs(gameId, scoreRef.current.home, scoreRef.current.away));
 			setSeriesInfo(mockSeriesMap[gameId] ?? null);
+			setBoxScore(parseBoxScore(
+				mockBoxScorePayloads[gameId],
+				teamIdsRef.current.home,
+				teamIdsRef.current.away,
+				abbreviationsRef.current.home,
+				abbreviationsRef.current.away,
+			));
 			return;
 		}
 
@@ -231,6 +271,14 @@ const useSummaryData = (game: SummaryGameArg): summaryDataResult => {
 				}
 				setSeriesInfo(pickSeriesEntry(data?.seasonseries as SeriesInfo[] | undefined));
 				setRecords(parseTeamRecords(data, teamIdsRef.current.home, teamIdsRef.current.away));
+				setGameDurationMins(parseGameDurationMins(data));
+				setBoxScore(parseBoxScore(
+					data,
+					teamIdsRef.current.home,
+					teamIdsRef.current.away,
+					abbreviationsRef.current.home,
+					abbreviationsRef.current.away,
+				));
 			})
 			.catch(err => {
 				if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -240,7 +288,7 @@ const useSummaryData = (game: SummaryGameArg): summaryDataResult => {
 		return () => controller.abort();
 	}, [gameId, league, status]);
 
-	return { winProbability, seriesInfo, records: resolvedRecords };
+	return { winProbability, seriesInfo, records: resolvedRecords, boxScore, gameDurationMins };
 };
 
 export default useSummaryData;

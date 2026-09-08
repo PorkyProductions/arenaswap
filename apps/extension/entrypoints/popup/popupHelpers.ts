@@ -1,5 +1,5 @@
 import { BackgroundStateSchema } from '@arenaswap/core';
-import { createFavoriteTeamKey, leagueConfigs } from '@arenaswap/core/constants';
+import { createFavoriteTeamKey, estimatedWrapMs, leagueConfigs } from '@arenaswap/core/constants';
 import type {
 	BackgroundState,
 	Game,
@@ -134,6 +134,30 @@ export const buildUpcomingComparator = (
 		return fallbackSort(a, b);
 	};
 };
+
+// Your teams first, then most recently wrapped. Finished games are read as a list of results
+// rather than a set of choices, so PowerScore has no say here — the background stops scoring a game
+// the moment it stops being live, and ranking results by how exciting they were would put
+// yesterday's thriller above the game that ended ten minutes ago.
+export const buildFinalComparator = (
+	leagueRank: Record<LeagueId, number>,
+	favoriteTeamIds: Set<string> = new Set(),
+) => (
+	(a: Game, b: Game): number => {
+		// Across the whole section rather than within each league group, because the result you came
+		// looking for is your team's and it should not be a league header down.
+		const aFavorite = isFavoriteTeamGame(a, favoriteTeamIds);
+		const bFavorite = isFavoriteTeamGame(b, favoriteTeamIds);
+		if (aFavorite !== bFavorite) return aFavorite ? -1 : 1;
+		const aWrap = estimatedWrapMs(a, Date.now());
+		const bWrap = estimatedWrapMs(b, Date.now());
+		if (aWrap !== bWrap) return bWrap - aWrap;
+		const aLeague = leagueRank[a.league] ?? Number.MAX_SAFE_INTEGER;
+		const bLeague = leagueRank[b.league] ?? Number.MAX_SAFE_INTEGER;
+		if (aLeague !== bLeague) return aLeague - bLeague;
+		return a.id.localeCompare(b.id);
+	}
+);
 
 const toKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 

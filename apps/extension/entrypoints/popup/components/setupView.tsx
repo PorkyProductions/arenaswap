@@ -38,6 +38,7 @@ interface setupViewProps {
 	onReorderLeague: (fromIndex: number, toIndex: number) => void;
 	onResetLeagueOrder: () => void;
 	onToggleShowUpcoming: () => void;
+	onToggleKeepFinalGames: () => void;
 	onUpcomingGamesDaysChange: (val: number) => void;
 	onToggleProTips: () => void;
 	onToggleNotifications: () => void;
@@ -70,7 +71,7 @@ const setupView = ({
 	prefs, prefsLoaded, demoMode, demoSeason, leagueLogos, favoriteTeamIds, standbyStreamTabId, standbyOnboardingDone,
 	openTabs, formatTabLabel, onClose, onSensitivityChange, onCooldownChange, onSwitchDelayChange,
 	onFavoriteTeamBonusChange, onToggleFavoriteTeam, onToggleLeague, onToggleSport, onReorderLeague, onResetLeagueOrder,
-	onToggleShowUpcoming, onUpcomingGamesDaysChange,
+	onToggleShowUpcoming, onToggleKeepFinalGames, onUpcomingGamesDaysChange,
 	onToggleProTips, onToggleNotifications, onToggleDemo, onDemoSeasonChange, onToggleStandbyStream, onStandbyThresholdChange,
 	onSetStandbyTab, onStandbyOnboardingDone, onToggleBetting, onToggleTemperatureUnit, onUnlockRomer, onPostseasonBoostChange,
 	onToggleHolidayDecorations, onToggleHolidaySnow, onToggleHolidayLights, onToggleHolidayLeaves,
@@ -197,6 +198,14 @@ const setupView = ({
 					</div>
 				</div>
 			)}
+
+			<div className='d-flex justify-content-between align-items-center mt-2'>
+				<label className='text-body-secondary setting-toggle-label' htmlFor='keepFinalToggle'>{i18n.t('setup.keepFinalGames')}</label>
+				<div className='form-check form-switch mb-0'>
+					<input className='form-check-input' type='checkbox' id='keepFinalToggle' checked={prefs.keepFinalGames} onChange={onToggleKeepFinalGames} disabled={!prefsLoaded} />
+				</div>
+			</div>
+			<div className='setting-explainer mt-1'>{i18n.t('setup.keepFinalGamesExplainer')}</div>
 
 			<div className='d-flex justify-content-between align-items-center mt-2'>
 				<label className='text-body-secondary setting-toggle-label' htmlFor='proTipsToggle'>{i18n.t('setup.proTips')}</label>

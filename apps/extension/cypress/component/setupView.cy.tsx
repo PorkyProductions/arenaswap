@@ -25,6 +25,7 @@ const defaultPrefs: UserPreferences = {
 	favoriteTeamIds: [],
 	favoriteTeamBonusPoints: 0,
 	showUpcomingGames: true,
+	keepFinalGames: false,
 	proTipsEnabled: true,
 	notificationsEnabled: false,
 	standbyStreamEnabled: false,
@@ -63,6 +64,7 @@ const defaultProps = {
 	onReorderLeague: () => {},
 	onResetLeagueOrder: () => {},
 	onToggleShowUpcoming: () => {},
+	onToggleKeepFinalGames: () => {},
 	onUpcomingGamesDaysChange: () => {},
 	onToggleProTips: () => {},
 	onToggleNotifications: () => {},
@@ -269,6 +271,54 @@ describe('setupView display group', () => {
 		cy.mount(<SetupView {...defaultProps} prefs={{ ...defaultPrefs, showUpcomingGames: false }} />);
 		openGroup('display');
 		cy.get('#upcomingToggle').should('not.be.checked');
+	});
+
+	it('offers the keep-finished-games toggle, off by default', () => {
+		cy.mount(<SetupView {...defaultProps} />);
+		openGroup('display');
+		cy.get('#keepFinalToggle').should('exist').and('not.be.checked');
+	});
+
+	it('shows it checked once the pref is on', () => {
+		cy.mount(<SetupView {...defaultProps} prefs={{ ...defaultPrefs, keepFinalGames: true }} />);
+		openGroup('display');
+		cy.get('#keepFinalToggle').should('be.checked');
+	});
+
+	it('calls onToggleKeepFinalGames when it is flipped', () => {
+		const spy = cy.spy().as('onToggleKeepFinalGames');
+		cy.mount(<SetupView {...defaultProps} onToggleKeepFinalGames={spy} />);
+		openGroup('display');
+		cy.get('#keepFinalToggle').click();
+		cy.get('@onToggleKeepFinalGames').should('have.been.calledOnce');
+	});
+
+	// It sits directly under the upcoming pair, which is the other end of the same axis.
+	it('sits below the days-ahead slider and above pro tips', () => {
+		cy.mount(<SetupView {...defaultProps} />);
+		openGroup('display');
+		cy.get('#upcomingDaysSlider').then(([slider]: JQuery<HTMLElement>) => {
+			cy.get('#proTipsToggle').then(([proTips]: JQuery<HTMLElement>) => {
+				cy.get('#keepFinalToggle').should(([keep]: JQuery<HTMLElement>) => {
+					const top = keep.getBoundingClientRect().top;
+					expect(top).to.be.greaterThan(slider.getBoundingClientRect().top);
+					expect(top).to.be.lessThan(proTips.getBoundingClientRect().top);
+				});
+			});
+		});
+	});
+
+	it('keeps its label beside the switch on one line in every locale', () => {
+		cy.mount(<SetupView {...defaultProps} />);
+		openGroup('display');
+		cy.get('label[for="keepFinalToggle"]').then(([label]: JQuery<HTMLElement>) => {
+			const oneLine = label.getBoundingClientRect().height;
+			for (const [name, locale] of Object.entries(locales)) {
+				label.textContent = (locale.setup as unknown as Record<string, string>).keepFinalGames;
+				expect(label.getBoundingClientRect().height, `${name} keeps the label on one line`)
+					.to.be.at.most(oneLine + 1);
+			}
+		});
 	});
 
 	it('shows days-ahead slider when showUpcomingGames is true', () => {

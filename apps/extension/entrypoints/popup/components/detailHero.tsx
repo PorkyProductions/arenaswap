@@ -30,6 +30,15 @@ const detailHero = ({ game, seriesInfo, records = emptyTeamRecords, isDelayed, i
 	const showField = game.sportType === 'football' && game.status === 'in'
 		&& (typeof game.yardLine === 'number' || downDistanceLine !== undefined);
 
+	// Only once the game is over. During play a dimmed score would read as the team that is behind
+	// rather than the team that lost, and it would flip back and forth on every basket. The weight
+	// is a Bootstrap utility because `.fw-bold` is `!important` and beats a stylesheet rule here.
+	const scoreClass = (score: number, other: number): string => (
+		game.status === 'post' && score < other
+			? 'lh-1 game-detail-score-value is-loser fw-semibold'
+			: 'lh-1 game-detail-score-value fw-bold'
+	);
+
 	return (
 		<div className={`game-card game-detail-matchup gd-hero${isDelayed ? ' is-delayed' : ''}`} style={heroStyle}>
 			<div className='game-detail-teams-row'>
@@ -39,12 +48,12 @@ const detailHero = ({ game, seriesInfo, records = emptyTeamRecords, isDelayed, i
 						<div className='gd-vs'>{i18n.t('gameCard.vs')}</div>
 					) : (
 						<div className='d-flex align-items-center game-detail-score-row'>
-							<FlipScore value={game.awayTeam.score} className='fw-bold lh-1 game-detail-score-value' />
+							<FlipScore value={game.awayTeam.score} className={scoreClass(game.awayTeam.score, game.homeTeam.score)} />
 							{isInningSport && game.baseRunners
 								? <BaseDiamond {...game.baseRunners} />
 								// Without a divider two three-digit scores read as one number: "112108".
 								: <span className='game-score-sep' aria-hidden='true' />}
-							<FlipScore value={game.homeTeam.score} className='fw-bold lh-1 game-detail-score-value' />
+							<FlipScore value={game.homeTeam.score} className={scoreClass(game.homeTeam.score, game.awayTeam.score)} />
 						</div>
 					)}
 				</div>

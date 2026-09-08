@@ -402,6 +402,7 @@ export default () => {
 						onReorderLeague={onReorderLeague}
 						onResetLeagueOrder={onResetLeagueOrder}
 						onToggleShowUpcoming={() => persistPrefs(currentPrefs => ({ ...currentPrefs, showUpcomingGames: !currentPrefs.showUpcomingGames }))}
+						onToggleKeepFinalGames={() => persistPrefs(currentPrefs => ({ ...currentPrefs, keepFinalGames: !currentPrefs.keepFinalGames }))}
 						onUpcomingGamesDaysChange={val => persistPrefs(currentPrefs => ({ ...currentPrefs, upcomingGamesDays: val }))}
 						onToggleProTips={() => persistPrefs(currentPrefs => ({ ...currentPrefs, proTipsEnabled: !currentPrefs.proTipsEnabled }))}
 						onToggleNotifications={() => persistPrefs(currentPrefs => ({ ...currentPrefs, notificationsEnabled: !currentPrefs.notificationsEnabled }))}
