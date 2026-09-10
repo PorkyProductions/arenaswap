@@ -1,5 +1,46 @@
 # Changelog
 
+## The settings cog turns under the pointer — 2026-09-09
+
+A quarter turn over 0.35s when the button is hovered or takes keyboard focus, and back when it is
+left. Nothing else about the header moves.
+
+The gear has eight lobes, so 90deg is two of them and the mark comes to rest on the silhouette it
+started from. The alternative was an arbitrary angle, which leaves the cog visibly crooked for as
+long as the pointer is on it and reads as a rendering fault rather than as a response.
+
+The rotation sits on the icon's `::before` rather than on the `<i>`. An `<i>` is a non-replaced
+inline box and takes no transform at all, and the `::before` is where Bootstrap Icons puts the glyph
+and the only element in the pair that is already `inline-block`. Transforms do not lay out either
+way, so the button's box is the same width it has always been.
+
+`:not(:disabled)` on the hover half is what keeps it off the website. `apps/docs` imports this same
+stylesheet and mounts `PopupHeader` with `interactive={false}`, which disables both buttons — and a
+disabled button still matches `:hover`. A control that answers the pointer and then does nothing is
+worse than one that sits still.
+
+Under `prefers-reduced-motion: reduce` the flourish is off rather than instant. Dropping only the
+transition would leave a gear that snaps a quarter turn under the cursor, which is the motion the
+reader opted out of.
+
+### Coverage
+
+7 component tests. The turn is read off the pseudo-element's computed transform and pinned to the
+resolved matrix, through a retrying assertion rather than a one-shot `then` — the first frame after
+focus is still the identity matrix, which is what the first version of this test measured and
+passed on. Both positive assertions were confirmed failing with the rule commented out.
+
+The reduced-motion case drives Chrome's own media emulation over CDP, since a media query cannot be
+exercised from the page, and it was confirmed failing with only its `transform: none` removed — so
+the emulation is doing something rather than the test agreeing with itself.
+
+The help mark beside the cog has its own test. Both buttons share `.popup-settings-icon`, so a rule
+hung on that class would turn a question mark too, and a rotated question mark is a different shape
+rather than the same one further round.
+
+The disabled guard is checked as the rule's own selector against both rendered states, because
+Cypress cannot force `:hover` and focus is not a route to a disabled button in either direction.
+
 ## A navy crest in the tab-match list stops being a silhouette — 2026-09-08
 
 The two crests on a suggestion row sat straight on the popup's `#0d1117` with nothing behind them.

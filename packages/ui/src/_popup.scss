@@ -82,6 +82,22 @@
 	font-size: 0.9rem;
 }
 
+// The rotation is on the `::before` rather than on the `<i>`, which is an inline box and so
+// takes no transform. The gear has eight lobes, so a quarter turn is two of them and the mark
+// comes to rest on the silhouette it started from — only the travel reads.
+//
+// `:not(:disabled)` is what keeps it off the website, which renders this same header as a
+// picture of the popup with both buttons disabled. A disabled button still matches `:hover`,
+// and a control that answers the pointer and then does nothing is worse than an inert one.
+.popup-settings-button .bi-gear-fill::before {
+	transition: transform 0.35s ease-out;
+}
+
+.popup-settings-button:not(:disabled):hover .bi-gear-fill::before,
+.popup-settings-button:focus-visible .bi-gear-fill::before {
+	transform: rotate(90deg);
+}
+
 .game-detail-chart-card {
 	margin-top: 0.45rem;
 	padding: 0.34rem 0 0.2rem;
@@ -129,8 +145,14 @@
 
 @media (prefers-reduced-motion: reduce) {
 	.popup-view-shell,
-	.game-card-clickable {
+	.game-card-clickable,
+	.popup-settings-button .bi-gear-fill::before {
 		animation: none;
 		transition: none;
+	}
+
+	.popup-settings-button:not(:disabled):hover .bi-gear-fill::before,
+	.popup-settings-button:focus-visible .bi-gear-fill::before {
+		transform: none;
 	}
 }
