@@ -137,6 +137,16 @@ export interface Game {
 	weather?: GameCondition;
 	// ESPN signals this three different ways — see resolvePostseason in apiClient.ts.
 	isPostseason?: boolean;
+	// Distance from the trophy: 0 the title game, 1 a semifinal, 2 a quarterfinal, 3 anything
+	// earlier. Undefined on a postseason game that deliberately scores nothing — a non-playoff
+	// bowl, the Pro Bowl, a secondary tournament's early round — as well as on every game that is
+	// not postseason at all. See gradePostseason in postseasonRound.ts.
+	postseasonRound?: 0 | 1 | 2 | 3;
+	// ESPN's own name for the round, trimmed of the prefix that repeats the league and otherwise
+	// untouched, sponsors included. Passed through untranslated like the venue and broadcast names
+	// beside it. Present on games that score nothing, because a bowl's name is worth showing even
+	// when the game is not.
+	postseasonLabel?: string;
 	delayed?: boolean;
 	delayDescription?: string;
 }

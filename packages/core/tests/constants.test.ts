@@ -54,7 +54,7 @@ describe('constants', () => {
 			holidaySnowEnabled: true,
 			holidayLightsEnabled: true,
 			holidayLeavesEnabled: true,
-			postseasonBoostPoints: 5,
+			postseasonBoostPoints: 8,
 			upcomingGamesDays: 7,
 			disabledSignals: [],
 		});
@@ -94,7 +94,7 @@ describe('constants', () => {
 			holidaySnowEnabled: true,
 			holidayLightsEnabled: true,
 			holidayLeavesEnabled: true,
-			postseasonBoostPoints: 5,
+			postseasonBoostPoints: 8,
 			upcomingGamesDays: 7,
 			disabledSignals: [],
 		});
@@ -227,13 +227,13 @@ describe('constants', () => {
 		expect(result).toBe(base);
 	});
 
-	test('postseasonBoostPoints defaults to 5 and normalizes fractional/negative values', () => {
-		expect(createDefaultUserPreferences().postseasonBoostPoints).toBe(5);
-		expect(normalizeUserPreferences({}).postseasonBoostPoints).toBe(5);
+	test('postseasonBoostPoints defaults to 8 and normalizes fractional/negative values', () => {
+		expect(createDefaultUserPreferences().postseasonBoostPoints).toBe(8);
+		expect(normalizeUserPreferences({}).postseasonBoostPoints).toBe(8);
 		expect(normalizeUserPreferences({ postseasonBoostPoints: 12 }).postseasonBoostPoints).toBe(12);
 		expect(normalizeUserPreferences({ postseasonBoostPoints: 7.9 }).postseasonBoostPoints).toBe(8);
 		expect(normalizeUserPreferences({ postseasonBoostPoints: -2 }).postseasonBoostPoints).toBe(0);
-		expect(normalizeUserPreferences({ postseasonBoostPoints: 'bad' }).postseasonBoostPoints).toBe(5);
+		expect(normalizeUserPreferences({ postseasonBoostPoints: 'bad' }).postseasonBoostPoints).toBe(8);
 	});
 
 	test('contains league and sport configuration maps for each league id', () => {

@@ -286,6 +286,13 @@ $bootstrap-icons-font-dir: '/fonts';
 	color: #991b1b;
 }
 
+// ESPN's round name riding the label it explains, so the row still reads as one line rather than
+// two competing halves. Measured at 169.5px against the row's 276px in the widest locale pairing.
+.powerscore-breakdown-qualifier {
+	color:       #6c757d;
+	font-weight: 400;
+}
+
 .powerscore-breakdown-note {
 	margin-top:  0.08rem;
 	font-size:   0.54rem;

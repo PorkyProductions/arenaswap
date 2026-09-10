@@ -167,6 +167,27 @@
 	letter-spacing: 0.03em;
 }
 
+// The status and the postseason round share one row, so naming the round costs no height on a
+// card that has none to spare. `flex-wrap` is the fallback and the reason nothing is ever
+// truncated: a label too wide to share drops to a line of its own with the card's full width,
+// which two of the 389 real ESPN round names need.
+.game-card-status-row {
+	gap: 0.25rem;
+	justify-content: space-between;
+}
+
+.game-postseason-label {
+	font-size: 0.62rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: #6c757d;
+	white-space: nowrap;
+
+	// ESPN's own casing, against the uppercase status beside it. Uppercasing turns Cheez-It and
+	// AT&T into shouting, and the sponsor is most of the reason a bowl's name is worth printing.
+	text-transform: none;
+}
+
 .game-card-matchup {
 	gap: 0.75rem;
 }

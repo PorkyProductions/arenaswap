@@ -162,12 +162,14 @@ describe('postseason boost', () => {
 		period: 4,
 		clockSeconds: 120,
 		isPostseason: true,
+		postseasonRound: 0,
 	};
 
 	const regularGame: Game = {
 		...postseasonGame,
 		id: 'reg-game',
 		isPostseason: false,
+		postseasonRound: undefined,
 	};
 
 	test('adds postseasonBoostPoints to score total for a postseason game', async () => {
@@ -213,6 +215,33 @@ describe('postseason boost', () => {
 		const score = state.scores.find(s => s.gameId === 'ps-game');
 		expect(score?.postseasonBoost).toBe(0);
 	});
+
+	const boostForRound = async (postseasonRound: Game['postseasonRound']) => {
+		await loadBackground({
+			prefs: { enabledLeagues: ['nba' as LeagueId], postseasonBoostPoints: 8 },
+			fetchReturnValue: { games: [{ ...postseasonGame, postseasonRound }], leagueLogos: {} },
+		});
+		jest.advanceTimersByTime(pollIntervalMs + 2000);
+		await drain(12);
+		const state = await sendMessage({ type: 'GET_STATE' }) as { scores: { gameId: string; postseasonBoost: number }[] };
+		return state.scores.find(s => s.gameId === 'ps-game')?.postseasonBoost;
+	};
+
+	test.each<[NonNullable<Game['postseasonRound']>, number]>([[0, 8], [1, 6], [2, 4], [3, 2]])(
+		'a game at distance %i from the trophy is worth %i of an 8-point ceiling', async (round, expected) => {
+			expect(await boostForRound(round)).toBe(expected);
+		});
+
+	// A non-playoff bowl and the Pro Bowl reach here as postseason with no round. They must score
+	// nothing rather than falling through to the bottom rung.
+	test('a postseason game with no graded round scores nothing', async () => {
+		expect(await boostForRound(undefined)).toBe(0);
+	});
+
+	test('every rung outscores the one below it at the shipping default', async () => {
+		const ladder = [await boostForRound(3), await boostForRound(2), await boostForRound(1), await boostForRound(0)];
+		for (let i = 1; i < ladder.length; i++) expect(ladder[i]!).toBeGreaterThan(ladder[i - 1]!);
+	});
 });
 
 // Regression: a game at halftime scored 0 from the signals but still collected its favorite,
@@ -228,6 +257,7 @@ describe('frozen games', () => {
 		period: 2,
 		clockSeconds: 0,
 		isPostseason: true,
+		postseasonRound: 0,
 		intermission: true,
 	};
 

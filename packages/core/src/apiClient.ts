@@ -1,4 +1,5 @@
 import { isWithinFinalRetention, leagueConfigMap, resolveLeagueLogoUrl } from './constants';
+import { gradePostseason } from './postseasonRound';
 import {
 	EspnSummarySchema,
 	parseScoreboard,
@@ -382,6 +383,9 @@ const buildDownDistance = (situation: EspnSituation): string | undefined => {
 const postseasonSlugs = new Set([
 	'knockout-round-playoffs', // UCL/UEL 2024-25 format onward
 	'round-of-16',
+	// The 48-team 2026 World Cup added a first knockout round of 32 matches. It matches none of
+	// the patterns below, so without this the whole round scored as regular-season football.
+	'round-of-32',
 	'quarterfinals',
 	'semifinals',
 	'semi-finals', // WBC hyphenates
@@ -404,8 +408,18 @@ const postseasonSlugPatterns = [/quarterfinals?$/, /semi-?finals?$/, /finals?$/,
 const olympicHeadlineLeagues = new Set<LeagueId>(['olybkm', 'olybkw', 'olymih', 'olywih', 'olybb']);
 const postseasonHeadlinePattern = /quarterfinal|semifinal|medal game/i;
 
+// NCAA baseball and softball run a stage per season type rather than one `post-season`: 3 is the
+// Regionals, 4 the Super Regionals, 5 the College World Series and 6 the Championship Series. A
+// bare `type === 3` check caught only the opening weekend, so the tournament's first games counted
+// as postseason and its championship final did not.
+const collegeBaseballPostseasonTypes = new Set([3, 4, 5, 6]);
+const collegeBaseballLeagues = new Set<LeagueId>(['cbase', 'csoft']);
+
 const resolvePostseason = (event: EspnEvent, comp: EspnCompetition, league: LeagueId): boolean => {
 	if (event.season?.type === 3) return true;
+
+	if (collegeBaseballLeagues.has(league) && event.season?.type !== undefined
+		&& collegeBaseballPostseasonTypes.has(event.season.type)) return true;
 
 	const slug = event.season?.slug?.trim().toLowerCase();
 	if (slug && (postseasonSlugs.has(slug) || postseasonSlugPatterns.some(p => p.test(slug)))) return true;
@@ -448,6 +462,10 @@ const parseEvent = (event: EspnEvent, league: LeagueId): Game | null => {
 	const isInningSport = leagueConfig.periodFormat === 'innings';
 	const situation = comp.situation;
 	const isGridironSituation = leagueConfig.sportType === 'football' && state === 'in' && situation !== undefined;
+	const postseason = resolvePostseason(event, comp, league);
+	const grade = postseason
+		? gradePostseason({ league, seasonType: event.season?.type, seasonSlug: event.season?.slug, notes: comp.notes })
+		: undefined;
 
 	return {
 		id: event.id,
@@ -516,7 +534,11 @@ const parseEvent = (event: EspnEvent, league: LeagueId): Game | null => {
 		possessionTeamId: isGridironSituation ? parsePossession(situation, home.id, away.id) : undefined,
 		driveStartYardLine: isGridironSituation ? situation.lastPlay?.drive?.start?.yardLine : undefined,
 		weather: parseWeather(event, comp.venue?.indoor),
-		isPostseason: resolvePostseason(event, comp, league),
+		isPostseason: postseason,
+		// Only graded when the game is actually postseason: the headline is display copy, and a
+		// regular-season oddity like an NFL London game carries a typed note too.
+		postseasonRound: grade?.round,
+		postseasonLabel: grade?.label,
 		delayed: isDelayed || undefined,
 		delayDescription,
 	};

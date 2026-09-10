@@ -9,7 +9,7 @@ import BsoIndicator from './bsoIndicator';
 import FlipScore from './flipScore';
 import InningHalfIcon from './inningHalfIcon';
 import type { GameCardDisplayProps } from './gameCardTypes';
-import { buildCardHandlers, buildGameCardStyle, formatGameClock, formatPeriod, GameMeta, isHalftime, powerScoreColor, TeamColumn } from './gameCardShared';
+import { buildCardHandlers, buildGameCardStyle, CardStatusRow, formatGameClock, formatPeriod, GameMeta, isHalftime, PostseasonLabel, powerScoreColor, TeamColumn } from './gameCardShared';
 import { useT } from './i18nContext';
 
 const liveGameCard = ({ game, excitementResult, favoriteTeamIds, onToggleFavoriteTeam, onOpenGameDetail, bettingPrefs, tabSlot }: GameCardDisplayProps) => {
@@ -57,17 +57,21 @@ const liveGameCard = ({ game, excitementResult, favoriteTeamIds, onToggleFavorit
 			onKeyDown={onCardKeyDown}
 			aria-label={t('gameCard.openDetails', { away: game.awayTeam.abbreviation, home: game.homeTeam.abbreviation })}
 		>
-			{isDelayed ? (
-				<div className='d-flex align-items-center gap-1 fw-bold text-uppercase delay-status-label mb-1'>
-					<i className='bi bi-pause-fill' />
-					{t('gameCard.delay')}
-				</div>
-			) : (
-				<div className='d-flex align-items-center gap-1 fw-bold text-uppercase text-primary live-status-label mb-1'>
-					<span className='live-dot' />
-					{t('gameCard.live')}
-				</div>
-			)}
+			<CardStatusRow
+				status={isDelayed ? (
+					<span className='d-flex align-items-center gap-1 fw-bold text-uppercase delay-status-label'>
+						<i className='bi bi-pause-fill' />
+						{t('gameCard.delay')}
+					</span>
+				) : (
+					<span className='d-flex align-items-center gap-1 fw-bold text-uppercase text-primary live-status-label'>
+						<span className='live-dot' />
+						{t('gameCard.live')}
+					</span>
+				)}
+			>
+				<PostseasonLabel game={game} />
+			</CardStatusRow>
 
 			<div className='d-flex align-items-center justify-content-center game-card-matchup'>
 				<TeamColumn leagueId={game.league} team={game.awayTeam} isFavorited={awayFavorited} onToggleFavoriteTeam={onToggleFavoriteTeam} />

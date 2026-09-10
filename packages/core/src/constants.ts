@@ -95,7 +95,10 @@ export const defaultSensitivity = 4 as const;
 export const defaultCooldownSecs = 45;
 export const defaultSwitchDelaySecs = 0;
 export const defaultFavoriteTeamBonusPoints = 10;
-export const defaultPostseasonBoostPoints = 5;
+// The ceiling a title game is worth, not a flat bump: the round ladder pays quarters of it, so 8
+// gives 2/4/6/8 and every rung lands a whole point clear of the one below. At the previous default
+// of 5 the bottom two rungs rounded onto 1 and 3, which is most of the ladder inside two points.
+export const defaultPostseasonBoostPoints = 8;
 export const defaultUpcomingGamesDays = 7;
 export const upcomingGamesDaysMin = 1;
 export const upcomingGamesDaysMax = 14;

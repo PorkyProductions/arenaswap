@@ -175,8 +175,11 @@ const EspnCompetitionOddsSchema = zod.object({
 	provider: EspnOddsProviderSchema.optional(),
 });
 
-// The only place the Olympics record which round a game belongs to — see resolvePostseason.
+// Where the Olympics record which round a game belongs to, and where the US leagues record it for
+// grading — see resolvePostseason and gradePostseason. `type` is `'event'` on every round-bearing
+// note sampled; zod strips undeclared keys, so it has to be declared to be readable at all.
 const EspnCompetitionNoteSchema = zod.object({
+	type: zod.string().optional(),
 	headline: zod.string().optional(),
 });
 

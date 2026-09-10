@@ -722,8 +722,8 @@
 	},
 	"postseasonBoost": {
 		"label": "Boost postseason",
-		"points": "+$1 pts",
-		"explainer": "Si aggiunge a ogni partita classificata come postseason (playoff, tornei, fasi a eliminazione diretta)."
+		"points": "fino a +$1 pts",
+		"explainer": "Il massimo che può aggiungere una finale. I turni precedenti ne ricevono una quota: tre quarti per una semifinale, metà per un quarto di finale, un quarto per qualsiasi turno precedente. Le partite di esibizione non aggiungono nulla."
 	},
 	"proTip": {
 		"label": "Consiglio:",

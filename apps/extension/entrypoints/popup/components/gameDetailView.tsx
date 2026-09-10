@@ -285,6 +285,7 @@ const gameDetailView = ({
 						currentBoost={appliedBoost}
 						scoringOpportunityBoost={scoringOpportunityBoost}
 						postseasonBoost={postseasonBoost}
+						postseasonLabel={game?.postseasonLabel}
 						totalLabel={totalLabel}
 						reason={reason ? reason.charAt(0).toUpperCase() + reason.slice(1) : undefined}
 						disabledSignals={disabledSignals}

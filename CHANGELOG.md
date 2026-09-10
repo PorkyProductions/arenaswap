@@ -1,5 +1,150 @@
 # Changelog
 
+## The postseason boost knows which round it is paying for — 2026-09-09
+
+A Wild Card game and a Super Bowl were worth the same five points. The boost is now a ladder keyed
+on how far a game is from the trophy, and the card says which round it is looking at, in ESPN's own
+words with the sponsors left on.
+
+### Distance from the trophy, not round number from the start
+
+0 is the game that decides the title, 1 a semifinal, 2 a quarterfinal, 3 anything earlier. Every
+league maps onto that without a per-league round table, because it is the same question in all of
+them — a Sweet 16 game and an NHL first-rounder are both several wins away, and an NBA Finals Game 1
+and a Super Bowl are both win-this-and-it-is-over.
+
+The preference is now the **ceiling** rather than a flat amount, paid out in quarters: 25% at the
+bottom rung, then 50, 75 and 100. Its default moves from 5 to 8, because quartering 5 puts the
+bottom two rungs on 1 and 3 and squeezes most of the ladder into two points. At 8 the rungs are
+2/4/6/8 and each is a whole point clear of the one below. A saved value keeps meaning what it said:
+the most a title game can add.
+
+### Three things that were already broken, found by sampling every league
+
+The issue proposed grading six leagues. Pulling live payloads for all 31 turned up games the flat
+boost was getting wrong before any tiering existed:
+
+- **The 2026 World Cup's round of 32 was not postseason at all.** The 48-team format added a first
+  knockout round of 32 matches under `season.slug: 'round-of-32'`, which is in neither the slug
+  allowlist nor any of its patterns. The whole round scored as regular-season football.
+- **NCAA baseball and softball had it inverted.** ESPN files those tournaments as a season type per
+  stage — 3 Regionals, 4 Super Regionals, 5 the College World Series, 6 the Championship Series —
+  and the check was `type === 3`. So the opening weekend counted and the College World Series
+  championship final did not.
+- **The Pro Bowl was worth as much as a conference championship.** It is `season.type: 3` and it is
+  an exhibition.
+
+### Whose trophy?
+
+The harder question was what to do with games ESPN calls postseason that are not on anybody's
+championship path, and the rule that resolved all of them is one sentence: **a game earns the ladder
+only if the trophy at the end of its bracket is the one the sport's entire field was competing
+for.** Every other trophy is a side trophy — its final earns the bottom rung, its earlier rounds
+nothing.
+
+That falls out of what the boost is for. The live signals already encode what the scoreboard shows,
+so the boost only has to encode stakes, which means paying an exhibition nothing cannot hide a good
+game: a close Alamo Bowl still surfaces on closeness and late-game.
+
+- **~26 non-playoff bowls score nothing.** Detection inverts rather than listing them: in college
+  football postseason, an affirmative playoff signal in the headline is required to pay anything, so
+  absence of one identifies a bowl. That survives the bracket growing, because a 16-team CFP will
+  still call its games "College Football Playoff First Round".
+- **The NIT, the WBIT and the College Basketball Crown** earn the bottom rung for their final and
+  nothing before it.
+- **The Women's NIT earns nothing at all.** Since the WBIT launched it is the third tier of the
+  women's postseason, and when a sport runs two secondary tournaments the lower one gets nothing.
+
+Conference tournaments are deliberately out. Every NCAA conference tournament — men's and women's
+basketball, hockey, and college football's conference championship games — reports
+`season.type: 2, slug: 'regular-season'`, so Championship Week is invisible to the switcher today
+and stays that way until its own issue. It is the largest thing this change does not do.
+
+### The card names the round, in ESPN's words
+
+`competition.notes[].headline` carries the round for the US leagues and was never read; `type` was
+not even declared on the schema, so zod stripped it. The card prints that name beside the LIVE
+marker, in the right half of a status row that has always been empty. It costs no height on any
+card.
+
+**In ESPN's own casing, which is the whole point.** Uppercasing turns *Cheez-It*, *AT&T*, *IS4S* and
+*TaxSlayer* into shouting, and a bowl's sponsor is most of the reason its name is worth printing. So
+the row carries an uppercase status and a sentence-case round, which reads as chrome against
+content.
+
+**Nothing is ever truncated.** Raw and uppercased, ESPN's headline fits the 228.6px budget in 178 of
+390 real cases. Two changes take it to all of them: keep the casing, and strip the one leading
+phrase that repeats the league the popup already names twice, in the section header and the league
+logo. That turns a 404px string into a 168px one —
+`NCAA Women's Basketball Championship - Regional 4 in Sacramento - 2nd Round` becomes
+`Regional 4 in Sacramento · 2nd Round`. Two labels are still too wide to share the row; they wrap
+to a line of their own, which is a CSS fallback rather than a text one, so a round name ESPN invents
+next year wraps instead of losing its tail.
+
+**Which prefixes are redundant is not a matter of taste, and getting it wrong destroyed
+information.** Stripping `NIT`, `WBIT`, `Women's NIT` and `College Basketball Crown` collapsed
+`WBIT - Semifinal` and `Women's NIT - Semifinal` onto one label — two tournaments this change scores
++2 and 0 respectively, so the card would have shown identical words over different numbers, four
+times over. Those four prefixes are not redundant with the league; they are the fact that says which
+of four tournaments a March basketball card is showing. The rule is now that a prefix goes only when
+it is recoverable from what is already on screen.
+
+Two smaller rules came from single real strings.
+`NCAA Baseball Championship - Atlanta Regional Rescheduled from 5/29` is a scheduling note ESPN
+sends through the round field, and resolves to no label. `NCAA Women's Ice Hockey Championship`
+arrives with no round suffix at all, so the strip consumes the whole string — when reduction leaves
+nothing, nothing is shown, rather than falling back to a tournament name the section header already
+gives.
+
+The breakdown row names the round too, so a +6 has something accounting for it.
+
+### The fallbacks, which is most of what makes this safe
+
+The feature grades free text from a third party, so every branch degrades rather than failing.
+
+A postseason game whose round cannot be graded takes the **bottom rung**, not the ceiling and not
+zero — ESPN renames things, and the failure mode should be a small boost rather than either losing
+the feature silently or promoting a first-rounder to a final. A game that scores nothing on purpose
+is a different state from one we could not grade, and the two are distinguishable in the data. The
+label and the boost degrade independently, which is why a bowl shows its sponsor and scores zero.
+Nothing in the grader can throw on a malformed payload.
+
+### Coverage
+
+**126 unit tests** on the grader, and **the 790-row corpus they run against is transcribed from live
+ESPN across all 31 leagues** rather than written by hand — which is the only reason the collision
+above was found before it shipped. Two of those tests are properties over the whole corpus: that no
+label is ever a partial word of the headline it came from, and that no two distinct headlines in one
+league ever produce the same label.
+
+**11 component tests** measuring what only a browser can answer: that the label shares the status
+row to within a pixel, that a card carrying one is exactly as tall as one that is not, that a
+too-wide label lands on a second line whole rather than clipped, and that the label is not
+uppercased *when mounted inside an uppercased ancestor* — because without one that rule is inert and
+the assertion passes whether it exists or not, which is what the first version of that test did.
+
+**Every one of these was checked by breaking the code and watching it fail.** Nine mutations of the
+grader and four of the stylesheet: re-adding the four tournament prefixes, truncating every label,
+restoring the mandatory hockey dash, removing the unknown-round fallback, letting bowls and the Pro
+Bowl and the Women's NIT score, grading `NBA Finals` as a conference final, flattening the ladder,
+shouting the label, and adding an ellipsis. Two assertions survived their first mutation and were
+rewritten: the ladder's monotonicity test read `sorted`, which a flat ladder satisfies, and is
+strict now; and the no-truncation check was inferred from a width comparison that stays true while
+the row still wraps, so it asserts `text-overflow` and `overflow` directly.
+
+Four bugs were found this way rather than in review. `NBA Finals` and `WNBA Finals` graded a rung
+low, because the conference-final rule matched the league name as well as `East` and `West`. The
+soccer slug table had two ordering faults: `semi-finals` ends in `-finals`, so a bare rule above it
+graded a semifinal as the title match, and `playoffs---championship` contains `playoffs`, so a
+catch-all above it graded the NWSL final as an opening round. And MLS brackets per conference, so
+its conference final is one win from MLS Cup rather than being it.
+
+### Strings
+
+Two keys across twelve locales. The setting's explainer promised a flat boost and now describes the
+ladder, and its value reads "up to" a ceiling. The round name itself is untranslated, like the venue
+and broadcast names beside it on the same card.
+
 ## A dome game stops reporting the weather outside — 2026-09-09
 
 ESPN sends a weather block for every game it has a forecast for and never once checks the roof. Off
