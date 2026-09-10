@@ -329,7 +329,12 @@ const parseTeamContext = (competitor: EspnCompetitor, state: Game['status']) => 
 	leaders: state === 'pre' ? parseTeamLeaders(competitor) : undefined,
 });
 
-const parseWeather = (event: EspnEvent): GameCondition | undefined => {
+// The reading is the stadium postcode's outdoor AccuWeather forecast, sent for domes too: on one
+// payload U.S. Bank Stadium reads Thunderstorms and loanDepot park reads Partly cloudy, both
+// flagged `indoor`. ESPN publishes no roof position, and a retractable roof is `indoor` open or
+// shut, so the flag alone decides it — an indoor venue has no conditions we can honestly report.
+const parseWeather = (event: EspnEvent, indoor: boolean | undefined): GameCondition | undefined => {
+	if (indoor) return undefined;
 	const w = event.weather;
 	if (!w || typeof w.temperature !== 'number') return undefined;
 	// ESPN inconsistently puts the text label in either displayValue or conditionId
@@ -510,7 +515,7 @@ const parseEvent = (event: EspnEvent, league: LeagueId): Game | null => {
 		yardLine: isGridironSituation ? situation.yardLine : undefined,
 		possessionTeamId: isGridironSituation ? parsePossession(situation, home.id, away.id) : undefined,
 		driveStartYardLine: isGridironSituation ? situation.lastPlay?.drive?.start?.yardLine : undefined,
-		weather: parseWeather(event),
+		weather: parseWeather(event, comp.venue?.indoor),
 		isPostseason: resolvePostseason(event, comp, league),
 		delayed: isDelayed || undefined,
 		delayDescription,

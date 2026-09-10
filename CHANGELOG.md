@@ -1,5 +1,70 @@
 # Changelog
 
+## A dome game stops reporting the weather outside — 2026-09-09
+
+ESPN sends a weather block for every game it has a forecast for and never once checks the roof. Off
+one scoreboard pull this afternoon: U.S. Bank Stadium reading Thunderstorms, Ford Field Mostly
+cloudy at 80, Allegiant Stadium Sunny at 95, all three flagged `indoor: true` on that same payload.
+It is the stadium postcode's AccuWeather forecast, which is a true fact about the car park and
+nothing at all about the game.
+
+So the detail screen printed conditions nobody in the building could feel, and come December the
+falling-snow decoration would have buried a Vikings home game on the strength of a Minneapolis
+forecast.
+
+### It is baseball too
+
+The issue was written off the NFL slate. Live MLB carries the same pairing: loanDepot park at Partly
+cloudy and American Family Field at Mostly clear, both `indoor: true`, both mid-game. Three of the
+fifteen venues on today's MLB card are roofed.
+
+Soccer was the one thing worth checking before touching anything, because MLS and the European
+competitions send no `indoor` key at all. Mercedes-Benz Stadium arrives from the MLS scoreboard with
+nothing on it saying it has a roof. They send no weather either, in any competition sampled, so the
+gap never bites — but a missing flag is read as open air rather than as a dome, which is the only
+safe reading of an absent key, and it has its own test for the day one of them starts carrying a
+forecast.
+
+### One gate, at the parse
+
+`comp.venue?.indoor` was declared in `EspnCompetitionVenueSchema` and read nowhere. `parseWeather`
+takes it now and returns undefined for a dome, which is the single point both consumers pass
+through: the chip in the venue row and `isSnowing` behind the decoration each get it without a line
+of their own.
+
+The alternative was to put the flag on `Game` and check it at both readers, which writes the same
+rule twice and lets the third reader of `game.weather` forget one of them. Nothing else in the
+product wants to know a venue is roofed, so nothing carries it.
+
+A retractable roof reports `indoor: true` whether it is open or shut, and ESPN publishes no roof
+position anywhere, so NRG and Lucas Oil lose their weather on the days the roof is genuinely open.
+That trade goes the right way. A forecast printed over a closed roof is a lie, and a missing one
+under an open roof is a line the panel already drops for every game with no reading.
+
+### Coverage
+
+8 tests on the parse, every payload transcribed off a live scoreboard this afternoon, including the
+field swap ESPN does on live baseball — `displayValue` holding the icon number 35 while the words sit
+in `conditionId`, which is the shape loanDepot park actually arrives in. `parseWeather` had no tests
+at all before this.
+
+The one that matters most is not in core. The suppression lives in the parser and the decoration
+that acts on it lives in the extension, so a unit test either side of that seam passes while a snowy
+dome still buries the screen. A real dome payload runs through the real fetch into
+`resolveDecorations` now, with an open-air control carrying the identical reading — without that
+control the dome assertion would hold just as well on a payload that never had snow in it.
+
+The snow value is December's rather than transcribed, and it has to be: ESPN drops the weather block
+entirely once a game is final, so a January dome payload cannot be fetched back out to copy. The
+venue blocks are verbatim.
+
+`gameInfoPanel.cy.tsx` carried a test called "drops the weather line indoors" that mounted
+`weather: undefined`. That is the shape a dome arrives in and says nothing about whether it ever
+gets there, so it could never have caught this. It keeps its assertion under a name that describes
+it, and a second test runs the Ford Field payload through the real parser into the mounted panel.
+Both dome assertions in core, the end-to-end and the panel test were confirmed failing with the
+gate removed.
+
 ## The standby strip stops being a white slab with dark-theme ink on it — 2026-09-09
 
 Turn on Standby Stream, drop below the threshold, and the line that tells you so was `#8b949e` on
