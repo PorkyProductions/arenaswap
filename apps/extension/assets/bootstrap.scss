@@ -454,10 +454,28 @@ $bootstrap-icons-font-dir: '/fonts';
 	&:hover { background: rgba(230, 237, 243, 0.035); }
 }
 
+// The same white disc the team picker uses, at row size. The two crests here sit on the popup's
+// #0d1117, where a navy or black mark is a silhouette. The disc grows around the crest rather than
+// squeezing it, so the mark stays the size it has always been.
+.suggest-crest-disc {
+	display:         inline-flex;
+	align-items:     center;
+	justify-content: center;
+	flex-shrink:     0;
+	width:           1.27rem;
+	height:          1.27rem;
+	border-radius:   999px;
+	overflow:        hidden;
+	box-shadow:      0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
 .suggest-crest {
 	width:  0.95rem;
 	height: 0.95rem;
 }
+
+// The disc already carries the wash, so the shared grey placeholder inside it would read as a hole.
+.suggest-crest .crest-fallback { background: transparent; }
 
 .suggest-matchup {
 	font-size: 0.72rem;

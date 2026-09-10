@@ -1,5 +1,67 @@
 # Changelog
 
+## A navy crest in the tab-match list stops being a silhouette — 2026-09-08
+
+The two crests on a suggestion row sat straight on the popup's `#0d1117` with nothing behind them.
+A Cowboys star or a Yankees monogram is navy on near-black, so what the row actually showed was an
+empty 15px box beside an abbreviation doing all the work. They take the white tinted disc the
+settings team picker has always used, at 18.9:1 against the surface.
+
+### The disc grows around the mark rather than squeezing it
+
+1.27rem holding an unchanged 0.95rem crest, which is the team picker's own 28-over-21 ratio to
+within four thousandths. The alternative was to keep the row's current footprint and shrink the
+logo inside it, and a crest cut to 11px is a smaller version of the thing that was already hard to
+read. The row pays about 5px a crest for it and still fits 320px with room over.
+
+Two crests plus a disc each is a third copy of the same eight lines of tint state, so `CrestDisc`
+now owns them and the team picker reads it too. The sampling is unchanged and byte-identical in
+what it produces; `teamPickerRow` just stopped carrying its own copy.
+
+The shared placeholder is a grey circle at 18% alpha, which on a white plate reads as a hole rather
+than as a crest still loading. It goes transparent inside the disc, the way the team picker's
+already did.
+
+### The sticky bar wanted one and cannot have one
+
+Its two 18px crests sit on the same `#0d1117` and have the same problem. The compact matchup is
+absolutely centred and the status is pinned right, so the status's left edge moves with its own
+text, and the two already touch. Measured on the real screen at 320px, in the gap between the
+matchup's right edge and the status's left:
+
+| | en | ja | es | pt | the other eight |
+| --- | --- | --- | --- | --- | --- |
+| shipping today | -1.3 | -0.9 | 8.3 | 13.1 | 17 to 37 |
+| with a 24px disc | -7.3 | -6.9 | 2.3 | 7.1 | 11 to 31 |
+
+A pixel of overlap is invisible. Six more is a clipped character, and rendered it reads
+"termission" behind the crest. So the bar keeps its bare crests until the crowding is dealt with on
+its own, which is a layout question about a bar that is already full rather than anything to do
+with discs.
+
+Worth writing down because no test would have said so. The existing per-locale test measures the
+compact matchup's width against a 296px budget, and the matchup fits that budget in every locale
+while overlapping the element beside it.
+
+### What was left alone, and why
+
+Every other crest in the extension is already on a light surface. The game card is white, and the
+detail screen's cards, box score line score, team pills and pre-game leader rows are `#f8fafc`,
+where a disc would be the thing that disappears. The line score's absence of one is a decision the
+changelog already records.
+
+The docs site's landing strip is the one other place a team crest sits on `#0d1117`, and its source
+comment says the Cowboys and the Yankees were kept off the row for exactly this reason. That row
+could carry the disc and get its ten most recognisable crests back. It is not in this change.
+
+### Coverage
+
+5 component tests. The plate's contrast is read off the computed style and measured against the
+container it sits on rather than against a hardcoded hex, so a popup background that moves cannot
+leave the disc measured against a colour it no longer sits on. Both the contrast and the tint
+assertion were confirmed failing with the plate set to `#0d1117`, and the geometry assertions with
+the disc blown up to 90px.
+
 ## The site's demo game is a comeback now, and the score chart stops starting at zero — 2026-09-08
 
 The four charts on the landing page are built by the extension's own option builders off one
