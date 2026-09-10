@@ -257,7 +257,7 @@ const mainView = ({
 			)}
 
 			{onStandbyStream && (
-				<div className='d-flex align-items-center gap-2 px-2 py-1 mb-1 rounded text-body-secondary small bg-body-secondary'>
+				<div className='d-flex align-items-center gap-2 px-2 py-1 mb-1 rounded text-body-secondary small bg-body-secondary' data-testid='standby-banner'>
 					<i className='bi bi-broadcast text-primary' />
 					<span>{i18n.t('main.onStandbyStream')}</span>
 				</div>

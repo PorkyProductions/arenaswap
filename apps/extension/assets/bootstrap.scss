@@ -24,10 +24,11 @@ $pagination-font-size: 0.72rem;
 // reaches 3.22:1 on $primary. Buttons escape this because they run the colour through
 // color-contrast(); pagination does not.
 $pagination-active-color: #0d1117;
-// Pagination is the first thing in the popup to reach for --as-secondary-bg and --as-tertiary-bg,
-// which this theme never overrode and which are therefore still Bootstrap's light defaults: #e9ecef
-// disabled, #f8f9fa on hover. Left alone, an arrow at the end of the range is a white slab on a
-// #0d1117 popup. Set here rather than on $body-secondary-bg so nothing else has to move.
+// Pagination was the first thing in the popup to reach for --as-secondary-bg and --as-tertiary-bg,
+// back when this theme left both at Bootstrap's light defaults and an arrow at the end of the range
+// was a white slab on a #0d1117 popup. Both tokens are set in packages/ui now, so these are a
+// choice rather than a repair: a disabled arrow recedes into the popup entirely instead of holding
+// the secondary surface.
 $pagination-disabled-bg: #0d1117;
 $pagination-hover-bg: #161b22;
 $pagination-focus-bg: #161b22;
@@ -67,8 +68,8 @@ $nav-tabs-link-active-bg:           #f8fafc;
 $nav-tabs-border-color:             #d1d5db;
 $nav-tabs-link-active-color:        #111827;
 $nav-tabs-link-active-border-color: #d1d5db #d1d5db #f8fafc;
-// The default hover border reaches for --as-secondary-bg, which this theme never overrode and
-// which is therefore still Bootstrap's light #e9ecef.
+// The default hover border reaches for --as-secondary-bg, which is a dark surface, and this strip
+// sits on a light card.
 $nav-tabs-link-hover-border-color:  #e5e7eb #e5e7eb #d1d5db;
 // $nav-link-color is the link colour, and #F75C03 on #f8fafc is 3.0:1 — under the 4.5:1 an
 // unselected tab's label needs as body text.

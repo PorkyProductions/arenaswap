@@ -120,6 +120,56 @@ const NavigatingMainView = ({ games }: { games: ReturnType<typeof makeGame>[] })
 	);
 };
 
+// The plate is read off the banner's own computed style rather than hardcoded, so a surface token
+// that moves cannot leave the ink measured against a colour it no longer sits on.
+const channelsOf = (color: string): number[] => (
+	(color.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map(Number)
+);
+
+const relativeLuminance = (color: string): number => {
+	const [red, green, blue] = channelsOf(color).map(value => {
+		const channel = value / 255;
+		return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+	});
+	return (0.2126 * red!) + (0.7152 * green!) + (0.0722 * blue!);
+};
+
+const contrastRatio = (a: string, b: string): number => {
+	const [high, low] = [relativeLuminance(a), relativeLuminance(b)].toSorted((x, y) => y - x);
+	return (high! + 0.05) / (low! + 0.05);
+};
+
+// The standby strip is the only thing in the extension that reaches for .bg-body-secondary. That
+// token was Bootstrap's light #e9ecef for as long as the strip has existed, while .text-body-
+// secondary is this theme's own dim #8b949e — dark-theme ink printed on a light slab, at 2.59:1.
+describe('mainView standby banner', () => {
+	it('sets its label on its own plate at the small-text bar', () => {
+		cy.viewport(320, 480);
+		cy.mount(<MainView {...defaultProps} onStandbyStream={true} />);
+		cy.get('[data-testid="standby-banner"]').then($banner => {
+			const style = getComputedStyle($banner[0]!);
+			expect(
+				contrastRatio(style.color, style.backgroundColor),
+				`${style.color} on ${style.backgroundColor}`,
+			).to.be.at.least(4.5);
+		});
+	});
+
+	// A surface, not a slab: above the popup so the strip has an edge, below its own ink so it still
+	// reads as part of a dark theme. Either bound alone passes on a colour that is wrong.
+	it('sits between the popup and its own ink', () => {
+		cy.viewport(320, 480);
+		cy.mount(<MainView {...defaultProps} onStandbyStream={true} />);
+		cy.get('[data-testid="standby-banner"]').then($banner => {
+			const style = getComputedStyle($banner[0]!);
+			const popup = getComputedStyle(document.body).backgroundColor;
+			const plate = relativeLuminance(style.backgroundColor);
+			expect(plate, 'plate above the popup').to.be.greaterThan(relativeLuminance(popup));
+			expect(plate, 'plate below its own ink').to.be.lessThan(relativeLuminance(style.color));
+		});
+	});
+});
+
 describe('mainView review prompt', () => {
 	it('shows review banner when review prompt is enabled', () => {
 		cy.mount(<MainView {...defaultProps} showReviewPrompt={true} />);

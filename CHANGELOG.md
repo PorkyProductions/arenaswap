@@ -1,5 +1,72 @@
 # Changelog
 
+## The standby strip stops being a white slab with dark-theme ink on it — 2026-09-09
+
+Turn on Standby Stream, drop below the threshold, and the line that tells you so was `#8b949e` on
+`#e9ecef` — **2.59:1**, against 4.5:1 for small text. Two thirds of the way to invisible, on a strip
+whose whole job is to say why nothing is switching.
+
+The strip is `.text-body-secondary` on `.bg-body-secondary`. Only one of that pair had ever been
+themed. `$body-secondary-color` is this project's dim `#8b949e`; `$body-secondary-bg` was left at
+Bootstrap's `#e9ecef`, so the strip printed dark-theme ink onto Bootstrap's light default and
+punched a near-white bar across the popup directly under the header.
+
+### The token had been patched around three times rather than set
+
+Bootstrap 5.3 computes a light pair of surface tokens on `:root` and a dark pair under
+`[data-bs-theme=dark]`, and this theme never sets that attribute — the darkness is the hand-picked
+`$body-bg` in `packages/ui`, not Bootstrap's colour-mode switch. So the light pair wins everywhere,
+and each component that reached for it got its own repair:
+
+| | what it reached for | patched with |
+| --- | --- | --- |
+| Up Next pager | `$pagination-disabled-bg`, `-hover-bg` | `#0d1117`, `#161b22` |
+| language switcher | `$dropdown-link-hover-bg` | `#21262d` |
+| box score tab strip | `$nav-tabs-link-hover-border-color` | `#e5e7eb …` |
+
+Three comments in three files, each saying the theme never overrode the token. The standby strip is
+the first thing to reach for `.bg-body-secondary` **directly**, where there is no component variable
+to patch — so the tokens are set at the root and the next thing to ask for one inherits it.
+
+`$body-tertiary-bg` is `#161b22` and `$body-secondary-bg` is `#21262d`, ordered the way Bootstrap's
+own dark values are: tertiary nearest the body, secondary a step further. Neither is a new colour —
+both are already in the palette, 19 and 30 times over. The strip lands at **4.95:1** and reads as a
+surface a step above the popup rather than as a hole in it.
+
+### One thing had to be pinned so it would not move
+
+`$progress-bg` is `var(--as-secondary-bg)`, and the two progress bars we draw — the game card's
+PowerScore bar and the breakdown's five signal bars — both sit on light cards, where `#e9ecef` is
+the right track and a dark one would be a black slot. It is pinned to the value it has always had,
+so the token move leaves both byte-identical.
+
+Nothing else moved. Everything else the two tokens feed is either already pinned (pagination, the
+range track, the tab strip) or unreachable in this product: no `.input-group`, no `.list-group`, no
+`.popover`, no file inputs, and `.form-check-input` disables through opacity rather than a
+background.
+
+### What is still a light plate, on purpose for now
+
+The two banners above the strip are `.alert`s, and Bootstrap builds an alert out of the
+`-bg-subtle` / `-text-emphasis` pair rather than the surface tokens — so the suggestion banner is
+`#632501` on `#fddecd` and the Pro Tip is `#055160` on `#cff4fc`. Both clear contrast comfortably;
+they are simply light. The docs site already overrode that pair for the four variants it renders,
+and the extension never did. That is the same gap one layer over, and it is a decision about how
+loud a banner should be rather than a contrast failure, so it is not in this change.
+
+### Coverage
+
+The strip had no component test at all, which is why a 2.59:1 label shipped. It has two, both
+confirmed failing against `#e9ecef` first.
+
+One reads the ink and the plate off the strip's own computed style and requires 4.5:1 — measured
+rather than hardcoded, so a surface token that moves later cannot leave the ink checked against a
+colour it no longer sits on.
+
+The other pins the decision rather than the value: the plate's luminance sits **above** the popup's,
+so the strip has an edge, and **below** its own ink, so it still reads as part of a dark theme.
+Either bound on its own passes on a colour that is wrong in the other direction.
+
 ## The sticky bar counts down to a scheduled game instead of printing two zeros — 2026-09-09
 
 Scroll the hero off a game that has not started and the bar handed you `ATL 0 — 0 PHI`. Both

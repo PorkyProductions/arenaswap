@@ -21,6 +21,23 @@ $dark:                 #0d1117;
 $body-bg:              #0d1117;
 $body-color:           #e6edf3;
 $body-secondary-color: #8b949e;
+// The two surface steps above $body-bg. Bootstrap computes a light pair on :root and a dark pair
+// under [data-bs-theme=dark], and this theme never sets that attribute — its darkness is the hand
+// picked $body-bg above rather than Bootstrap's colour-mode switch — so left unset these stayed at
+// #e9ecef and #f8f9fa. Every component built on them rendered a near-white slab on a #0d1117
+// surface, and the popup, the site and the docs each patched their own component around it in turn:
+// the Up Next pager, the language switcher, the box score's tab hover. The standby banner is the
+// first to reach for .bg-body-secondary directly, where there is no component variable to patch —
+// so the tokens are set here and the next thing to ask for one inherits it.
+//
+// Ordered the way Bootstrap's own dark values are: tertiary nearest the body, secondary a step
+// further. Both are already in the palette.
+$body-tertiary-bg:     #161b22;
+$body-secondary-bg:    #21262d;
+// $progress-bg is var(--as-secondary-bg), and the two progress bars we draw — the game card's
+// PowerScore bar and the breakdown's signal bars — both sit on light cards. Pinned to the value
+// they have always had so the token move above leaves them byte-identical.
+$progress-bg:          #e9ecef;
 $border-color:         #30363d;
 $card-bg:              #161b22;
 $card-border-color:    #30363d;

@@ -13,8 +13,10 @@ $navbar-dark-active-color:      #F75C03;
 
 // The language switcher is the first dropdown on the site, and it landed on the same gap the Up
 // Next day pager found in the popup: Bootstrap 5.3 builds $dropdown-link-hover-bg out of
-// --as-tertiary-bg, which this theme never overrode and which is therefore still the light default
-// #f8f9fa. Rendered, hovering an item put #e6edf3 text on a near-white slab.
+// --as-tertiary-bg, which this theme had not yet overridden and which was therefore still the
+// light default #f8f9fa. Rendered, hovering an item put #e6edf3 text on a near-white slab. The
+// token is set in packages/ui now; the pin stays because a menu on #161b22 wants the step above
+// it, not the step below.
 //
 // And $dropdown-link-active-color is $component-active-color, a flat white that reaches only
 // 3.22:1 on $primary. Buttons escape this by running the colour through color-contrast(); a
