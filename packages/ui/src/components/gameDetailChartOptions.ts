@@ -77,8 +77,14 @@ export const buildTeamScoreOption = (scoreHistory: ScoreSnapshot[], game: Game):
 	const homeScores = scoreHistory.map(point => point.homeScore);
 	const showSinglePointSymbols = scoreHistory.length === 1;
 	const [awayColor, homeColor] = resolveTeamColorPair(game.awayTeam, game.homeTeam, '#60a5fa', '#f87171', true);
+	const option = baseOption(labels, 24);
 	return {
-		...baseOption(labels, 24),
+		...option,
+		// The history is a rolling window, so a basketball chart's first point is already in the
+		// sixties and a zero baseline spends most of 176px on scores nobody is looking at — which
+		// flattens the gap between the two teams, the one thing the chart exists to show. Safe here
+		// and not on the PowerScore chart above, because these lines carry no area fill.
+		yAxis: { ...(option.yAxis as EChartsOption['yAxis']), scale: true },
 		series: [
 			{
 				type: 'line',

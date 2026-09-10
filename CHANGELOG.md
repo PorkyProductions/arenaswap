@@ -1,5 +1,53 @@
 # Changelog
 
+## The site's demo game is a comeback now, and the score chart stops starting at zero — 2026-09-08
+
+The four charts on the landing page are built by the extension's own option builders off one
+hand-written game. That game was Boston and New York trading baskets inside four points for its
+whole history, so the score chart drew two lines on top of each other, and the win probability,
+derived as `0.5 + margin * 0.045`, never left a band between 32 and 59 percent. Two charts selling
+a product that finds the exciting game, drawn from a game with nothing in it.
+
+### The history
+
+New York is down fifteen at the start of the third, closes the whole thing over two quarters, goes
+ahead by one with six minutes left and gets tied again with three to play. The lines start fifteen
+points apart, cross once and meet. Replayed through the real scorer that is 8, 9, 19, 58, 84, 96,
+100, 100 against the old 27, 29, 41, 44, 80, 81, 66, 86, so the PowerScore chart climbs instead of
+wandering, and the yellow lead-change bar shows up in the components chart for the first time.
+
+### Win probability is written out rather than derived
+
+A margin formula tracks the score chart line for line, which is the one thing a second chart should
+not do, and it stays near the middle of the axis because the margin is small. The eight values are
+literals now: 10, 7, 12, 20, 33, 44, 60, 50. The line barely moves while the lead holds, swings once
+the comeback is real, and crosses fifty where the two scores cross. 53 points of travel against the
+old 27.
+
+### A basketball score chart that starts at zero throws away most of its height
+
+`buildTeamScoreOption` inherited the default value axis, which anchors at zero. The history is a
+rolling window, so its first point is already in the sixties and everything under that is empty
+grid. A fifteen-point gap was 15% of the plot height. On a 60 to 100 axis it is 37%.
+
+`scale: true` goes on that axis and not on the PowerScore chart above it, which carries an area
+fill, and an area that does not start at zero misstates its own size.
+
+This one reaches the extension, because both apps read the same builder. That is the point. The
+popup has drawn the same squashed chart on every basketball game it has ever shown.
+
+### The demo clock ran past the end of regulation and wrapped
+
+`clockAt` stepped four minutes of game clock a poll, and eight polls at four minutes is 28 minutes
+across two twelve-minute quarters. Past the sixth poll the modulo wrapped the clock back to 12:00,
+so the late-game signal read 25, then 3, then 14, and the PowerScore chart dipped in the middle for
+a reason nothing in the scores supports. Three minutes a poll fits all eight inside the two quarters
+and lands the last one at 3:00 in the fourth, which is roughly where the card already said the game
+was.
+
+The wall clock between polls stays at four minutes. A game clock that runs slower than real time is
+what actually happens.
+
 ## The wrap screen's charts can actually draw, and eleven other things a review found — 2026-09-08
 
 A review pass over the four entries below, which found twelve things and a tail of smaller ones. Two

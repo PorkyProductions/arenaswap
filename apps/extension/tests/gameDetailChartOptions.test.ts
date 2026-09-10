@@ -1,5 +1,5 @@
-import { buildWinProbabilityOption } from '../entrypoints/popup/components/gameDetailChartOptions';
-import type { Game } from '@arenaswap/core/types';
+import { buildPowerScoreOption, buildTeamScoreOption, buildWinProbabilityOption } from '../entrypoints/popup/components/gameDetailChartOptions';
+import type { Game, PowerScoreSnapshot, ScoreSnapshot } from '@arenaswap/core/types';
 
 const makeGame = (homeAbbr = 'HOM', awayAbbr = 'AWY', homeColor = '#FF0000', awayColor = '#0000FF'): Game => ({
 	id: 'test-game',
@@ -105,5 +105,38 @@ describe('buildWinProbabilityOption', () => {
 		expect(series[0]!.data).toHaveLength(1);
 		expect(series[1]!.data).toHaveLength(1);
 		expect(series[0]!.data[0]! + series[1]!.data[0]!).toBe(100);
+	});
+});
+
+describe('buildTeamScoreOption', () => {
+	const history: ScoreSnapshot[] = [62, 74, 85, 96].map((homeScore, index) => ({
+		gameId: 'test-game',
+		timestamp: 1_767_225_600_000 + index * 60_000,
+		homeScore,
+		awayScore: homeScore + 15 - index * 5,
+	}));
+
+	test('the y-axis scales to the data rather than anchoring at zero', () => {
+		const yAxis = buildTeamScoreOption(history, makeGame()).yAxis as { scale?: boolean };
+		expect(yAxis.scale).toBe(true);
+	});
+
+	test('the PowerScore axis does not scale, because its series carries an area fill', () => {
+		const snapshot = {
+			gameId: 'test-game',
+			timestamp: 1_767_225_600_000,
+			total: 62,
+			closeness: 30,
+			lateGame: 10,
+			momentum: 12,
+			leadChanges: 6,
+			comeback: 4,
+			signalsSubtotal: 62,
+			favoriteBonus: 0,
+			favoriteTeamCount: 0,
+			stalled: false,
+		} as PowerScoreSnapshot;
+		const yAxis = buildPowerScoreOption([snapshot]).yAxis as { scale?: boolean };
+		expect(yAxis.scale).toBeUndefined();
 	});
 });
