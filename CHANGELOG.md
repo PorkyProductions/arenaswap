@@ -1,5 +1,88 @@
 # Changelog
 
+## The sticky bar counts down to a scheduled game instead of printing two zeros — 2026-09-09
+
+Scroll the hero off a game that has not started and the bar handed you `ATL 0 — 0 PHI`. Both
+figures are zero and stay zero until first pitch, so the two abbreviations were doing the bar's
+entire job and the scores were furniture. A scheduled game keeps its crests and abbreviations and
+drops the scores; the time to the start takes the slot on the right.
+
+Live and final games are byte-identical. The score is the number you scrolled past and the reason
+the bar exists.
+
+### The countdown goes in the status slot, not where the scores were
+
+`resolveStatusText` returns `''` for a scheduled game, so the right-hand slot is already empty
+before a start and the two never render together. That is what settles it: a delay description is
+the one thing a pre-game game does put there, and it wins the slot outright — a postponement has
+something to say that a time until a start nobody is holding to does not. One element, three
+states.
+
+The alternative was the centre, between the abbreviations where the scores had been. A figure in
+that position reads as a score, which is the thing being removed.
+
+The 1px rule between the two teams stays either way. It is what makes the pair read as one matchup
+rather than two adjacent teams, and with the scores gone it is the only thing doing that.
+
+### Two units where the hero shows three
+
+The slot is 5.5rem and shared with a live game's period and clock, so `startCountdownDisplay`'s
+three-segment clock and its date line do not fit. `formatCompactCountdown` prints the largest unit
+that is not zero and the one below it: `2d 05h`, `5h 13m`, `13m 42s`, and `9s` on its own under a
+minute, where there is no unit below to pair with.
+
+Dropping a zero leading segment rather than printing it matters more than it sounds. The hero shows
+`0h 13m 42s` a quarter of an hour out, because its segment set is chosen once at the day boundary;
+the bar has two slots and cannot spend one on a zero.
+
+The trailing figure is padded to two digits and the leading one never is, which is the hero's own
+rule. The string is pinned to the right of the bar, so its left edge is the one that moves — and a
+countdown that ticks every second should not shuffle sideways each time a digit crosses 9.
+
+The widest any locale reaches is 53px against the slot's 88, and German and Japanese tie for it —
+`23Std 59Min` and `23時間 59分`, both of them the hours-and-minutes shape rather than the
+days-and-hours one that looks longest written out. No new locale keys: all four unit abbreviations
+were already in all twelve files for the hero, and ten of those twelve differ from the English
+letters, from `min` in the five Romance locales through `Std`/`Sek` to `時間`/`시간`.
+
+### The countdown owns its own hook
+
+Both heroes drive their countdown from `useStartCountdown` inside `startCountdownDisplay` rather
+than taking parts as a prop, so a tick re-renders a few spans instead of the screen. The bar's slot
+is its own component for the same reason — a second-by-second tick that re-rendered
+`gameDetailView` would take the breakdown and the four ECharts canvases with it.
+
+It is gated on `game.status === 'pre'` rather than on `startTime` being present, because `startTime`
+is populated for every status now and a live game carries a kickoff in the past. Every reader of
+that field but one sits behind a pre-game check, and the exception is the tab matcher's tiebreak,
+which sorts two equally-scored live games by kickoff on purpose.
+
+### Coverage
+
+8 unit tests on the formatter, including the zero-hours case, both padding rules, and the fallback
+to Starts soon once the clock runs out rather than counting up past it.
+
+8 component tests on the scheduled bar and one more on the live one, which pins the whole status
+string rather than only the two scores — the countdown is kept off a live bar by the pre-game gate
+alone. The absent scores were confirmed failing with the gate forced open, and five of the eight
+failed with the countdown removed from the slot.
+
+**The first version of these tests could not reach the bar at all.** A scheduled game mounted from
+the existing fixture is 422px of content in a 560px popup, so the hero never leaves the viewport,
+the IntersectionObserver never fires and the compact state is unreachable — `cy.scrollTo` failed the
+scrollable check outright. Adding team leaders got the page to 701px and it still failed, because
+the poster hero is 186px and only 141px of that could be scrolled away: the observer wants the hero
+fully out, not mostly out. The fixture is what a real scheduled game actually carries now — both
+probable pitchers, three leaders a side, a venue, a broadcast, the weather and a line — which runs
+to 808px.
+
+The per-locale measurement substitutes each locale's string into the one element rather than
+mounting twelve times, which this changelog has twice recorded as a false positive. It is sound here
+and only here: the slot is absolutely positioned at a fixed `max-width`, so its box does not depend
+on its content or on anything beside it. Confirmed by narrowing the slot to 2.5rem, which fails it —
+and the string being measured comes out of the real formatter reading the real locale file, not out
+of the test.
+
 ## The settings cog turns under the pointer — 2026-09-09
 
 A quarter turn over 0.35s when the button is hovered or takes keyboard focus, and back when it is
