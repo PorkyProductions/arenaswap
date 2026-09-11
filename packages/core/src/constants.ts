@@ -84,6 +84,27 @@ export const pollDormantThresholdPolls = 2;
 export const pollDormantMinMs = 120_000;
 export const pollDormantMaxMs = 180_000;
 
+/* Below dormant sits hebetudinous, for a league that has been asked and has nothing coming. Dormant
+   cannot tell an NBA slate quiet at 2pm with a 7pm tip from an MLB slate quiet in January with
+   nothing for nine weeks — the dateless scoreboard only carries the current Eastern day — so both
+   poll at the same 2-3 minutes forever, which in an offseason is ~576 requests a day per league to
+   be told nothing is happening.
+
+   The horizon is how close to a kickoff the dormant beat is wanted back. A league sleeps until it is
+   within the horizon of the next start it knows about, so the run-up is covered at 2-3 minutes and
+   ESPN moving a start by a few minutes cannot be missed. The ceiling is what it sleeps for when the
+   next start is further off than that, or when there is no next start at all: 48 requests a day
+   rather than 576, and an unscheduled fixture nobody told us about is still found within half an
+   hour. */
+export const pollHebetudinousHorizonMs = 60 * 60 * 1000;
+export const pollHebetudinousMaxMs = 30 * 60 * 1000;
+
+// How far ahead a lookahead reaches, and how long its answer is trusted before being asked again.
+// Both only matter for a league quiet enough to have stopped polling, so they are deliberately
+// coarse: past a day the answer is the ceiling either way.
+export const pollLookaheadDays = 7;
+export const pollLookaheadTtlMs = 6 * 60 * 60 * 1000;
+
 // The interval scales continuously with PowerScore: high scores approach pollMinEagerMs, low
 // scores pollMaxEagerMs. Every live game is polled at least every pollMaxEagerMs so a boring one
 // can still catch a momentum shift. pollIntervalMs remains the stagger, demo and fallback value.

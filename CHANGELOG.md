@@ -1,5 +1,91 @@
 # Changelog
 
+## A league with nothing on stops asking ESPN every three minutes — 2026-09-11
+
+Polling had two states. Eager scales from 6 to 25 seconds off the best live PowerScore in the
+league; dormant is a flat 2–3 minutes for a league with no live games. There is a third below that
+now — **hebetudinous**, an extended dormant — and it is the one an offseason belongs in.
+
+**Dormant cannot tell those two situations apart.** An NBA league quiet at 2pm with a 7pm tip and an
+MLB league quiet in January with nothing for nine weeks look identical to it, because the only thing
+it asks is the dateless scoreboard, which carries the current Eastern day and nothing else. So both
+poll at the same rate forever: at a 150-second average, **576 requests a day per league** to be told
+nothing is happening.
+
+### The state is cheap because of the question that precedes it
+
+On the poll where a league crosses into quiet, it fires **one** ranged request for that league and
+reads the next kickoff off it. One request buys the right to skip dozens, which is what makes the
+whole thing cost less rather than more — and it is also the only way to answer the question at all,
+since the payload dormant was polling has no tomorrow in it.
+
+The answer is cached for six hours, and expires early the moment the kickoff it names has come and
+gone: a start in the past says nothing about the next one. An offseason league costs 4 lookaheads
+and 48 polls a day against dormant's 576.
+
+**Most leagues never spend the request.** `parseEvent` keeps scheduled games on the same payload as
+live ones, so a league with a game tonight already has its own answer, and with Up Next on the slate
+contributes the rest of the week for free. The lookahead only fires when nothing in hand answers it,
+which is exactly the offseason case.
+
+### Three answers, and the third is not the second
+
+`undefined` is "nobody has asked" and `null` is "asked, and there is nothing in the window". Keeping
+them apart is what stops a league that has merely not been polled yet from being sent to the
+ceiling. Unasked means dormant, which is the faster of the two quiet states and the right thing to
+be doing while a request is still out — and it is also where a **failed** lookahead lands, because
+not reaching ESPN is not the same as ESPN saying nobody plays for two months, and the difference is
+27 minutes of not looking.
+
+### The horizon, and what it is for
+
+A sleeping league wakes when it is within an hour of the kickoff it knows about, capped at 30
+minutes and floored at the dormant beat so this state can never poll faster than the one above it. A
+game six hours out sleeps 30 minutes at a time; at 85 minutes out it sleeps 25 and hands back to
+dormant, which covers the run-up at 2–3 minutes so ESPN moving a start by a few minutes cannot be
+missed.
+
+**30 rather than an hour or four.** The ceiling is not there for scheduled games — the lookahead
+already has those — it is there for a fixture nobody told us about, and half an hour is how long
+that can go unnoticed.
+
+A live game returning outranks all of it. `recordPollResult` zeroes the empty count before anything
+else is read, so a game starting drops the league to eager on the poll that finds it, whatever its
+schedule says.
+
+### What survives a reset
+
+`startLeaguePolling` resets the tracker on every preference change, and it now clears the empty-poll
+counts while leaving the schedules alone. A preference change is not news about when anybody plays
+next, and re-asking would cost one request per enabled league — 31 of them — every time somebody
+toggles a setting.
+
+### Coverage
+
+**48 tests on the tracker**, 23 of them new, every instant written out as a literal rather than
+derived from the constant under test, and `now` passed to both the recorder and the reader — a test
+that leans on the default is measuring the machine's clock. Both edges of the horizon are pinned to
+the millisecond.
+
+**11 on the interval**, including one that walks 24 hours in 7-minute steps and requires the answer
+to stay between the dormant beat and the ceiling at every one of them, and a kickoff already in the
+past, which is reachable through a schedule that goes stale between the mode being read and the
+interval being computed and must not come out as a negative delay.
+
+**7 on the lookahead fetch**, including the one that says it costs exactly one request — the point of
+the state is to spend fewer, so a lookahead as expensive as a poll would be self-defeating — and the
+one that says a 503 throws rather than returning `null`, since `null` is what puts a league to sleep.
+
+**7 on the background**, driving the real `tickLeague` rather than `GET_STATE`'s `forceRefresh`,
+which routes through `tick()` and reschedules nothing. The interval is read off `GET_DEBUG_STATE`,
+and one test ignores that number entirely and advances the clock instead: 29 minutes with no poll,
+then a poll. Dormant would have polled ten times before the first assertion.
+
+All seven were confirmed failing against three separate mutations rather than one — paying the
+dormant interval for the third state, dropping the `needsLookahead` guard so the request fires every
+tick, and letting an unknown schedule sleep instead of staying dormant. Each broke a different pair
+of them, which is what says the assertions are about different things.
+
 ## The Ludicrous Speed egg is click to skip, and nothing else — 2026-09-11
 
 The egg shipped with the controls it was reviewed under, and its own source said as much:
