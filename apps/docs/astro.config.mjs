@@ -5,6 +5,7 @@ import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import pkg from '../../package.json';
 import { localeCodes } from './src/i18n/locales.ts';
+import sassOptions from '@arenaswap/ui/src/sassOptions.ts';
 
 const year = new Date().getFullYear();
 const version = pkg.version;
@@ -44,6 +45,13 @@ export default defineConfig({
 	},
 	vite: {
 		plugins: [tailwindcss()],
+		// Silences Bootstrap 5.3's Sass deprecation warnings, and only for as long as Bootstrap
+		// is the one emitting them. See packages/ui/src/sassOptions.ts.
+		css: {
+			preprocessorOptions: {
+				scss: sassOptions,
+			},
+		},
 		// Astro 7 builds with rolldown-vite, which reads build.rolldownOptions.output (see astro's
 		// vite-build-config.js). A top-level rollupOptions key here is dropped without a word, which
 		// is how the banner went missing.

@@ -1,5 +1,238 @@
 # Changelog
 
+## The stylesheets stop using @import, and two dead overrides fall out — 2026-09-11
+
+All 21 of our own `@import` rules are `@use` and `@forward` now, so the four entry stylesheets
+compile with **zero deprecation warnings of their own**, against 5, 1, 11 and 4 before. What is left
+in the output is Bootstrap's 330, which the entry below silences on a version gate.
+
+### The theme became a funnel instead of a pile of declarations
+
+`packages/ui/src/_bootstrap.scss` used to be 40 bare variable declarations that each app `@import`ed
+*before* Bootstrap, relying on `@import` dumping them into one shared scope for Bootstrap's
+`!default`s to find. `@use ... with` configures a module once, by argument, so that trick has no
+equivalent.
+
+It forwards Bootstrap instead:
+
+```scss
+@forward 'bootstrap/scss/bootstrap' with ($primary: #F75C03 !default, …);
+@use 'bootstrap/scss/bootstrap' as bs;
+```
+
+An app now loads Bootstrap *by* loading the theme, and configures it in its own `@use ... with`.
+Three facts had to be checked before committing to that shape, because the whole migration rests on
+them: a downstream `@use ... with` can configure variables the `@forward` never names, which is what
+lets the extension set 41 Bootstrap variables the theme says nothing about; `@forward` and `@use` can
+name the same module in one file, which the theme needs because `@forward` re-exports members without
+making them available locally and the `::selection` rule at the bottom reads two of them; and
+Bootstrap 5.3.8 accepts `@use ... with` at all, which is not documented anywhere in its docs.
+
+### Two overrides that had never done anything
+
+`@use ... with` fails on a variable the target module does not declare `!default`. `@import` just
+created a local variable and moved on. So the migration would not compile until two lines were dealt
+with, and neither was doing what it said:
+
+- **`$font-monospace`** is not a Bootstrap variable. Bootstrap's is `$font-family-monospace`. Nothing
+  in this repo read the name we were setting, and Lekton is spelled out literally at each of its ~20
+  call sites — so Bootstrap's `code`, `pre` and `kbd` stack has never been Lekton and still is not.
+  Pointing the real variable at it is a visible change, so it is not smuggled in here.
+- **`$form-switch-checked-bg`** is not a Bootstrap variable either. The switch's orange comes from
+  `$form-check-input-checked-bg-color`, which was the next line down and was always doing the work.
+
+Both are gone with a note in their place. Cross-checking the rest of the overrides against
+Bootstrap's own 1,005 `!default` declarations turned up no others: every remaining name is either
+Bootstrap's, bootstrap-icons', or ours by design.
+
+### The site's stylesheet had to be split, for one rule at 1600px
+
+`@use` has to precede every rule in a file. `apps/docs/src/styles/global.scss` held 1,498 rules and
+*then* loaded four landing-page partials underneath them, which is a shape `@use` cannot express —
+hoisting those four to the top would emit them before the file's own rules instead of after.
+
+Whether that mattered was worth measuring rather than assuming. Across the boundary the file's own
+rules use 4,338 class names and the four partials 113, and exactly 7 appear on both sides. Six are
+harmless: every partial rule touching them is a two-class descendant selector, which outranks the
+bare `.crest` or `.h2` it competes with on specificity regardless of order.
+
+The seventh decided it. `_bands.scss` widens Bootstrap's own `.container` above 1600px and again
+above 1920px, with a **bare `.container` inside a media query** — Bootstrap's own specificity, so it
+wins on source order alone. Hoisted, Bootstrap's `max-width: 1320px` would have won and the page
+would have quietly stopped widening on a large display.
+
+So the 1,498 rules moved to `_site.scss` and `global.scss` is a ten-line loader that states the
+order. Verified positionally in the compiled output rather than by reasoning: Bootstrap's 1320px
+lands at line 772 and the 1560px override at 22,455, the same way round as before.
+
+### A duplicate copy of Reboot, and 39 selectors that could never match
+
+Two things came out of the docs stylesheet on the way past, both of them shrinking the output by a
+combined 411 lines.
+
+`@import 'bootstrap/scss/reboot'` sat on the line after `@import 'bootstrap/scss/bootstrap'`, and
+`bootstrap.scss` imports reboot itself — so the site shipped **two identical copies of Reboot**. It
+cannot be expressed as a module anyway, because `_reboot.scss` reads variables it does not declare,
+so it is simply gone. 6,212 bytes, and not one selector lost: all 61 of the dropped Reboot selectors
+still appear in the output, once each.
+
+The other is a genuine semantic difference between `@import` and `@use`, and worth knowing about
+before the next person trips on it. **`@extend` only reaches the stylesheet it is written in and the
+ones that stylesheet loads — not the ones that load it.** Bootstrap's `_type.scss` does
+`.h2 { @extend h2; }` for all six headings plus `small` and `mark`, and under `@import` that reached
+into our files: `.docs-index h2` was being emitted as `.docs-index h2, .docs-index .h2`. Under `@use`
+it is not, so 39 of those twins are gone.
+
+Nothing can notice. The site puts a heading class on an element exactly three times — `class="h5"` in
+`Machine.astro`, on real `<h3>` elements — and Bootstrap's own `h5, .h5` rule lives inside Bootstrap's
+module where the `@extend` still applies, so it survives untouched. `.h1` to `.h4`, `.h6`, `.small`
+and `.mark` appear on nothing the site renders.
+
+### Two blocks moved, and a keyframe that was defined twice
+
+The popup's CSS is the same bytes in a different order: `*::selection` moves from the first rule in
+the file to just after Bootstrap's, because the theme now loads Bootstrap ahead of its own rule, and
+Bootstrap styles `::selection` nowhere. `@keyframes livePulse` moves from before the shared card and
+popup rules to after them.
+
+That second one looked like it mattered, because two `@keyframes` of the same name are resolved by
+source order and the relocation flips which wins. It turns out `livePulse` is **declared twice** —
+once in the popup's entry stylesheet and once in `packages/ui/src/_game-card.scss` — and the two are
+character-for-character identical, so whichever wins is the same animation. lightningcss collapses
+them to one in the build. The duplicate is not removed here, because doing so would stop the CSS
+being a provable relocation; it is worth its own line.
+
+### Coverage
+
+The bar for this change is that the compiled CSS did not move, so that is measured directly on all
+four entry stylesheets rather than argued.
+
+| | bytes | verdict |
+| --- | --- | --- |
+| `apps/extension/assets/bootstrap.scss` | 426,359 → 426,359 | identical line multiset; 2 blocks relocated |
+| `apps/extension/assets/global.scss` | 22,256 → 22,038 | relocated; one obsolete `/* Fonts */` comment dropped |
+| `apps/docs/src/pages/screenshots/_screenshot.scss` | 291,737 → 291,737 | identical line multiset; `::selection` relocated |
+| `apps/docs/src/styles/global.scss` | 453,928 → 447,716 | duplicate Reboot and 39 unreachable selectors |
+
+Sorting both sides and diffing is what makes "relocated" a measurement rather than a claim — it
+compares the multiset of output lines, so a moved block passes and a changed declaration cannot. Each
+of the four differences above was then read line by line, which is how the `@extend` change was
+found at all; a byte count would have shown 411 fewer lines and said nothing about which.
+
+Bootstrap is confirmed emitted exactly once per entry, by counting its `--as-blue` declaration. Two
+modules of the same file loaded under different specifiers would have doubled 330KB of CSS silently.
+
+Then the repo's own suite, which is the part that covers the cascade: **528 component tests and 78
+end-to-end tests pass**, across `lint`, `test`, `test:e2e`, all three browser builds and all three
+zips, 13 turbo tasks, zero Sass warnings in any of them. Those component specs read computed styles
+and measure pixel geometry, so a cascade inversion is the kind of thing they fail on — which is what
+makes them worth more here than any assertion written specifically for this change.
+
+Nothing was added to the suite. There is no unit to test: the subject is the compiler's output, and
+the output is unchanged on purpose.
+
+## Bootstrap's Sass warnings go quiet on a gate that lifts itself — 2026-09-11
+
+Compiling the popup printed **336 deprecation warnings**. The site printed 342 and the screenshot
+pages 335. Dart Sass caps its own output at five per deprecation, so what anybody saw was twenty
+lines and a note about the rest being omitted — which is how two warnings of our own sat inside the
+pile.
+
+331 of each of those totals is Bootstrap 5.3.8's own Sass: legacy `@import`, global built-in
+functions, the pre-Color-4 colour functions, and the `if()` that Dart Sass 1.95 deprecated in favour
+of CSS's. Bootstrap's own docs say to ignore them until a long-term fix lands. So they are ignored,
+deliberately and with an expiry date.
+
+### quietDeps, not silenceDeprecations
+
+Two options could do this and only one is scoped to the problem.
+
+`silenceDeprecations` takes deprecation ids and applies them to the whole compilation. The list this
+needed is `color-functions`, `global-builtin` and `if-function` — and
+`apps/extension/assets/bootstrap.scss:718` was emitting a `global-builtin` of its own. An id list
+would have buried that one too, which is the opposite of what silencing Bootstrap is for.
+
+`quietDeps` is scoped by origin instead: Dart Sass counts anything reached through a load path or an
+importer as a dependency, so `node_modules` goes quiet and the entry stylesheets stay audible.
+Measured on the popup — 331 silenced, 5 left, every one of the 5 in our own file.
+
+One consequence of the origin rule rather than a choice: `packages/ui` resolves through the workspace
+symlink at `node_modules/@arenaswap/ui`, so its own `@import 'crest'` counts as a dependency and goes
+quiet with the rest.
+
+### The gate is the installed Bootstrap major
+
+Nothing in Sass reports that a silenced deprecation stopped being emitted, so an unconditional
+`quietDeps` is permanent by default — it would keep swallowing Bootstrap's warnings for years after
+Bootstrap stopped producing any, including whatever new ones it picks up meanwhile.
+
+`packages/ui/src/sassOptions.ts` reads the installed `bootstrap/package.json` and returns
+`{ quietDeps: true }` only below **5.5.0**, which is where Bootstrap's roadmap puts "refactor our
+Sass code to use the Sass module system" — under the maintainers' caveat that it moves to v6 if it
+turns out too large. The day an install crosses that the module returns `{}` and anything still
+warning is heard.
+
+The threshold is the announced fix rather than the next major, and that distinction is the whole
+value of the gate. Pinned to `< 6` it would have kept silencing a fixed 5.5, 5.6 and 5.7 — including
+any *new* warning Bootstrap picked up on the way — and never said so. Pinned to the announced
+version, a 5.5.0 that still warns because the work slipped brings the warnings back until somebody
+raises the number: loud and wrong, which for a switch whose job is hiding output is the only safe
+direction to be wrong in.
+
+A prerelease compares on its release part alone, so `5.5.0-beta1` counts as 5.5.0 and shows its
+warnings — trialling a prerelease is exactly when you want to see them.
+
+It is one module read by three build configs rather than the same expression written three times,
+because the failure mode of a copy is two apps disagreeing about when to stop silencing.
+
+**Three configs, not two.** `apps/extension/wxt.config.ts` and `apps/docs/astro.config.mjs` are the
+builds, and `apps/extension/cypress.config.ts` carries its own `viteConfig` — its support file
+imports both `.scss` entries, so the component runner compiles Bootstrap exactly the way the build
+does and printed the same wall of warnings on every `cypress run`.
+
+### The two that were ours
+
+```scss
+.sensitivity-tick-#{$i} { left: percentage($i / 6); }
+```
+
+One line, two deprecations: `slash-div` for the division and `global-builtin` for `percentage()`.
+It is now `calc($i / 6 * 100%)`, which is one expression rather than two and needs no `sass:math`
+import — which matters, because `@use` may not follow an `@import` and that file opens with five of
+them. Sass folds the calc at compile time, so all seven emitted rules are byte-identical.
+
+### What is left, on purpose
+
+21 `@import` warnings, all in our own four entry stylesheets. `@import` is not removed until Dart
+Sass 3.0, and the migration is a restructure rather than a rename: `@use ... with` configures a
+module once, so the ~85 Bootstrap variable overrides the three entries declare between them have to
+become argument lists, and `packages/ui/src/_bootstrap.scss` has to forward Bootstrap rather than
+declare into it.
+
+### Coverage
+
+No tests, because there is nothing here a test can hold: the subject is compiler output, and the
+assertion that matters is that the CSS did not move.
+
+That one was made directly. All four entry stylesheets were compiled to CSS before the change and
+after it and diffed — 426,359 bytes for the popup, 453,928 for the site, 291,737 for the screenshot
+pages and 22,256 for the extension's second sheet, byte-identical across every one.
+
+Then all three pipelines were run for real, because a compiler option in a config file is worth
+nothing if the config does not load it. And each was run twice: once as it ships, and once with
+`bootstrapSassFixedIn` lowered below the installed 5.3.8 so the gate opens. Without that
+second run the whole mechanism could have been a no-op agreeing with itself.
+
+| | ships | gate forced open |
+| --- | --- | --- |
+| `wxt build` | 6 | 21 |
+| `astro build` | 9 | 40 |
+| `cypress run --component` | 3 | 21 |
+
+All six runs exit clean and the component spec passes 9 of 9 either way. The figures are Sass's
+default five-per-deprecation cap rather than totals; the totals behind them are the 336, 342 and 335
+above, read with `--verbose`.
+
 ## The postseason boost knows which round it is paying for — 2026-09-09
 
 A Wild Card game and a Super Bowl were worth the same five points. The boost is now a ladder keyed

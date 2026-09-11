@@ -1,3 +1,9 @@
+// ─── Fonts ───────────────────────────────────────────────────────────────────
+// `@use` has to precede every rule in a file, so the @font-face declarations load up here rather
+// than beside the rules that ask for the family. Where a @font-face sits relative to a rule makes
+// no difference to either. Sass comments rather than CSS ones, so this note does not ship.
+@use '@arenaswap/ui/src/fonts';
+
 /* ─── Reset carry-overs ───────────────────────────────────────────────────────
    The popup used to pull in `@import 'tailwindcss'` here, which never actually
    compiled (no @tailwindcss/vite plugin in this app) — Sass just inlined
@@ -26,9 +32,6 @@ img, video {
 button, input, select, optgroup, textarea {
 	color: inherit;
 }
-
-/* ─── Fonts ───────────────────────────────────────────────────────────────── */
-@import '@arenaswap/ui/src/fonts';
 
 *, *::before, *::after {
 	font-family: 'DM Sans', system-ui, sans-serif;
