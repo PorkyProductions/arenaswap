@@ -77,7 +77,11 @@ const ludicrousStage = ({
 		} else {
 			world.entry = 0;
 		}
-		if (isTunnelPhase(phase)) world.travel += speed * 0.0075;
+		/* Trumbull's Star Gate element was shot with "a little accelerator motor to make the effect
+		   keep going faster and faster" as its density built (Cinefex #85, p.112), and Spaceballs used
+		   the same technique. So the corridor speeds up as the weave resolves and holds the higher
+		   rate afterwards rather than snapping back to the one it entered on. */
+		if (isTunnelPhase(phase)) world.travel += speed * 0.0075 * (1 + world.entry * 1.6);
 
 		const spaceFrame = { speed, phase, frame, logosOn: logosRef.current, logoImages };
 
