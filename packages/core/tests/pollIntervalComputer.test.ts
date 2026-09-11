@@ -155,6 +155,7 @@ describe('earliestUpcomingStartMs', () => {
 describe('computeHebetudinousIntervalMs', () => {
 	const now = Date.UTC(2026, 8, 11, 12, 0, 0);
 	const minutes = (n: number) => now + n * 60_000;
+	const day = 24 * 60 * 60_000;
 
 	test('nothing scheduled sleeps for the ceiling', () => {
 		expect(computeHebetudinousIntervalMs(null, now)).toBe(pollHebetudinousMaxMs);
@@ -164,13 +165,19 @@ describe('computeHebetudinousIntervalMs', () => {
 		expect(computeHebetudinousIntervalMs(now + 9 * 24 * 60 * 60_000, now)).toBe(pollHebetudinousMaxMs);
 	});
 
-	// The point of the state: sleep until the run-up, then hand back to the dormant beat.
+	// The point of the state: sleep up to the edge of the horizon, then hand back to the dormant beat.
 	test('wakes as the kickoff comes inside the horizon', () => {
-		expect(computeHebetudinousIntervalMs(minutes(85), now)).toBe(25 * 60_000);
+		expect(computeHebetudinousIntervalMs(now + day + 25 * 60_000, now)).toBe(25 * 60_000);
 	});
 
 	test('never sleeps for less than the dormant beat', () => {
-		expect(computeHebetudinousIntervalMs(minutes(61), now)).toBe(pollDormantMaxMs);
+		expect(computeHebetudinousIntervalMs(now + day + 60_000, now)).toBe(pollDormantMaxMs);
+	});
+
+	// Reachable while a schedule is still live but the league has already woken to dormant; the
+	// interval is only read in the sleeping branch, and it must not go negative if it ever is not.
+	test('a kickoff already inside the horizon sleeps for the dormant beat', () => {
+		expect(computeHebetudinousIntervalMs(minutes(90), now)).toBe(pollDormantMaxMs);
 	});
 
 	// Reachable only through a schedule that went stale between the mode being read and the interval
@@ -180,7 +187,7 @@ describe('computeHebetudinousIntervalMs', () => {
 	});
 
 	test('is never faster than dormant nor slower than the ceiling, at any distance', () => {
-		for (let m = -60; m <= 60 * 24; m += 7) {
+		for (let m = -60; m <= 60 * 24 * 3; m += 7) {
 			const interval = computeHebetudinousIntervalMs(minutes(m), now);
 			expect(interval).toBeGreaterThanOrEqual(pollDormantMaxMs);
 			expect(interval).toBeLessThanOrEqual(pollHebetudinousMaxMs);

@@ -1453,6 +1453,28 @@ describe('polling a league with nothing on', () => {
 		expect(lookahead()).toHaveBeenCalledTimes(1);
 	});
 
+	/* The report this was reopened on: MLB sat in hebetudinous at midday with first pitch at seven.
+	   A league with a game on today's card is having a day whatever hour the popup is opened in, so
+	   it stays on the dormant beat however far off the first pitch is. Driven off the poll's own
+	   payload, which is where a real slate's kickoff comes from. */
+	test('a game later today keeps the league dormant, however many hours off it is', async () => {
+		const hours = [1, 5, 19];
+		const seen: { hoursOut: number; mode: string; intervalMs: number }[] = [];
+		for (const hoursOut of hours) {
+			await loadBackground({
+				prefs: nbaOnly,
+				initialSystemTime: startMs,
+				fetchReturnValue: { games: [scheduledGame(startMs + hoursOut * 60 * 60_000)], leagueLogos: {} },
+			});
+			await goQuiet();
+
+			const state = await debugState();
+			seen.push({ hoursOut, mode: state.pollModes.nba!, intervalMs: state.leagueIntervals.nba! });
+		}
+		// Collected rather than asserted in the loop so a failure names the hour that broke.
+		expect(seen).toEqual(hours.map(hoursOut => ({ hoursOut, mode: 'dormant', intervalMs: pollDormantMaxMs })));
+	});
+
 	// Today's card comes back on the poll's own payload, so a league with a game later today has
 	// already answered the question and the request is never made.
 	test('a kickoff the poll itself carried costs no lookahead at all', async () => {
@@ -1464,7 +1486,17 @@ describe('polling a league with nothing on', () => {
 		await goQuiet();
 
 		expect(lookahead()).not.toHaveBeenCalled();
-		expect((await debugState()).pollModes.nba).toBe('hebetudinous');
+	});
+
+	// The other half of the same rule: a lookahead that comes back with tomorrow's game is still
+	// inside the horizon, so an empty card today is not on its own enough to sleep.
+	test('an empty card with a game tomorrow is dormant, not asleep', async () => {
+		await loadBackground({ prefs: nbaOnly, initialSystemTime: startMs, fetchReturnValue: emptySlate });
+		lookahead().mockResolvedValue(startMs + 20 * 60 * 60_000);
+		await goQuiet();
+
+		expect(lookahead()).toHaveBeenCalledTimes(1);
+		expect((await debugState()).pollModes.nba).toBe('dormant');
 	});
 
 	test('a game starting drops it straight back to eager', async () => {

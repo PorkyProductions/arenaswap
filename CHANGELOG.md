@@ -6,11 +6,11 @@ Polling had two states. Eager scales from 6 to 25 seconds off the best live Powe
 league; dormant is a flat 2–3 minutes for a league with no live games. There is a third below that
 now — **hebetudinous**, an extended dormant — and it is the one an offseason belongs in.
 
-**Dormant cannot tell those two situations apart.** An NBA league quiet at 2pm with a 7pm tip and an
-MLB league quiet in January with nothing for nine weeks look identical to it, because the only thing
-it asks is the dateless scoreboard, which carries the current Eastern day and nothing else. So both
-poll at the same rate forever: at a 150-second average, **576 requests a day per league** to be told
-nothing is happening.
+**Dormant cannot see past today.** An MLB league quiet in January with nothing for nine weeks looks
+exactly like one quiet between games, because the only thing dormant asks is the dateless
+scoreboard, which carries the current Eastern day and nothing else. So it polls at the same rate
+either way, forever: at a 150-second average, **576 requests a day per league** to be told nothing
+is happening.
 
 ### The state is cheap because of the question that precedes it
 
@@ -26,7 +26,7 @@ and 48 polls a day against dormant's 576.
 **Most leagues never spend the request.** `parseEvent` keeps scheduled games on the same payload as
 live ones, so a league with a game tonight already has its own answer, and with Up Next on the slate
 contributes the rest of the week for free. The lookahead only fires when nothing in hand answers it,
-which is exactly the offseason case.
+which is exactly the case a league with an empty card is in.
 
 ### Three answers, and the third is not the second
 
@@ -37,17 +37,35 @@ be doing while a request is still out — and it is also where a **failed** look
 not reaching ESPN is not the same as ESPN saying nobody plays for two months, and the difference is
 27 minutes of not looking.
 
-### The horizon, and what it is for
+### The horizon is a full day, and that is most of the design
 
-A sleeping league wakes when it is within an hour of the kickoff it knows about, capped at 30
-minutes and floored at the dormant beat so this state can never poll faster than the one above it. A
-game six hours out sleeps 30 minutes at a time; at 85 minutes out it sleeps 25 and hands back to
-dormant, which covers the run-up at 2–3 minutes so ESPN moving a start by a few minutes cannot be
-missed.
+A league is only allowed to sleep when the gap in front of it is **longer than 24 hours**. A game on
+today's card keeps it on the dormant beat however many hours off first pitch is.
 
-**30 rather than an hour or four.** The ceiling is not there for scheduled games — the lookahead
-already has those — it is there for a fixture nobody told us about, and half an hour is how long
-that can go unnoticed.
+That was an hour first, and it was wrong in a way worth recording, because an hour sounds defensible
+right up until you open the popup. MLB sat in hebetudinous at midday with first pitch at seven — a
+league in the middle of its season, playing that day, polling half-hourly. "No game coming any time
+soon" is not five hours; a league with a game today is having a day.
+
+It also makes the two halves of the lookahead line up. Whatever the poll finds on its own payload is
+today's Eastern card and therefore inside the horizon by definition, so those leagues stay dormant
+and the request is never spent. Hebetudinous is decided entirely by leagues whose card is empty, and
+engages only in a real gap — an offseason, a break, an All-Star weekend. That is the only place the
+576 was ever worth reclaiming.
+
+**The cost, stated plainly:** an in-season league with a game every day never sleeps, so the quiet
+overnight hours are still polled at 2–3 minutes. Buying those back means deciding that a league with
+a game in 14 hours does not need watching, and that is a different judgement from the one this
+change makes.
+
+Above the horizon the interval is the gap minus the horizon, capped at 30 minutes and floored at the
+dormant beat so this state can never poll faster than the one above it. A game nine days out sleeps
+30 minutes at a time; at 24h25m out it sleeps 25 and hands back to dormant, which covers the run-up
+so ESPN moving a start by a few minutes cannot be missed.
+
+**A 30-minute ceiling rather than an hour or four.** It is not there for scheduled games — the
+lookahead already has those — it is there for a fixture nobody told us about, and half an hour is
+how long that can go unnoticed.
 
 A live game returning outranks all of it. `recordPollResult` zeroes the empty count before anything
 else is read, so a game starting drops the league to eager on the poll that finds it, whatever its
@@ -62,12 +80,12 @@ toggles a setting.
 
 ### Coverage
 
-**48 tests on the tracker**, 23 of them new, every instant written out as a literal rather than
+**49 tests on the tracker**, 24 of them new, every instant written out as a literal rather than
 derived from the constant under test, and `now` passed to both the recorder and the reader — a test
 that leans on the default is measuring the machine's clock. Both edges of the horizon are pinned to
 the millisecond.
 
-**11 on the interval**, including one that walks 24 hours in 7-minute steps and requires the answer
+**12 on the interval**, including one that walks three days in 7-minute steps and requires the answer
 to stay between the dormant beat and the ceiling at every one of them, and a kickoff already in the
 past, which is reachable through a schedule that goes stale between the mode being read and the
 interval being computed and must not come out as a negative delay.
@@ -76,10 +94,14 @@ interval being computed and must not come out as a negative delay.
 the state is to spend fewer, so a lookahead as expensive as a poll would be self-defeating — and the
 one that says a 503 throws rather than returning `null`, since `null` is what puts a league to sleep.
 
-**7 on the background**, driving the real `tickLeague` rather than `GET_STATE`'s `forceRefresh`,
+**9 on the background**, driving the real `tickLeague` rather than `GET_STATE`'s `forceRefresh`,
 which routes through `tick()` and reschedules nothing. The interval is read off `GET_DEBUG_STATE`,
 and one test ignores that number entirely and advances the clock instead: 29 minutes with no poll,
 then a poll. Dormant would have polled ten times before the first assertion.
+
+Two of the nine are the horizon report, one for each way a kickoff reaches the tracker: a game on
+the poll's own payload at 1, 5 and 19 hours out, and a lookahead coming back with tomorrow's game.
+Both fail against the one-hour horizon, along with three of the tracker's.
 
 All seven were confirmed failing against three separate mutations rather than one — paying the
 dormant interval for the third state, dropping the `needsLookahead` guard so the request fires every

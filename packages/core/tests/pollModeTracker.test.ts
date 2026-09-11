@@ -234,6 +234,7 @@ describe('createPollModeTracker hebetudinous mode', () => {
 	const now = Date.UTC(2026, 8, 11, 12, 0, 0);
 	const minutes = (n: number) => now + n * 60_000;
 	const hours = (n: number) => now + n * 60 * 60_000;
+	const days = (n: number) => now + n * 24 * 60 * 60_000;
 
 	const quiet = (tracker: ReturnType<typeof createPollModeTracker>, nextStartMs?: number | null) => {
 		tracker.recordPollResult('mlb', false, nextStartMs, now);
@@ -257,7 +258,7 @@ describe('createPollModeTracker hebetudinous mode', () => {
 		test('a kickoff beyond the horizon puts the league to sleep', () => {
 			const tracker = createPollModeTracker();
 			quiet(tracker);
-			tracker.recordLookahead('mlb', hours(6), now);
+			tracker.recordLookahead('mlb', days(9), now);
 			expect(tracker.getMode('mlb', now)).toBe('hebetudinous');
 		});
 
@@ -268,26 +269,38 @@ describe('createPollModeTracker hebetudinous mode', () => {
 			expect(tracker.getMode('mlb', now)).toBe('dormant');
 		});
 
-		test('exactly one hour out is inside the horizon', () => {
+		/* The report this came back on: MLB went to sleep at midday with first pitch at seven. A
+		   league with a game on today's card is having a day whatever hour the popup is opened in,
+		   so the horizon is a full day and none of these three may sleep. */
+		test('a game later today never lets the league sleep, at any distance inside the day', () => {
+			for (const start of [minutes(45), hours(5), hours(19)]) {
+				const tracker = createPollModeTracker();
+				quiet(tracker);
+				tracker.recordLookahead('mlb', start, now);
+				expect(tracker.getMode('mlb', now)).toBe('dormant');
+			}
+		});
+
+		test('exactly a day out is inside the horizon', () => {
 			const tracker = createPollModeTracker();
 			quiet(tracker);
-			tracker.recordLookahead('mlb', minutes(60), now);
+			tracker.recordLookahead('mlb', days(1), now);
 			expect(tracker.getMode('mlb', now)).toBe('dormant');
 		});
 
 		test('one millisecond past the horizon is not', () => {
 			const tracker = createPollModeTracker();
 			quiet(tracker);
-			tracker.recordLookahead('mlb', minutes(60) + 1, now);
+			tracker.recordLookahead('mlb', days(1) + 1, now);
 			expect(tracker.getMode('mlb', now)).toBe('hebetudinous');
 		});
 
 		test('a sleeping league wakes as its kickoff comes inside the horizon', () => {
 			const tracker = createPollModeTracker();
 			quiet(tracker);
-			tracker.recordLookahead('mlb', hours(3), now);
+			tracker.recordLookahead('mlb', days(3), now);
 			expect(tracker.getMode('mlb', now)).toBe('hebetudinous');
-			expect(tracker.getMode('mlb', hours(2))).toBe('dormant');
+			expect(tracker.getMode('mlb', days(2))).toBe('dormant');
 		});
 
 		// A game returning is the one thing that outranks everything else here.
@@ -350,7 +363,9 @@ describe('createPollModeTracker hebetudinous mode', () => {
 			const tracker = createPollModeTracker();
 			quiet(tracker, hours(6));
 			expect(tracker.needsLookahead('mlb', now)).toBe(false);
-			expect(tracker.getMode('mlb', now)).toBe('hebetudinous');
+			// And a kickoff off the poll's own payload is today's, so it is inside the horizon by
+			// definition: the request is skipped and the league stays dormant.
+			expect(tracker.getMode('mlb', now)).toBe('dormant');
 		});
 	});
 
@@ -368,7 +383,8 @@ describe('createPollModeTracker hebetudinous mode', () => {
 		test('finding a nearer kickoff replaces one a lookahead established', () => {
 			const tracker = createPollModeTracker();
 			quiet(tracker);
-			tracker.recordLookahead('mlb', hours(6), now);
+			tracker.recordLookahead('mlb', days(9), now);
+			expect(tracker.getMode('mlb', now)).toBe('hebetudinous');
 			tracker.recordPollResult('mlb', false, minutes(20), now);
 			expect(tracker.getMode('mlb', now)).toBe('dormant');
 		});

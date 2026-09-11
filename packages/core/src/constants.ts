@@ -84,24 +84,28 @@ export const pollDormantThresholdPolls = 2;
 export const pollDormantMinMs = 120_000;
 export const pollDormantMaxMs = 180_000;
 
-/* Below dormant sits hebetudinous, for a league that has been asked and has nothing coming. Dormant
-   cannot tell an NBA slate quiet at 2pm with a 7pm tip from an MLB slate quiet in January with
-   nothing for nine weeks — the dateless scoreboard only carries the current Eastern day — so both
-   poll at the same 2-3 minutes forever, which in an offseason is ~576 requests a day per league to
-   be told nothing is happening.
+/* Below dormant sits hebetudinous, for a league with nothing coming at all. Dormant cannot tell an
+   MLB slate quiet in January with nothing for nine weeks from one quiet between games, because the
+   dateless scoreboard it polls only carries the current Eastern day — so both poll at the same 2-3
+   minutes forever, which in an offseason is ~576 requests a day per league to be told nothing is
+   happening.
 
-   The horizon is how close to a kickoff the dormant beat is wanted back. A league sleeps until it is
-   within the horizon of the next start it knows about, so the run-up is covered at 2-3 minutes and
-   ESPN moving a start by a few minutes cannot be missed. The ceiling is what it sleeps for when the
-   next start is further off than that, or when there is no next start at all: 48 requests a day
-   rather than 576, and an unscheduled fixture nobody told us about is still found within half an
-   hour. */
-export const pollHebetudinousHorizonMs = 60 * 60 * 1000;
+   The horizon is the gap that has to exist before a league is allowed to sleep, and it is a full
+   day: a league with a game on today's card is having a day, whatever hour you happen to open the
+   popup in, and dropping to half-hourly polling at noon because first pitch is at seven is not the
+   saving this is for. A league sleeps until it is within a day of the next start it knows about,
+   then hands back to the dormant beat.
+
+   Practically that means hebetudinous only engages in a real gap — an offseason, a break, an All-Star
+   weekend — which is the only place the ~576 was ever worth reclaiming. Everything the poll finds on
+   its own payload is inside the horizon by definition, so those leagues stay dormant and the
+   lookahead only decides leagues whose card is empty. */
+export const pollHebetudinousHorizonMs = 24 * 60 * 60 * 1000;
 export const pollHebetudinousMaxMs = 30 * 60 * 1000;
 
 // How far ahead a lookahead reaches, and how long its answer is trusted before being asked again.
-// Both only matter for a league quiet enough to have stopped polling, so they are deliberately
-// coarse: past a day the answer is the ceiling either way.
+// The window has to clear the horizon with room to spare, or "nothing found" would mean "nothing
+// inside the horizon" and every league would sleep.
 export const pollLookaheadDays = 7;
 export const pollLookaheadTtlMs = 6 * 60 * 60 * 1000;
 
