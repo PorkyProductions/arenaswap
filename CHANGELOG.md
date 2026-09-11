@@ -1,5 +1,62 @@
 # Changelog
 
+## The Ludicrous Speed egg is click to skip, and nothing else — 2026-09-11
+
+The egg shipped with the controls it was reviewed under, and its own source said as much:
+
+```
+/* PROPOSAL SCAFFOLDING — the transport keys and the playback rate below come out once the sequence
+   is signed off. */
+```
+
+The sequence is signed off. Gone: `f`, which flipped the whole script between 1× and 4× **and
+persisted the choice to `localStorage`**, so anyone who pressed it once while reviewing has been
+watching a 4× egg ever since, on a key they have no reason to remember pressing. Gone with it, `→`
+for the next beat and `n` for the next phase.
+
+`Enter` and `Space` stay. The overlay is `role='button'`, so those two are the click rather than
+controls of their own. The emergency brake stays too — it is a beat in the script, drawn by the
+cockpit painter and placed onto the rect the canvas drew, not a dev affordance.
+
+### The hint strip was the only untranslated string in the popup
+
+```tsx
+<span className='ls-transport'>{rate === 4 ? ' · → next · n phase · f 4×' : ' · → next · n phase · f fast'}</span>
+```
+
+A literal, not an `i18n.t` call, and there is no `ludicrousSpeed.transport` key in any of the twelve
+locale files. Eleven languages got a translated "click to skip" followed by English debug chrome. No
+locale changes were needed to remove it, because it was never in a locale file.
+
+### The tests had been walking the script with the keys being removed
+
+`nextPhase()` was `trigger('keydown', { key: 'n' })`. Six of the nine specs were built on it, so
+deleting the control deletes the only way the suite could reach beat 34.
+
+They run on a faked clock now, with **only `setTimeout` stubbed** — `requestAnimationFrame` and the
+CSS animations stay real, so the canvas still paints and the brake still has its entry ramp. Each
+step advances by the beat's own duration read off `buildScript()`, which means every wait in the
+file is the script's real timing rather than a jump past it. The spec that walks all 42 beats
+checking text placement now asserts the line it expects on each one, computed from the script, so it
+is in step with the sequence rather than one beat behind it.
+
+**React commits a beat behind the clock**, and that is the thing to know before writing another of
+these: `cy.tick` schedules the commit rather than performing it, so `.then` and `.invoke` read the
+previous beat while `.should` retries into the right one. The first version of the no-scrubbing test
+captured beat 0's line and compared it against beat 2. Every step in the file settles on a retrying
+assertion before anything reads the DOM.
+
+9 specs became 14, and the file went from **33 seconds to 3**.
+
+Four of the five new ones are about the absence: the four keys do nothing, `arenaswap.ludicrous.rate`
+is never written, a stale `4` left over from review does not speed anything up, and `.ls-transport`
+does not exist while `.ls-skip` reads exactly what the locale file says. All four were confirmed
+failing with the controls put back.
+
+The stale-rate test was rewritten after passing for the wrong reason. It asserted the *second* line
+was not yet on screen a millisecond before its beat — which a 4× run also satisfies, six beats
+further on. It pins the line that should still be up instead.
+
 ## The review prompt stops appearing on the loading screen — 2026-09-11
 
 Open the popup with the prompt eligible and "Enjoying ArenaSwap?" rendered underneath the spinner,
