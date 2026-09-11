@@ -58,18 +58,10 @@ export const paintSpace = (
 	if (phase === 'plaid' || phase === 'panic') {
 		paintTartanTunnel(ctx, rect, ludicrousTunnelSett, { travel: world.travel, ...tunnelShape });
 	} else if (phase === 'plaidentry') {
-		/* Measured off the transition frames rather than designed. Three things it is NOT: nothing
-		   fades — lit-pixel coverage stays flat at 28-40% across the whole transition, so a starfield
-		   dissolving under a plaid dissolving in is precisely the wrong build; the flare does not
-		   grow, it ignites already formed, and the vanishing point goes black first; and the rungs do
-		   not arrive globally, they open outward from the flare as an aperture.
-		   The order is colour, then ignition, then geometry: the field is fully tartan-coloured while
-		   the weave has only reached a third of the way out.
-		   The measurements agree with the documented technique. Trumbull built the 2001 Star Gate the
-		   same way — the slit-scan element came "right out of the stars", starting from black, with
-		   "points of light coned out of the black, revealing more and more density of artwork"
-		   (Cinefex #85, p.112) — and slit-scan degenerates continuously to no effect at all, which is
-		   what licences ramping it up out of an ordinary starfield instead of cutting to it. */
+		/* Measured off the transition frames: nothing cross-fades, since lit coverage stays flat
+		   throughout. The order is colour, then the flare igniting out of a blacked-out centre, then
+		   the weave opening outward as an aperture. Trumbull built the 2001 Star Gate the same way,
+		   out of the stars rather than cut to (Cinefex #85, p.112). */
 		ctx.fillStyle = 'rgba(0,0,0,0.11)';
 		ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
 		paintStarfield(ctx, world.stars, rect, {

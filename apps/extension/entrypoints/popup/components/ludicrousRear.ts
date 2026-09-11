@@ -1,7 +1,6 @@
-/* The takeoff and the slowdown are watched from behind the ship. There is no hull stretch here on
-   purpose: three passes over the film's frames found no elongation shot, and neither trade article
-   mentions one. What the film actually has is the three engine bells blooming white-blue over the
-   bumper placard, and the ship receding into that bloom. */
+/* The takeoff and the slowdown, watched from behind. There is deliberately no hull stretch: the
+   film has no elongation shot, which is a Millennium Falcon memory. It has the three engine bells
+   blooming white-blue over the bumper placard, and the ship receding into that bloom. */
 const bumperText = 'WE BRAKE FOR NOBODY';
 
 export const paintStern = (ctx: CanvasRenderingContext2D, w: number, h: number, speed: number, frame: number): void => {
