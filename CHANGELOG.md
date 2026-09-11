@@ -1,5 +1,32 @@
 # Changelog
 
+## The review prompt stops appearing on the loading screen — 2026-09-11
+
+Open the popup with the prompt eligible and "Enjoying ArenaSwap?" rendered underneath the spinner,
+before a single game had arrived. Under the red failure banner too, which is worse: a request for a
+five-star review directly beneath a notice that nothing loaded.
+
+Every section below `GameListHeader` is gated on `!isLoading`. The three banners between them are
+not, and two of them only look like they are:
+
+- `suggestionCount` is derived from `games`, which is `[]` until the fetch lands.
+- `onStandbyStream` is `data?.onStandbyStream ?? false`, which is `false` until `data` exists.
+
+`showReviewPrompt` is the exception, and that is the whole bug. Eligibility is read out of
+`storage.local` in the popup's own init effect — a read with nothing to do with the SWR fetch, which
+lands well before it. So it is the only banner here that can be true while the spinner is up.
+
+The gate goes in `mainView` rather than in `shouldShowReviewPrompt`, which is unit-tested on its own
+and should keep answering the question it is named for: whether the user has earned the prompt, not
+whether the list has finished loading.
+
+### Coverage
+
+2 component tests, both confirmed failing against the old gate. Each asserts the spinner or the
+error banner is **present** as well as the banner being absent — an absence test against a state the
+component never reaches passes whether or not the gate exists, which this changelog has recorded
+catching once before.
+
 ## The stylesheets stop using @import, and two dead overrides fall out — 2026-09-11
 
 All 21 of our own `@import` rules are `@use` and `@forward` now, so the four entry stylesheets
