@@ -1,55 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactElement } from 'react';
-import { createPortal } from 'react-dom';
 import { i18n } from '#i18n';
-import { buildScript, type DisplayState, type Phase } from './ludicrousScript';
+import { createPortal } from 'react-dom';
+import { buildScript, type DisplayState, type Phase, type View } from './ludicrousScript';
 import { preloadLogoImages } from './ludicrousLeagueLogos';
-import LudicrousBridgeVariant from './ludicrousBridgeVariant';
-import LudicrousExteriorVariant from './ludicrousExteriorVariant';
-import LudicrousWarpVariant from './ludicrousWarpVariant';
-import type { LudicrousVariantProps } from './ludicrousVariantProps';
+import { cockpitBrakeRect } from './ludicrousCockpit';
+import LudicrousStage from './ludicrousStage';
 
-/* PROPOSAL SCAFFOLDING — the variant cycler, the on-screen badge and the transport keys below all
-   come out once a direction is picked. localStorage is used rather than the preference store so
-   that nothing about this survives deleting these three files. */
-const variants: { id: string; name: string; Component: (props: LudicrousVariantProps) => ReactElement }[] = [
-	{ id: 'bridge', name: 'BRIDGE', Component: LudicrousBridgeVariant },
-	{ id: 'exterior', name: 'EXTERIOR', Component: LudicrousExteriorVariant },
-	{ id: 'warp', name: 'IN THE WARP', Component: LudicrousWarpVariant },
-];
-
-const variantStorageKey = 'arenaswap.ludicrous.variant';
+/* PROPOSAL SCAFFOLDING — the transport keys and the playback rate below come out once the sequence
+   is signed off. localStorage is used rather than the preference store so that nothing about this
+   survives deleting the two helpers. */
 const rateStorageKey = 'arenaswap.ludicrous.rate';
 
-const readNumber = (key: string, fallback: number): number => {
+const readRate = (): number => {
 	try {
-		const raw = window.localStorage.getItem(key);
-		const parsed = raw === null ? NaN : Number(raw);
-		return Number.isFinite(parsed) ? parsed : fallback;
+		return window.localStorage.getItem(rateStorageKey) === '4' ? 4 : 1;
 	} catch {
-		return fallback;
+		return 1;
 	}
 };
 
-const writeNumber = (key: string, value: number): void => {
+const writeRate = (value: number): void => {
 	try {
-		window.localStorage.setItem(key, String(value));
+		window.localStorage.setItem(rateStorageKey, String(value));
 	} catch {
 		// Private-mode storage denial is not worth failing an easter egg over.
 	}
 };
 
-const takeNextVariantIndex = (): number => {
-	const next = (readNumber(variantStorageKey, -1) + 1) % variants.length;
-	writeNumber(variantStorageKey, next);
-	return next;
-};
-
 export default ({ onClose }: { onClose: () => void }) => {
-	const [variantIndex] = useState(takeNextVariantIndex);
-	const variant = variants[variantIndex]!;
-
-	const [rate, setRate] = useState(() => (readNumber(rateStorageKey, 1) === 4 ? 4 : 1));
+	const [rate, setRate] = useState(readRate);
 	const rateRef = useRef(rate);
 	useEffect(() => { rateRef.current = rate; }, [rate]);
 
@@ -60,9 +39,11 @@ export default ({ onClose }: { onClose: () => void }) => {
 	const speedRef = useRef(0.08);
 	const logosRef = useRef(false);
 
+	const [view, setView] = useState<View>('cockpit');
 	const [display, setDisplay] = useState<DisplayState>({ text: '', cls: 'dialogue prelaunch' });
 	const [brakeState, setBrakeState] = useState<'hidden' | 'visible' | 'pressed'>('hidden');
 	const [closing, setClosing] = useState(false);
+	const [size, setSize] = useState<{ w: number; h: number } | null>(null);
 
 	const beatIndexRef = useRef(0);
 	const beatTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -75,6 +56,8 @@ export default ({ onClose }: { onClose: () => void }) => {
 		clearTimeout(beatTimerRef.current);
 		phaseRef.current = 'stopping';
 		speedRef.current = 0;
+		logosRef.current = false;
+		setView('rear');
 		setDisplay({ text: i18n.t('ludicrousSpeed.stop'), cls: 'stop' });
 		manualTimersRef.current.push(setTimeout(() => setClosing(true), 750));
 	}, []);
@@ -89,6 +72,7 @@ export default ({ onClose }: { onClose: () => void }) => {
 		}
 		if (beat.phase) phaseRef.current = beat.phase;
 		if (beat.speed !== undefined) speedRef.current = beat.speed;
+		if (beat.view) setView(beat.view);
 		if (beat.display) setDisplay(beat.display);
 		if (beat.brake) setBrakeState(beat.brake);
 		logosRef.current = Boolean(beat.logos);
@@ -150,45 +134,55 @@ export default ({ onClose }: { onClose: () => void }) => {
 			e.preventDefault();
 			setRate(prev => {
 				const next = prev === 1 ? 4 : 1;
-				writeNumber(rateStorageKey, next);
+				writeRate(next);
 				return next;
 			});
 		}
 	}, [handleSkip, jump]);
 
+	const handleMeasure = useCallback((w: number, h: number) => setSize({ w, h }), []);
+
 	const overlayRef = useRef<HTMLDivElement>(null);
 	useEffect(() => overlayRef.current?.focus(), []);
 
-	const Variant = variant.Component;
+	// The brake is part of the console rather than a floating button, so it is placed onto the rect
+	// the canvas drew its placard into instead of being guessed at in CSS.
+	const brakeRect = size ? cockpitBrakeRect(size.w, size.h) : null;
+	const brakeStyle = brakeRect
+		? { left: `${brakeRect.x}px`, top: `${brakeRect.y}px`, width: `${brakeRect.w}px`, height: `${brakeRect.h}px` }
+		: undefined;
 
 	return createPortal(
 		<div
 			ref={overlayRef}
 			role='button'
-			className={`ls-overlay ls-variant-${variant.id}${closing ? ' closing' : ''}`}
+			className={`ls-overlay ls-view-${view}${closing ? ' closing' : ''}`}
 			onClick={handleSkip}
 			onKeyDown={handleKeyDown}
 			tabIndex={0}
 		>
-			<Variant
+			<LudicrousStage
+				view={view}
 				phaseRef={phaseRef}
 				speedRef={speedRef}
 				logosRef={logosRef}
+				rateRef={rateRef}
+				brakeArmed={brakeState !== 'hidden'}
+				brakePulled={brakeState === 'pressed'}
 				logoImages={logoImages}
-				display={display}
+				onMeasure={handleMeasure}
 				onSettled={() => setClosing(true)}
 			/>
-			{brakeState !== 'hidden' && (
+			<div className={`ls-text ${display.cls}`}>{display.text}</div>
+			{brakeState !== 'hidden' && view === 'cockpit' && brakeStyle && (
 				<button
 					className={`ls-emergency-brake${brakeState === 'pressed' ? ' pressed' : ''}`}
+					style={brakeStyle}
 					onClick={handleEmergencyBrake}
 				>
 					{i18n.t('ludicrousSpeed.emergencyBrake')}
 				</button>
 			)}
-			<div className='ls-variant-badge'>
-				{`VARIANT ${variantIndex + 1} OF ${variants.length} — ${variant.name}`}
-			</div>
 			<div className='ls-skip'>
 				{i18n.t('ludicrousSpeed.skip')}
 				<span className='ls-transport'>{rate === 4 ? ' · → next · n phase · f 4×' : ' · → next · n phase · f fast'}</span>

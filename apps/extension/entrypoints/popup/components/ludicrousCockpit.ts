@@ -1,23 +1,17 @@
-import { useRef } from 'react';
 import { i18n } from '#i18n';
-import { useLudicrousCanvas } from './ludicrousCanvasLoop';
-import {
-	makeStars,
-	makeFlyingLogo,
-	paintLogoStream,
-	paintStarfield,
-	paintTartanTunnel,
-	type FlyingLogo,
-	type Rect,
-} from './ludicrousPainters';
-import { ludicrousTunnelSett } from './ludicrousTartanSetts';
+import type { Rect } from './ludicrousPainters';
 import type { Phase } from './ludicrousScript';
-import type { LudicrousVariantProps } from './ludicrousVariantProps';
 
-const numStars = 150;
 const panes = 5;
 
-const windowRect = (w: number, h: number): Rect => ({ x: 10, y: 14, w: w - 20, h: Math.round(h * 0.4) });
+export const cockpitWindowRect = (w: number, h: number): Rect => ({
+	x: 10,
+	y: 14,
+	w: w - 20,
+	h: Math.round(h * 0.4),
+});
+
+const consoleTop = (h: number): number => Math.round(h * 0.4) + 20;
 
 /* The bridge window is a faceted panorama in a shallow arc, not one flat sheet: five trapezoidal
    panes divided by heavy pale mullions. The arc is carried by the top and bottom edges bowing away
@@ -26,7 +20,7 @@ const bowAt = (x: number, r: Rect, depth: number): number => (
 	depth * Math.pow(Math.abs(x - (r.x + r.w / 2)) / (r.w / 2), 2)
 );
 
-const traceWindow = (ctx: CanvasRenderingContext2D, r: Rect): void => {
+export const traceCockpitWindow = (ctx: CanvasRenderingContext2D, r: Rect): void => {
 	const steps = panes * 4;
 	ctx.beginPath();
 	for (let i = 0; i <= steps; i += 1) {
@@ -42,7 +36,7 @@ const traceWindow = (ctx: CanvasRenderingContext2D, r: Rect): void => {
 	ctx.closePath();
 };
 
-const paintMullions = (ctx: CanvasRenderingContext2D, r: Rect): void => {
+export const paintCockpitMullions = (ctx: CanvasRenderingContext2D, r: Rect): void => {
 	ctx.save();
 	ctx.strokeStyle = '#9aa0a0';
 	ctx.lineWidth = 4;
@@ -53,7 +47,7 @@ const paintMullions = (ctx: CanvasRenderingContext2D, r: Rect): void => {
 		ctx.lineTo(x, r.y + r.h - bowAt(x, r, 9));
 		ctx.stroke();
 	}
-	traceWindow(ctx, r);
+	traceCockpitWindow(ctx, r);
 	ctx.strokeStyle = '#b3b8b6';
 	ctx.lineWidth = 6;
 	ctx.stroke();
@@ -69,6 +63,7 @@ const phaseRank: Record<Phase, number> = {
 	lightspeed: 1,
 	ridiculous: 2,
 	ludicrous: 3,
+	plaidentry: 3,
 	plaid: 3,
 	panic: 3,
 	stopping: 0,
@@ -77,11 +72,9 @@ const phaseRank: Record<Phase, number> = {
 /* Field and lettering colours are medians measured off the film's own backlit panels. An unlit panel
    goes flat pale grey-green carrying a ghost of its own lettering rather than dark, which is what
    makes the three of them lighting in turn read as a sequence. */
-const speedPanels: { field: string }[] = [
-	{ field: '#37c182' },
-	{ field: '#c2741c' },
-	{ field: '#b8281a' },
-];
+const panelFields = ['#37c182', '#c2741c', '#b8281a'];
+const panelH = 26;
+const panelGap = 5;
 
 const condensedText = (ctx: CanvasRenderingContext2D, text: string, cx: number, cy: number, size: number, color: string): void => {
 	ctx.save();
@@ -95,20 +88,18 @@ const condensedText = (ctx: CanvasRenderingContext2D, text: string, cx: number, 
 	ctx.restore();
 };
 
-const paintSpeedPanels = (ctx: CanvasRenderingContext2D, w: number, top: number, rank: number): number => {
+const paintSpeedPanels = (ctx: CanvasRenderingContext2D, w: number, top: number, rank: number): void => {
 	const labels = [
 		i18n.t('ludicrousSpeed.signs.light'),
 		i18n.t('ludicrousSpeed.signs.ridiculous'),
 		i18n.t('ludicrousSpeed.signs.ludicrous'),
 	];
-	const panelH = 26;
-	const gap = 5;
-	speedPanels.forEach((panel, i) => {
-		const y = top + i * (panelH + gap);
+	panelFields.forEach((field, i) => {
+		const y = top + i * (panelH + panelGap);
 		const lit = rank > i;
 		ctx.fillStyle = '#0e100f';
 		ctx.fillRect(10, y - 2, w - 20, panelH + 4);
-		ctx.fillStyle = lit ? panel.field : '#8d9689';
+		ctx.fillStyle = lit ? field : '#8d9689';
 		ctx.fillRect(14, y, w - 28, panelH);
 		condensedText(ctx, labels[i]!, w / 2, y + panelH / 2, 13, lit ? '#b7fdf6' : 'rgba(20,26,20,0.26)');
 		if (lit) {
@@ -117,7 +108,6 @@ const paintSpeedPanels = (ctx: CanvasRenderingContext2D, w: number, top: number,
 			ctx.strokeRect(14.5, y + 0.5, w - 29, panelH - 1);
 		}
 	});
-	return top + speedPanels.length * (panelH + gap);
 };
 
 /* The screen-used console panels are sheet metal with black tape linework, black rub-down decals and
@@ -173,20 +163,28 @@ const paintPilotLamps = (ctx: CanvasRenderingContext2D, x: number, y: number, co
 	}
 };
 
+// The brake placard and its lever share a pedestal at the foot of the console. The DOM button is
+// positioned onto this exact rect, so the control the user clicks is the one that is drawn.
+export const cockpitBrakeRect = (w: number, h: number): Rect => {
+	const top = consoleTop(h);
+	const y = top + 24 + 3 * (panelH + panelGap) + 6 + 72 + 12 + 30 + 12;
+	return { x: 12, y, w: w - 62, h: 36 };
+};
+
 // The lever on this bridge is the emergency brake, not a throttle: a black rod with a ball handle on
-// a riveted pedestal, two dome lamps beside it, one of which lights red when it is pulled.
+// a riveted pedestal, and a dome lamp that lights red when it is pulled.
 const paintBrakeLever = (ctx: CanvasRenderingContext2D, x: number, y: number, pulled: boolean): void => {
 	ctx.fillStyle = '#6d716c';
-	ctx.fillRect(x - 20, y + 22, 40, 20);
+	ctx.fillRect(x - 14, y + 18, 28, 18);
 	ctx.fillStyle = 'rgba(0,0,0,0.35)';
-	for (let i = 0; i < 4; i += 1) ctx.fillRect(x - 15 + i * 9, y + 38, 2, 2);
+	for (let i = 0; i < 3; i += 1) ctx.fillRect(x - 9 + i * 8, y + 31, 2, 2);
 
-	const knobX = pulled ? x + 13 : x;
-	const knobY = pulled ? y + 10 : y - 6;
+	const knobX = pulled ? x + 9 : x;
+	const knobY = pulled ? y + 8 : y - 6;
 	ctx.strokeStyle = '#141514';
 	ctx.lineWidth = 4;
 	ctx.beginPath();
-	ctx.moveTo(x, y + 24);
+	ctx.moveTo(x, y + 20);
 	ctx.lineTo(knobX, knobY);
 	ctx.stroke();
 	ctx.beginPath();
@@ -194,16 +192,22 @@ const paintBrakeLever = (ctx: CanvasRenderingContext2D, x: number, y: number, pu
 	ctx.fillStyle = '#161716';
 	ctx.fill();
 
-	[-13, 13].forEach((dx, i) => {
-		ctx.beginPath();
-		ctx.arc(x + dx, y + 32, 4, 0, Math.PI * 2);
-		ctx.fillStyle = pulled && i === 0 ? '#ff2a1a' : '#4a473f';
-		ctx.fill();
-	});
+	ctx.beginPath();
+	ctx.arc(x, y + 26, 3.6, 0, Math.PI * 2);
+	ctx.fillStyle = pulled ? '#ff2a1a' : '#4a473f';
+	ctx.fill();
 };
 
-const paintConsole = (ctx: CanvasRenderingContext2D, w: number, h: number, phase: Phase, frame: number): void => {
-	const top = Math.round(h * 0.4) + 20;
+export const paintCockpitConsole = (
+	ctx: CanvasRenderingContext2D,
+	w: number,
+	h: number,
+	phase: Phase,
+	frame: number,
+	brakeArmed: boolean,
+	brakePulled: boolean,
+): void => {
+	const top = consoleTop(h);
 	const rank = phaseRank[phase];
 
 	// Pale cool grey at the window end, warmer olive-grey aft.
@@ -218,74 +222,26 @@ const paintConsole = (ctx: CanvasRenderingContext2D, w: number, h: number, phase
 	ctx.fillRect(0, top, w, 1.5);
 
 	paintPilotLamps(ctx, 16, top + 12, 12, rank, frame);
-	const afterPanels = paintSpeedPanels(ctx, w, top + 24, rank);
+	paintSpeedPanels(ctx, w, top + 24, rank);
 
-	// Recessed well: the dialogue and the PLAID sign are DOM and both land inside this box.
-	const wellTop = afterPanels + 6;
-	const wellH = 72;
+	// Recessed well. The dialogue is DOM and lands inside this box.
+	const wellTop = top + 24 + 3 * (panelH + panelGap) + 6;
 	ctx.fillStyle = 'rgba(0,0,0,0.55)';
-	ctx.fillRect(10, wellTop, w - 20, wellH);
+	ctx.fillRect(10, wellTop, w - 20, 72);
 	ctx.strokeStyle = 'rgba(255,255,255,0.12)';
 	ctx.lineWidth = 1;
-	ctx.strokeRect(10.5, wellTop + 0.5, w - 21, wellH - 1);
+	ctx.strokeRect(10.5, wellTop + 0.5, w - 21, 71);
 
-	paintButtonBlock(ctx, 14, wellTop + wellH + 12, frame);
-	paintBrakeLever(ctx, w - 34, wellTop + wellH + 14, phase === 'stopping');
+	paintButtonBlock(ctx, 14, wellTop + 84, frame);
+
+	const brake = cockpitBrakeRect(w, h);
+	ctx.fillStyle = '#0d0f0d';
+	ctx.fillRect(brake.x - 3, brake.y - 3, brake.w + 6, brake.h + 6);
+	if (!brakeArmed) {
+		ctx.fillStyle = '#4c4a42';
+		ctx.fillRect(brake.x, brake.y, brake.w, brake.h);
+		ctx.fillStyle = 'rgba(0,0,0,0.25)';
+		ctx.fillRect(brake.x, brake.y, brake.w, 2);
+	}
+	paintBrakeLever(ctx, w - 28, brake.y - 2, brakePulled);
 };
-
-const tunnelAt = (frame: number, travel: number) => ({
-	travel,
-	vanishX: 0.5 + Math.sin(frame * 0.0061) * 0.11,
-	vanishY: 0.5 + Math.cos(frame * 0.0043) * 0.09,
-	repeatsAround: 11,
-	depthScale: 0.085,
-});
-
-const ludicrousBridgeVariant = ({ phaseRef, speedRef, logosRef, logoImages, display, onSettled }: LudicrousVariantProps) => {
-	const starsRef = useRef(makeStars(numStars));
-	const logosStateRef = useRef<FlyingLogo[]>([]);
-	const logoCursorRef = useRef(0);
-	const travelRef = useRef(0);
-
-	const canvasRef = useLudicrousCanvas((ctx, { w, h, speed, phase, frame }) => {
-		const view = windowRect(w, h);
-		const tunnel = phase === 'ludicrous' || phase === 'plaid' || phase === 'panic';
-		if (tunnel) travelRef.current += speed * 0.0075;
-
-		ctx.fillStyle = '#0a0b0c';
-		ctx.fillRect(0, 0, w, h);
-
-		ctx.save();
-		traceWindow(ctx, view);
-		ctx.clip();
-		if (tunnel) {
-			paintTartanTunnel(ctx, view, ludicrousTunnelSett, tunnelAt(frame, travelRef.current));
-		} else {
-			ctx.fillStyle = '#000';
-			ctx.fillRect(view.x, view.y, view.w, view.h);
-			paintStarfield(ctx, starsRef.current, view, { speed, phase, spread: 0.95, widthScale: 0.7 });
-		}
-
-		if (logosRef.current && frame % 4 === 0 && logoCursorRef.current < logoImages.length * 3) {
-			logosStateRef.current.push(makeFlyingLogo(logoImages[logoCursorRef.current % logoImages.length]!, 1.25));
-			logoCursorRef.current += 1;
-		}
-		if (logosStateRef.current.length > 0) {
-			paintLogoStream(ctx, logosStateRef.current, view, speed);
-			logosStateRef.current = logosStateRef.current.filter(l => l.z > 0);
-		}
-		ctx.restore();
-
-		paintMullions(ctx, view);
-		paintConsole(ctx, w, h, phase, frame);
-	}, { phaseRef, speedRef, onSettled });
-
-	return (
-		<>
-			<canvas ref={canvasRef} className='ls-canvas' />
-			<div className={`ls-text ${display.cls}`}>{display.text}</div>
-		</>
-	);
-};
-
-export default ludicrousBridgeVariant;
