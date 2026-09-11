@@ -1,5 +1,136 @@
 # Changelog
 
+## The stylesheets stop using @import, and two dead overrides fall out — 2026-09-11
+
+All 21 of our own `@import` rules are `@use` and `@forward` now, so the four entry stylesheets
+compile with **zero deprecation warnings of their own**, against 5, 1, 11 and 4 before. What is left
+in the output is Bootstrap's 330, which the entry below silences on a version gate.
+
+### The theme became a funnel instead of a pile of declarations
+
+`packages/ui/src/_bootstrap.scss` used to be 40 bare variable declarations that each app `@import`ed
+*before* Bootstrap, relying on `@import` dumping them into one shared scope for Bootstrap's
+`!default`s to find. `@use ... with` configures a module once, by argument, so that trick has no
+equivalent.
+
+It forwards Bootstrap instead:
+
+```scss
+@forward 'bootstrap/scss/bootstrap' with ($primary: #F75C03 !default, …);
+@use 'bootstrap/scss/bootstrap' as bs;
+```
+
+An app now loads Bootstrap *by* loading the theme, and configures it in its own `@use ... with`.
+Three facts had to be checked before committing to that shape, because the whole migration rests on
+them: a downstream `@use ... with` can configure variables the `@forward` never names, which is what
+lets the extension set 41 Bootstrap variables the theme says nothing about; `@forward` and `@use` can
+name the same module in one file, which the theme needs because `@forward` re-exports members without
+making them available locally and the `::selection` rule at the bottom reads two of them; and
+Bootstrap 5.3.8 accepts `@use ... with` at all, which is not documented anywhere in its docs.
+
+### Two overrides that had never done anything
+
+`@use ... with` fails on a variable the target module does not declare `!default`. `@import` just
+created a local variable and moved on. So the migration would not compile until two lines were dealt
+with, and neither was doing what it said:
+
+- **`$font-monospace`** is not a Bootstrap variable. Bootstrap's is `$font-family-monospace`. Nothing
+  in this repo read the name we were setting, and Lekton is spelled out literally at each of its ~20
+  call sites — so Bootstrap's `code`, `pre` and `kbd` stack has never been Lekton and still is not.
+  Pointing the real variable at it is a visible change, so it is not smuggled in here.
+- **`$form-switch-checked-bg`** is not a Bootstrap variable either. The switch's orange comes from
+  `$form-check-input-checked-bg-color`, which was the next line down and was always doing the work.
+
+Both are gone with a note in their place. Cross-checking the rest of the overrides against
+Bootstrap's own 1,005 `!default` declarations turned up no others: every remaining name is either
+Bootstrap's, bootstrap-icons', or ours by design.
+
+### The site's stylesheet had to be split, for one rule at 1600px
+
+`@use` has to precede every rule in a file. `apps/docs/src/styles/global.scss` held 1,498 rules and
+*then* loaded four landing-page partials underneath them, which is a shape `@use` cannot express —
+hoisting those four to the top would emit them before the file's own rules instead of after.
+
+Whether that mattered was worth measuring rather than assuming. Across the boundary the file's own
+rules use 4,338 class names and the four partials 113, and exactly 7 appear on both sides. Six are
+harmless: every partial rule touching them is a two-class descendant selector, which outranks the
+bare `.crest` or `.h2` it competes with on specificity regardless of order.
+
+The seventh decided it. `_bands.scss` widens Bootstrap's own `.container` above 1600px and again
+above 1920px, with a **bare `.container` inside a media query** — Bootstrap's own specificity, so it
+wins on source order alone. Hoisted, Bootstrap's `max-width: 1320px` would have won and the page
+would have quietly stopped widening on a large display.
+
+So the 1,498 rules moved to `_site.scss` and `global.scss` is a ten-line loader that states the
+order. Verified positionally in the compiled output rather than by reasoning: Bootstrap's 1320px
+lands at line 772 and the 1560px override at 22,455, the same way round as before.
+
+### A duplicate copy of Reboot, and 39 selectors that could never match
+
+Two things came out of the docs stylesheet on the way past, both of them shrinking the output by a
+combined 411 lines.
+
+`@import 'bootstrap/scss/reboot'` sat on the line after `@import 'bootstrap/scss/bootstrap'`, and
+`bootstrap.scss` imports reboot itself — so the site shipped **two identical copies of Reboot**. It
+cannot be expressed as a module anyway, because `_reboot.scss` reads variables it does not declare,
+so it is simply gone. 6,212 bytes, and not one selector lost: all 61 of the dropped Reboot selectors
+still appear in the output, once each.
+
+The other is a genuine semantic difference between `@import` and `@use`, and worth knowing about
+before the next person trips on it. **`@extend` only reaches the stylesheet it is written in and the
+ones that stylesheet loads — not the ones that load it.** Bootstrap's `_type.scss` does
+`.h2 { @extend h2; }` for all six headings plus `small` and `mark`, and under `@import` that reached
+into our files: `.docs-index h2` was being emitted as `.docs-index h2, .docs-index .h2`. Under `@use`
+it is not, so 39 of those twins are gone.
+
+Nothing can notice. The site puts a heading class on an element exactly three times — `class="h5"` in
+`Machine.astro`, on real `<h3>` elements — and Bootstrap's own `h5, .h5` rule lives inside Bootstrap's
+module where the `@extend` still applies, so it survives untouched. `.h1` to `.h4`, `.h6`, `.small`
+and `.mark` appear on nothing the site renders.
+
+### Two blocks moved, and a keyframe that was defined twice
+
+The popup's CSS is the same bytes in a different order: `*::selection` moves from the first rule in
+the file to just after Bootstrap's, because the theme now loads Bootstrap ahead of its own rule, and
+Bootstrap styles `::selection` nowhere. `@keyframes livePulse` moves from before the shared card and
+popup rules to after them.
+
+That second one looked like it mattered, because two `@keyframes` of the same name are resolved by
+source order and the relocation flips which wins. It turns out `livePulse` is **declared twice** —
+once in the popup's entry stylesheet and once in `packages/ui/src/_game-card.scss` — and the two are
+character-for-character identical, so whichever wins is the same animation. lightningcss collapses
+them to one in the build. The duplicate is not removed here, because doing so would stop the CSS
+being a provable relocation; it is worth its own line.
+
+### Coverage
+
+The bar for this change is that the compiled CSS did not move, so that is measured directly on all
+four entry stylesheets rather than argued.
+
+| | bytes | verdict |
+| --- | --- | --- |
+| `apps/extension/assets/bootstrap.scss` | 426,359 → 426,359 | identical line multiset; 2 blocks relocated |
+| `apps/extension/assets/global.scss` | 22,256 → 22,038 | relocated; one obsolete `/* Fonts */` comment dropped |
+| `apps/docs/src/pages/screenshots/_screenshot.scss` | 291,737 → 291,737 | identical line multiset; `::selection` relocated |
+| `apps/docs/src/styles/global.scss` | 453,928 → 447,716 | duplicate Reboot and 39 unreachable selectors |
+
+Sorting both sides and diffing is what makes "relocated" a measurement rather than a claim — it
+compares the multiset of output lines, so a moved block passes and a changed declaration cannot. Each
+of the four differences above was then read line by line, which is how the `@extend` change was
+found at all; a byte count would have shown 411 fewer lines and said nothing about which.
+
+Bootstrap is confirmed emitted exactly once per entry, by counting its `--as-blue` declaration. Two
+modules of the same file loaded under different specifiers would have doubled 330KB of CSS silently.
+
+Then the repo's own suite, which is the part that covers the cascade: **528 component tests and 78
+end-to-end tests pass**, across `lint`, `test`, `test:e2e`, all three browser builds and all three
+zips, 13 turbo tasks, zero Sass warnings in any of them. Those component specs read computed styles
+and measure pixel geometry, so a cascade inversion is the kind of thing they fail on — which is what
+makes them worth more here than any assertion written specifically for this change.
+
+Nothing was added to the suite. There is no unit to test: the subject is the compiler's output, and
+the output is unchanged on purpose.
+
 ## Bootstrap's Sass warnings go quiet on a gate that lifts itself — 2026-09-11
 
 Compiling the popup printed **336 deprecation warnings**. The site printed 342 and the screenshot

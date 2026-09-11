@@ -1,97 +1,97 @@
-@import '@arenaswap/ui/src/bootstrap';
+// The popup's stylesheet. `@arenaswap/ui/src/bootstrap` is the theme and forwards Bootstrap itself,
+// so configuring it here is how Bootstrap gets configured — there is no second load of Bootstrap to
+// order these against, which is what the old `@import` pair needed.
+@use '@arenaswap/ui/src/bootstrap' as bs with (
+	$font-size-base:   0.9375rem,
+	$font-size-sm:     0.8125rem,
+	$headings-font-weight: 700,
+	$form-range-thumb-bg:  #F75C03,
+	$form-range-track-bg:  #30363d,
+	$btn-border-radius:    0.25rem,
+	$enable-dark-mode:     false,
 
-$font-size-base:   0.9375rem;
-$font-size-sm:     0.8125rem;
-$headings-font-weight: 700;
-$form-range-thumb-bg:  #F75C03;
-$form-range-track-bg:  #30363d;
-$btn-border-radius:    0.25rem;
-$enable-dark-mode:     false;
+	// No $form-switch-checked-bg here: Bootstrap has no such variable — its switch reads
+	// $form-check-input-checked-bg-color, which is the line below and is what actually turns the
+	// toggle orange. The old override set a name nothing read.
+	$form-check-input-checked-bg-color:    #F75C03,
+	$form-check-input-checked-border-color: #F75C03,
 
-$form-switch-checked-bg:               #F75C03;
-$form-check-input-checked-bg-color:    #F75C03;
-$form-check-input-checked-border-color: #F75C03;
+	// Bootstrap's default tooltip-color is var(--as-body-bg), which on this dark theme would be
+	// dark text on a dark background.
+	$tooltip-color: #f8fafc,
+	$tooltip-bg:    #1f2937,
 
-// Bootstrap's default tooltip-color is var(--as-body-bg), which on this dark theme would be
-// dark text on a dark background.
-$tooltip-color: #f8fafc;
-$tooltip-bg:    #1f2937;
+	// The Up Next day pager is the only pagination in the popup, and it heads a section rather than
+	// closing a page of results, so it takes the scale of a heading label instead of body text.
+	$pagination-font-size: 0.72rem,
+	// Bootstrap picks the active page's label with $component-active-color, a flat white that only
+	// reaches 3.22:1 on $primary. Buttons escape this because they run the colour through
+	// color-contrast(); pagination does not.
+	$pagination-active-color: #0d1117,
+	// Pagination was the first thing in the popup to reach for --as-secondary-bg and --as-tertiary-bg,
+	// back when this theme left both at Bootstrap's light defaults and an arrow at the end of the range
+	// was a white slab on a #0d1117 popup. Both tokens are set in packages/ui now, so these are a
+	// choice rather than a repair: a disabled arrow recedes into the popup entirely instead of holding
+	// the secondary surface.
+	$pagination-disabled-bg: #0d1117,
+	$pagination-hover-bg: #161b22,
+	$pagination-focus-bg: #161b22,
 
-// The Up Next day pager is the only pagination in the popup, and it heads a section rather than
-// closing a page of results, so it takes the scale of a heading label instead of body text.
-$pagination-font-size: 0.72rem;
-// Bootstrap picks the active page's label with $component-active-color, a flat white that only
-// reaches 3.22:1 on $primary. Buttons escape this because they run the colour through
-// color-contrast(); pagination does not.
-$pagination-active-color: #0d1117;
-// Pagination was the first thing in the popup to reach for --as-secondary-bg and --as-tertiary-bg,
-// back when this theme left both at Bootstrap's light defaults and an arrow at the end of the range
-// was a white slab on a #0d1117 popup. Both tokens are set in packages/ui now, so these are a
-// choice rather than a repair: a disabled arrow recedes into the popup entirely instead of holding
-// the secondary surface.
-$pagination-disabled-bg: #0d1117;
-$pagination-hover-bg: #161b22;
-$pagination-focus-bg: #161b22;
+	// ── Box score ────────────────────────────────────────────────────────────────
+	// The box score is the first and only .table and .nav in the popup, so these are set globally
+	// the way $pagination-font-size above is rather than being re-specified on the component.
+	//
+	// Every default here resolves against the dark popup and the box score sits on the light
+	// .gd-setup card, so left alone the table would be a #0d1117 slab with light ink on it. Same
+	// class of bug the pagination arrows had.
+	$table-color:            #111827,
+	// Transparent rather than a colour of its own, so the card it sits on shows through and the two
+	// cannot drift apart.
+	$table-bg:               transparent,
+	$table-border-color:     #d1d5db,
+	// Bootstrap 5.3 draws this only through the opt-in .table-group-divider class, which nothing in
+	// our source uses, so it is a guard rather than an active fix: left at the default currentcolor,
+	// the first table to ask for a divider would draw the table's own #111827 as a heavy bar across
+	// the light card.
+	$table-group-separator-color: #d1d5db,
+	$table-striped-color:    #111827,
+	$table-striped-bg:       rgba(17, 24, 39, 0.045),
+	$table-active-color:     #111827,
+	$table-active-bg:        rgba(17, 24, 39, 0.075),
+	$table-hover-color:      #111827,
+	$table-hover-bg:         rgba(17, 24, 39, 0.06),
+	$table-th-font-weight:   700,
+	// A 320px popup has ~263px inside the card. Bootstrap's .25rem of horizontal padding a side
+	// spends 96px of that on a nine-inning line score before a single digit is drawn.
+	$table-cell-padding-y-sm: 0.12rem,
+	$table-cell-padding-x-sm: 0.16rem,
 
-// ── Box score ────────────────────────────────────────────────────────────────
-// The box score is the first and only .table and .nav in the popup, so these are set globally
-// the way $pagination-font-size above is rather than being re-specified on the component.
-//
-// Every default here resolves against the dark popup and the box score sits on the light
-// .gd-setup card, so left alone the table would be a #0d1117 slab with light ink on it. Same
-// class of bug the pagination arrows had.
-$table-color:            #111827;
-// Transparent rather than a colour of its own, so the card it sits on shows through and the two
-// cannot drift apart.
-$table-bg:               transparent;
-$table-border-color:     #d1d5db;
-// Bootstrap 5.3 draws this only through the opt-in .table-group-divider class, which nothing in
-// our source uses, so it is a guard rather than an active fix: left at the default currentcolor,
-// the first table to ask for a divider would draw the table's own #111827 as a heavy bar across
-// the light card.
-$table-group-separator-color: #d1d5db;
-$table-striped-color:    #111827;
-$table-striped-bg:       rgba(17, 24, 39, 0.045);
-$table-active-color:     #111827;
-$table-active-bg:        rgba(17, 24, 39, 0.075);
-$table-hover-color:      #111827;
-$table-hover-bg:         rgba(17, 24, 39, 0.06);
-$table-th-font-weight:   700;
-// A 320px popup has ~263px inside the card. Bootstrap's .25rem of horizontal padding a side
-// spends 96px of that on a nine-inning line score before a single digit is drawn.
-$table-cell-padding-y-sm: 0.12rem;
-$table-cell-padding-x-sm: 0.16rem;
-
-// $nav-tabs-link-active-bg is var(--as-body-bg) by default, which would punch a dark hole in the
-// light card the selected team's tab sits on.
-$nav-tabs-link-active-bg:           #f8fafc;
-$nav-tabs-border-color:             #d1d5db;
-$nav-tabs-link-active-color:        #111827;
-$nav-tabs-link-active-border-color: #d1d5db #d1d5db #f8fafc;
-// The default hover border reaches for --as-secondary-bg, which is a dark surface, and this strip
-// sits on a light card.
-$nav-tabs-link-hover-border-color:  #e5e7eb #e5e7eb #d1d5db;
-// $nav-link-color is the link colour, and #F75C03 on #f8fafc is 3.0:1 — under the 4.5:1 an
-// unselected tab's label needs as body text.
-$nav-link-color:                    #4b5563;
-$nav-link-hover-color:              #111827;
-$nav-link-font-size:                0.64rem;
-$nav-link-font-weight:              700;
-$nav-link-padding-y:                0.2rem;
-$nav-link-padding-x:                0.45rem;
-
-@import 'bootstrap/scss/bootstrap';
-
-$bootstrap-icons-font-dir: '/fonts';
-@import 'bootstrap-icons/font/bootstrap-icons';
+	// $nav-tabs-link-active-bg is var(--as-body-bg) by default, which would punch a dark hole in the
+	// light card the selected team's tab sits on.
+	$nav-tabs-link-active-bg:           #f8fafc,
+	$nav-tabs-border-color:             #d1d5db,
+	$nav-tabs-link-active-color:        #111827,
+	$nav-tabs-link-active-border-color: #d1d5db #d1d5db #f8fafc,
+	// The default hover border reaches for --as-secondary-bg, which is a dark surface, and this strip
+	// sits on a light card.
+	$nav-tabs-link-hover-border-color:  #e5e7eb #e5e7eb #d1d5db,
+	// $nav-link-color is the link colour, and #F75C03 on #f8fafc is 3.0:1 — under the 4.5:1 an
+	// unselected tab's label needs as body text.
+	$nav-link-color:                    #4b5563,
+	$nav-link-hover-color:              #111827,
+	$nav-link-font-size:                0.64rem,
+	$nav-link-font-weight:              700,
+	$nav-link-padding-y:                0.2rem,
+	$nav-link-padding-x:                0.45rem
+);
+@use 'bootstrap-icons/font/bootstrap-icons' with ($bootstrap-icons-font-dir: '/fonts');
+@use '@arenaswap/ui/src/game-card' as gc;
+@use '@arenaswap/ui/src/popup';
 
 @keyframes livePulse {
 	0%, 100% { opacity: 1; }
 	50%       { opacity: 0.3; }
 }
-
-@import '@arenaswap/ui/src/game-card';
-@import '@arenaswap/ui/src/popup';
 
 @keyframes onbLogoRise {
 	from { transform: translateY(200px); }
@@ -251,7 +251,7 @@ $bootstrap-icons-font-dir: '/fonts';
 
 	&:hover  { color: #e6edf3; }
 	&:focus-visible {
-		outline:        1px solid $primary;
+		outline:        1px solid bs.$primary;
 		outline-offset: 1px;
 		border-radius:  2px;
 	}
@@ -440,7 +440,7 @@ $bootstrap-icons-font-dir: '/fonts';
 	&:hover { background: rgba(230, 237, 243, 0.035); }
 
 	&:focus-visible {
-		outline:        1px solid $primary;
+		outline:        1px solid bs.$primary;
 		outline-offset: -1px;
 		border-radius:  0.25rem;
 	}
@@ -501,7 +501,7 @@ $bootstrap-icons-font-dir: '/fonts';
 	font-size:   0.92rem;
 	line-height: 1;
 	text-align:  center;
-	color:       $primary;
+	color:       bs.$primary;
 }
 
 .settings-index-text {
@@ -905,7 +905,7 @@ $bootstrap-icons-font-dir: '/fonts';
 // The disc behind it already carries the team's colour wash, so a second grey disc inside it would
 // read as a hole. The letter colour is set per-team from the component.
 .gd-poster-crest-logo .crest-fallback {
-	@include scoreboard-figures;
+	@include gc.scoreboard-figures;
 	background: transparent;
 	font-size: 0.86rem;
 	letter-spacing: 0.02em;
@@ -1474,7 +1474,7 @@ button.game-info-attribution {
 	&:hover { opacity: 1; }
 	&:focus-visible {
 		opacity:        1;
-		outline:        1px solid $primary;
+		outline:        1px solid bs.$primary;
 		outline-offset: 1px;
 		border-radius:  2px;
 	}
@@ -1647,7 +1647,7 @@ button.game-info-attribution {
 }
 
 .game-detail-score-value {
-	@include scoreboard-figures;
+	@include gc.scoreboard-figures;
 	font-size: 1.68rem;
 	color: #111827;
 	letter-spacing: -0.02em;
@@ -1657,7 +1657,7 @@ button.game-info-attribution {
 
 	// Final games only — see detailHero. The weight lives on the element as a Bootstrap utility,
 	// since `.fw-bold` is `!important` and would beat a font-weight set here.
-	&.is-loser { color: $score-loser-color; }
+	&.is-loser { color: bs.$score-loser-color; }
 }
 
 .game-detail-period {
@@ -1723,7 +1723,7 @@ button.game-info-attribution {
 }
 
 .gd-bar-score {
-	@include scoreboard-figures;
+	@include gc.scoreboard-figures;
 	font-size: 0.95rem;
 	font-weight: 600;
 	line-height: 1;
@@ -1828,7 +1828,7 @@ button.game-info-attribution {
 
 .gd-countdown-value,
 .gd-countdown-zero {
-	@include scoreboard-figures;
+	@include gc.scoreboard-figures;
 	font-size: 1.15rem;
 	font-weight: 600;
 	line-height: 1;

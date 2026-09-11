@@ -1,4 +1,6 @@
-// Popup chrome. Import AFTER Bootstrap variables and source, and after `game-card`.
+// Popup chrome. Loaded after the theme, whose $font-family-base and $primary it reads, and
+// after `game-card`.
+@use 'bootstrap' as bs;
 //
 // These rules used to live only in `apps/extension/assets/bootstrap.scss`, which meant the
 // website's popup mockups were a hand-copied approximation that drifted every time the popup
@@ -25,7 +27,7 @@
 }
 
 .popup-section-title {
-	font-family: $font-family-base;
+	font-family: bs.$font-family-base;
 	font-size: 1.2rem;
 	font-weight: 700;
 	letter-spacing: -0.01em;
@@ -33,7 +35,7 @@
 	margin-bottom: 0.5rem;
 	margin-top: 1rem;
 	padding-left: 0.6rem;
-	border-left: 3px solid $primary;
+	border-left: 3px solid bs.$primary;
 }
 
 .popup-section-label {
