@@ -22,9 +22,12 @@ export const useLudicrousCanvas = (
 ) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const drawRef = useRef(draw);
-	drawRef.current = draw;
 	const settledRef = useRef(onSettled);
-	settledRef.current = onSettled;
+
+	useEffect(() => {
+		drawRef.current = draw;
+		settledRef.current = onSettled;
+	});
 
 	useEffect(() => {
 		const canvas = canvasRef.current;

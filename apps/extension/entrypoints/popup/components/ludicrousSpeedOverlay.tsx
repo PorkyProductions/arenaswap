@@ -51,7 +51,7 @@ export default ({ onClose }: { onClose: () => void }) => {
 
 	const [rate, setRate] = useState(() => (readNumber(rateStorageKey, 1) === 4 ? 4 : 1));
 	const rateRef = useRef(rate);
-	rateRef.current = rate;
+	useEffect(() => { rateRef.current = rate; }, [rate]);
 
 	const script = useMemo(buildScript, []);
 	const logoImages = useMemo(preloadLogoImages, []);
