@@ -1,5 +1,97 @@
 # Changelog
 
+## Bootstrap's Sass warnings go quiet on a gate that lifts itself — 2026-09-11
+
+Compiling the popup printed **336 deprecation warnings**. The site printed 342 and the screenshot
+pages 335. Dart Sass caps its own output at five per deprecation, so what anybody saw was twenty
+lines and a note about the rest being omitted — which is how two warnings of our own sat inside the
+pile.
+
+331 of each of those totals is Bootstrap 5.3.8's own Sass: legacy `@import`, global built-in
+functions, the pre-Color-4 colour functions, and the `if()` that Dart Sass 1.95 deprecated in favour
+of CSS's. Bootstrap's own docs say to ignore them until a long-term fix lands. So they are ignored,
+deliberately and with an expiry date.
+
+### quietDeps, not silenceDeprecations
+
+Two options could do this and only one is scoped to the problem.
+
+`silenceDeprecations` takes deprecation ids and applies them to the whole compilation. The list this
+needed is `color-functions`, `global-builtin` and `if-function` — and
+`apps/extension/assets/bootstrap.scss:718` was emitting a `global-builtin` of its own. An id list
+would have buried that one too, which is the opposite of what silencing Bootstrap is for.
+
+`quietDeps` is scoped by origin instead: Dart Sass counts anything reached through a load path or an
+importer as a dependency, so `node_modules` goes quiet and the entry stylesheets stay audible.
+Measured on the popup — 331 silenced, 5 left, every one of the 5 in our own file.
+
+One consequence of the origin rule rather than a choice: `packages/ui` resolves through the workspace
+symlink at `node_modules/@arenaswap/ui`, so its own `@import 'crest'` counts as a dependency and goes
+quiet with the rest.
+
+### The gate is the installed Bootstrap major
+
+Nothing in Sass reports that a silenced deprecation stopped being emitted, so an unconditional
+`quietDeps` is permanent by default — it would keep swallowing Bootstrap's warnings for years after
+Bootstrap stopped producing any, including whatever new ones it picks up meanwhile.
+
+`packages/ui/src/sassOptions.ts` reads the installed `bootstrap/package.json` and returns
+`{ quietDeps: true }` only while the major is under 6. Every child of twbs/bootstrap#40962 — the
+`@import` migration, the colour functions, the built-ins, the `if()` — is labelled v6, so that is
+where the fix lands rather than in a 5.3.x patch. The day an install crosses it the module returns
+`{}` and anything still warning is heard.
+
+It is one module read by three build configs rather than the same expression written three times,
+because the failure mode of a copy is two apps disagreeing about when to stop silencing.
+
+**Three configs, not two.** `apps/extension/wxt.config.ts` and `apps/docs/astro.config.mjs` are the
+builds, and `apps/extension/cypress.config.ts` carries its own `viteConfig` — its support file
+imports both `.scss` entries, so the component runner compiles Bootstrap exactly the way the build
+does and printed the same wall of warnings on every `cypress run`.
+
+### The two that were ours
+
+```scss
+.sensitivity-tick-#{$i} { left: percentage($i / 6); }
+```
+
+One line, two deprecations: `slash-div` for the division and `global-builtin` for `percentage()`.
+It is now `calc($i / 6 * 100%)`, which is one expression rather than two and needs no `sass:math`
+import — which matters, because `@use` may not follow an `@import` and that file opens with five of
+them. Sass folds the calc at compile time, so all seven emitted rules are byte-identical.
+
+### What is left, on purpose
+
+21 `@import` warnings, all in our own four entry stylesheets. `@import` is not removed until Dart
+Sass 3.0, and the migration is a restructure rather than a rename: `@use ... with` configures a
+module once, so the ~85 Bootstrap variable overrides the three entries declare between them have to
+become argument lists, and `packages/ui/src/_bootstrap.scss` has to forward Bootstrap rather than
+declare into it.
+
+### Coverage
+
+No tests, because there is nothing here a test can hold: the subject is compiler output, and the
+assertion that matters is that the CSS did not move.
+
+That one was made directly. All four entry stylesheets were compiled to CSS before the change and
+after it and diffed — 426,359 bytes for the popup, 453,928 for the site, 291,737 for the screenshot
+pages and 22,256 for the extension's second sheet, byte-identical across every one.
+
+Then all three pipelines were run for real, because a compiler option in a config file is worth
+nothing if the config does not load it. And each was run twice: once as it ships, and once with
+`bootstrapSassFixedInMajor` flipped to 5 so the gate opens against the installed 5.3.8. Without that
+second run the whole mechanism could have been a no-op agreeing with itself.
+
+| | ships | gate forced open |
+| --- | --- | --- |
+| `wxt build` | 6 | 21 |
+| `astro build` | 9 | 40 |
+| `cypress run --component` | 3 | 21 |
+
+All six runs exit clean and the component spec passes 9 of 9 either way. The figures are Sass's
+default five-per-deprecation cap rather than totals; the totals behind them are the 336, 342 and 335
+above, read with `--verbose`.
+
 ## The postseason boost knows which round it is paying for — 2026-09-09
 
 A Wild Card game and a Super Bowl were worth the same five points. The boost is now a ladder keyed
