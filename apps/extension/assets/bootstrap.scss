@@ -715,7 +715,7 @@ $bootstrap-icons-font-dir: '/fonts';
 }
 
 @for $i from 0 through 6 {
-	.sensitivity-tick-#{$i} { left: percentage($i / 6); }
+	.sensitivity-tick-#{$i} { left: calc($i / 6 * 100%); }
 }
 
 .onb-league-logo {
