@@ -9,9 +9,10 @@ import type { Phase, View } from './ludicrousScript';
 
 const numStars = 210;
 
-// How many frames the plaid takes to resolve out of the starfield at 1x playback. Driven off the
+// How many frames the plaid takes to resolve out of the starfield at 1x playback, set just under
+// the entry beat's length so the weave completes before the PLAID sign lands. Driven off the
 // transport rate rather than wall time so fast-forwarding does not strand it half-built.
-const entryFrames = 78;
+const entryFrames = 106;
 
 interface StageProps {
 	view: View;
@@ -23,7 +24,6 @@ interface StageProps {
 	brakePulled: boolean;
 	logoImages: HTMLImageElement[];
 	onMeasure: (w: number, h: number) => void;
-	onSettled: () => void;
 }
 
 const ludicrousStage = ({
@@ -36,7 +36,6 @@ const ludicrousStage = ({
 	brakePulled,
 	logoImages,
 	onMeasure,
-	onSettled,
 }: StageProps) => {
 	const worldRef = useRef<World>({
 		stars: makeStars(numStars),
@@ -113,7 +112,7 @@ const ludicrousStage = ({
 		}
 
 		paintSpace(ctx, full, world, spaceFrame);
-	}, { phaseRef, speedRef, onSettled });
+	}, { phaseRef, speedRef });
 
 	useEffect(() => {
 		const canvas = canvasRef.current;

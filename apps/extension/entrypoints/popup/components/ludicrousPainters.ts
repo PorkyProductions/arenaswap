@@ -71,11 +71,21 @@ const ridiculousSpectrum: [number, number, number][] = [
 	[1, 0.36, 0.9],
 ];
 
-const starColor = (z: number, phase: Phase, index: number): string => {
+const starColor = (z: number, phase: Phase, index: number, mix: number): string => {
 	const bri = 220 + (1 - z) * 80;
 	const f = 0.38 + (1 - z) * 0.62;
-	const palette = phase === 'ridiculous' ? ridiculousSpectrum : phase === 'plaidentry' ? plaidSpectrum : null;
-	const [r, g, b] = palette ? palette[index % palette.length]! : starTint[phase];
+	let [r, g, b] = starTint[phase];
+	if (phase === 'ridiculous') {
+		[r, g, b] = ridiculousSpectrum[index % ridiculousSpectrum.length]!;
+	} else if (phase === 'plaidentry') {
+		// Eased into rather than switched to. A hard palette change at the phase boundary reads as
+		// two effects swapping places; the handoff has to be one escalation.
+		const [pr, pg, pb] = plaidSpectrum[index % plaidSpectrum.length]!;
+		const [lr, lg, lb] = starTint.ludicrous;
+		r = lr + (pr - lr) * mix;
+		g = lg + (pg - lg) * mix;
+		b = lb + (pb - lb) * mix;
+	}
 	return `rgb(${Math.round(bri * r * f)},${Math.round(bri * g * f)},${Math.round(bri * b * f)})`;
 };
 
@@ -85,6 +95,8 @@ export interface StarfieldOptions {
 	spread?: number;
 	widthScale?: number;
 	alpha?: number;
+	// How far the field has eased from its warm ludicrous tint toward the plaid's own palette.
+	paletteMix?: number;
 	// Multiplies how far each star travels per frame without moving it through the field any faster,
 	// which is what turns a starline into the elongated streak the plaid resolves out of.
 	stretch?: number;
@@ -100,6 +112,7 @@ export const paintStarfield = (
 	const spread = opts.spread ?? 0.8;
 	const widthScale = opts.widthScale ?? 1;
 	const stretch = opts.stretch ?? 1;
+	const paletteMix = opts.paletteMix ?? 0;
 	const cx = rect.x + rect.w / 2;
 	const cy = rect.y + rect.h / 2;
 	const hx = rect.w / 2;
@@ -135,7 +148,7 @@ export const paintStarfield = (
 			ctx.beginPath();
 			ctx.moveTo(sx + (ppx - sx) * stretch, sy + (ppy - sy) * stretch);
 			ctx.lineTo(sx, sy);
-			ctx.strokeStyle = starColor(star.z, phase, index);
+			ctx.strokeStyle = starColor(star.z, phase, index, paletteMix);
 			ctx.lineWidth = Math.max(1.4, ((1 - star.z) * 9 + speed * 0.22) * widthScale);
 			ctx.stroke();
 		}

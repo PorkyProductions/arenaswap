@@ -50,7 +50,10 @@ export default ({ onClose }: { onClose: () => void }) => {
 	const manualTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 	const finishedRef = useRef(false);
 
-	const finish = useCallback(() => {
+	/* Skipping and braking both stop the ship, and they want different amounts of time for it.
+	   Clicking to skip is someone asking to leave, so it leaves. Pulling the brake is a beat in the
+	   sequence, so the deceleration gets played out the same way the scripted ending does. */
+	const finish = useCallback((fast: boolean) => {
 		if (finishedRef.current) return;
 		finishedRef.current = true;
 		clearTimeout(beatTimerRef.current);
@@ -59,7 +62,7 @@ export default ({ onClose }: { onClose: () => void }) => {
 		logosRef.current = false;
 		setView('rear');
 		setDisplay({ text: i18n.t('ludicrousSpeed.stop'), cls: 'stop' });
-		manualTimersRef.current.push(setTimeout(() => setClosing(true), 750));
+		manualTimersRef.current.push(setTimeout(() => setClosing(true), fast ? 700 : 3800));
 	}, []);
 
 	const runBeat = useCallback((index: number) => {
@@ -105,13 +108,13 @@ export default ({ onClose }: { onClose: () => void }) => {
 		runBeat(Math.min(index, script.length - 1));
 	}, [runBeat, script]);
 
-	const handleSkip = useCallback(() => finish(), [finish]);
+	const handleSkip = useCallback(() => finish(true), [finish]);
 
 	const handleEmergencyBrake = useCallback((e: React.MouseEvent) => {
 		e.stopPropagation();
 		if (brakeState === 'pressed' || finishedRef.current) return;
 		setBrakeState('pressed');
-		manualTimersRef.current.push(setTimeout(finish, 500));
+		manualTimersRef.current.push(setTimeout(() => finish(false), 500));
 	}, [brakeState, finish]);
 
 	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -171,7 +174,6 @@ export default ({ onClose }: { onClose: () => void }) => {
 				brakePulled={brakeState === 'pressed'}
 				logoImages={logoImages}
 				onMeasure={handleMeasure}
-				onSettled={() => setClosing(true)}
 			/>
 			<div className={`ls-text ${display.cls}`}>{display.text}</div>
 			{brakeState !== 'hidden' && view === 'cockpit' && brakeStyle && (

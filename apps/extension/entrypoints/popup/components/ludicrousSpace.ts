@@ -79,6 +79,7 @@ export const paintSpace = (
 			widthScale: widthScale * (1 + entry * 1.1),
 			// 3.3x, which is what the streaks actually measure, not the 9x that reads as a smear.
 			stretch: 1 + entry * 2.3,
+			paletteMix: smoothstep(0, 0.5, entry),
 			alpha: 1 - smoothstep(0.86, 1, entry),
 		});
 		const reach = Math.hypot(rect.w, rect.h) * 0.75;

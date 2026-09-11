@@ -60,6 +60,10 @@ describe('ludicrous speed overlay', () => {
 		for (let i = 0; i < 7; i += 1) nextPhase();
 		cy.get('.ls-overlay').should('have.class', 'ls-view-cockpit');
 
+		// The brake deliberately arrives a couple of beats after the cut rather than sharing its
+		// entrance with the payoff line, so it is a few seconds out from the jump.
+		cy.get('.ls-emergency-brake', { timeout: 12000 }).should('be.visible');
+
 		// Measured off the canvas rather than assumed: the runner's viewport is not exactly the
 		// popup's, and the assertion that matters is that the button lands on the placard the canvas
 		// drew, at whatever size it drew it. Retrying rather than one-shot, because the button has an
@@ -77,7 +81,7 @@ describe('ludicrous speed overlay', () => {
 			});
 		});
 		cy.get('.ls-emergency-brake').click();
-		cy.get('@onClose', { timeout: 6000 }).should('have.been.called');
+		cy.get('@onClose', { timeout: 12000 }).should('have.been.called');
 	});
 
 	it('never lets a text beat overflow the popup or land on the cockpit glass', () => {
@@ -87,7 +91,8 @@ describe('ludicrous speed overlay', () => {
 
 		checkText();
 		// Every beat, not only the phase beats: the alignment fault this covers was per line.
-		for (let i = 0; i < 34; i += 1) {
+		// 42 beats in the script, so 41 steps walks all of them.
+		for (let i = 0; i < 41; i += 1) {
 			cy.get('.ls-overlay').trigger('keydown', { key: 'ArrowRight' });
 			checkText();
 		}
@@ -100,6 +105,39 @@ describe('ludicrous speed overlay', () => {
 		cy.get('.ls-text').should('not.contain.text', 'PLAID');
 		nextPhase();
 		cy.get('.ls-text.plaid-rect').should('contain.text', 'PLAID');
+	});
+
+	it('leaves the brake live long enough to notice it and decide', () => {
+		mountOverlay();
+		for (let i = 0; i < 7; i += 1) nextPhase();
+		cy.get('.ls-emergency-brake', { timeout: 12000 }).should('be.visible');
+		// The label reads NEVER USE, so the joke only works if there is time to consider it anyway.
+		cy.wait(6000);
+		cy.get('.ls-emergency-brake').should('be.visible').and('not.have.class', 'pressed');
+	});
+
+	it('plays the slowdown out instead of cutting away from it', () => {
+		const onClose = cy.stub().as('onClose');
+		mountOverlay(onClose);
+		for (let i = 0; i < 7; i += 1) nextPhase();
+		cy.get('.ls-emergency-brake', { timeout: 12000 }).should('be.visible').click();
+		cy.get('.ls-overlay').should('have.class', 'ls-view-rear');
+		// Braking is a beat, not an exit: nothing closes while the ship is still coming off its speed.
+		cy.wait(2500);
+		cy.get('@onClose').should('not.have.been.called');
+		cy.get('@onClose', { timeout: 12000 }).should('have.been.called');
+	});
+
+	it('lets the payoff line hold the screen on its own', () => {
+		mountOverlay();
+		for (let i = 0; i < 7; i += 1) nextPhase();
+		// The cut lands first and carries no text, so the line does not share its entrance.
+		cy.get('.ls-overlay').should('have.class', 'ls-view-cockpit');
+		cy.get('.ls-text').should('not.contain.text', 'passed');
+		cy.get('.ls-text', { timeout: 4000 }).should('contain.text', 'passed');
+		cy.get('.ls-emergency-brake').should('not.exist');
+		cy.wait(2000);
+		cy.get('.ls-text').should('contain.text', 'passed');
 	});
 
 	it('nothing paints or fires after unmount', () => {

@@ -13,20 +13,17 @@ export interface FrameState {
 interface LoopOptions {
 	phaseRef: MutableRefObject<Phase>;
 	speedRef: MutableRefObject<number>;
-	onSettled: () => void;
 }
 
 export const useLudicrousCanvas = (
 	draw: (ctx: CanvasRenderingContext2D, state: FrameState) => void,
-	{ phaseRef, speedRef, onSettled }: LoopOptions,
+	{ phaseRef, speedRef }: LoopOptions,
 ) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const drawRef = useRef(draw);
-	const settledRef = useRef(onSettled);
 
 	useEffect(() => {
 		drawRef.current = draw;
-		settledRef.current = onSettled;
 	});
 
 	useEffect(() => {
@@ -51,16 +48,15 @@ export const useLudicrousCanvas = (
 
 		const step = () => {
 			const phase = phaseRef.current;
-			const lerp = phase === 'stopping' ? 0.16 : 0.04;
+			// Slower coming down than going up. The ship has to be seen to come off its speed.
+			const lerp = phase === 'stopping' ? 0.028 : 0.04;
 			current += (speedRef.current - current) * lerp;
 
 			drawRef.current(ctx, { w, h, speed: current, phase, frame });
 			frame += 1;
 
-			if (phase === 'stopping' && current < 0.04) {
-				settledRef.current();
-				return;
-			}
+			// Parks the loop once nothing is moving. Closing is the script's job, not this one's.
+			if (phase === 'stopping' && current < 0.006) return;
 			raf = requestAnimationFrame(step);
 		};
 
