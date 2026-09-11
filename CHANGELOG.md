@@ -167,10 +167,20 @@ Nothing in Sass reports that a silenced deprecation stopped being emitted, so an
 Bootstrap stopped producing any, including whatever new ones it picks up meanwhile.
 
 `packages/ui/src/sassOptions.ts` reads the installed `bootstrap/package.json` and returns
-`{ quietDeps: true }` only while the major is under 6. Every child of twbs/bootstrap#40962 — the
-`@import` migration, the colour functions, the built-ins, the `if()` — is labelled v6, so that is
-where the fix lands rather than in a 5.3.x patch. The day an install crosses it the module returns
-`{}` and anything still warning is heard.
+`{ quietDeps: true }` only below **5.5.0**, which is where Bootstrap's roadmap puts "refactor our
+Sass code to use the Sass module system" — under the maintainers' caveat that it moves to v6 if it
+turns out too large. The day an install crosses that the module returns `{}` and anything still
+warning is heard.
+
+The threshold is the announced fix rather than the next major, and that distinction is the whole
+value of the gate. Pinned to `< 6` it would have kept silencing a fixed 5.5, 5.6 and 5.7 — including
+any *new* warning Bootstrap picked up on the way — and never said so. Pinned to the announced
+version, a 5.5.0 that still warns because the work slipped brings the warnings back until somebody
+raises the number: loud and wrong, which for a switch whose job is hiding output is the only safe
+direction to be wrong in.
+
+A prerelease compares on its release part alone, so `5.5.0-beta1` counts as 5.5.0 and shows its
+warnings — trialling a prerelease is exactly when you want to see them.
 
 It is one module read by three build configs rather than the same expression written three times,
 because the failure mode of a copy is two apps disagreeing about when to stop silencing.
@@ -210,7 +220,7 @@ pages and 22,256 for the extension's second sheet, byte-identical across every o
 
 Then all three pipelines were run for real, because a compiler option in a config file is worth
 nothing if the config does not load it. And each was run twice: once as it ships, and once with
-`bootstrapSassFixedInMajor` flipped to 5 so the gate opens against the installed 5.3.8. Without that
+`bootstrapSassFixedIn` lowered below the installed 5.3.8 so the gate opens. Without that
 second run the whole mechanism could have been a no-op agreeing with itself.
 
 | | ships | gate forced open |
