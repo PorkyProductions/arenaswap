@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { leagueConfigMap } from '@arenaswap/core/constants';
@@ -156,6 +157,28 @@ export const OddsProvider = ({ game, dark }: { game: Game; dark?: boolean }) => 
 	}
 	return <span className='d-inline-flex align-items-center'>{provider.name}</span>;
 };
+
+// ESPN's own name for the round, trimmed of the prefix that repeats the league and otherwise
+// untouched — sponsors, casing and all. Deliberately not uppercased like the status beside it:
+// uppercasing turns Cheez-It and AT&T into shouting, and the sponsor is most of the reason a bowl
+// name is worth printing.
+//
+// Present on games that score nothing. A non-playoff bowl gets no boost and still gets its name,
+// because the label and the boost answer different questions.
+export const PostseasonLabel = ({ game }: { game: Game }) => (
+	game.postseasonLabel ? <span className='game-postseason-label'>{game.postseasonLabel}</span> : null
+);
+
+// The row every card puts its status on. The postseason label shares it, which costs no vertical
+// space on a card that has none to spare — and when the label is too wide to share, the row wraps
+// and it takes a full line to itself rather than being truncated. Two of the 389 real ESPN round
+// names need that; nothing needs cutting.
+export const CardStatusRow = ({ children, status }: { children?: ReactNode; status?: ReactNode }) => (
+	<div className='d-flex align-items-center flex-wrap game-card-status-row mb-1'>
+		{status}
+		{children}
+	</div>
+);
 
 export const GameMeta = ({
 	game,

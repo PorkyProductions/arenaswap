@@ -5,6 +5,8 @@ export type { EspnTeamEntry } from './apiClient';
 export { computePowerScore, computeScoringOpportunityBoost, computeWinProbVarianceScore, isPlayFrozen, normalizePowerScoreResult } from 'powerscore';
 export { scoreMaxTotal } from 'powerscore';
 export { MockGameSimulator } from './mockGames';
+export { gradePostseason, postseasonBoostShare, reduceEventName } from './postseasonRound';
+export type { PostseasonGrade, PostseasonRound } from './postseasonRound';
 export { createPollModeTracker } from './pollModeTracker';
 export type { PollMode, PollModeTracker } from './pollModeTracker';
 export * from './types';

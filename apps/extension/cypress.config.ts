@@ -2,6 +2,7 @@ import { defineConfig } from 'cypress';
 import { existsSync } from 'node:fs';
 import path from 'path';
 import { startStaticServer } from './cypress/staticServer';
+import sassOptions from '@arenaswap/ui/src/sassOptions';
 
 const root = (rel: string) => path.resolve(__dirname, rel);
 
@@ -31,6 +32,13 @@ export default defineConfig({
 			framework: 'react',
 			bundler: 'vite',
 			viteConfig: {
+				// The support file imports both .scss entries, so the component runner compiles
+				// Bootstrap the same way the real build does and needs the same silencing.
+				css: {
+					preprocessorOptions: {
+						scss: sassOptions,
+					},
+				},
 				resolve: {
 					alias: [
 						// List subpaths before the root entry to prevent prefix-match collision

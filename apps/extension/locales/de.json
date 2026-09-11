@@ -722,8 +722,8 @@
 	},
 	"postseasonBoost": {
 		"label": "Postseason-Boost",
-		"points": "+$1 Pkt.",
-		"explainer": "Wird jedem als Postseason eingestuften Spiel hinzugefügt (Playoffs, Turniere, K.-o.-Runden)."
+		"points": "bis zu +$1 Pkt.",
+		"explainer": "Der Höchstwert, den ein Finale bringen kann. Frühere Runden erhalten einen Anteil davon – drei Viertel fürs Halbfinale, die Hälfte fürs Viertelfinale, ein Viertel für alles davor. Freundschaftsspiele bringen nichts."
 	},
 	"proTip": {
 		"label": "Profi-Tipp:",

@@ -1,5 +1,639 @@
 # Changelog
 
+## The stylesheets stop using @import, and two dead overrides fall out — 2026-09-11
+
+All 21 of our own `@import` rules are `@use` and `@forward` now, so the four entry stylesheets
+compile with **zero deprecation warnings of their own**, against 5, 1, 11 and 4 before. What is left
+in the output is Bootstrap's 330, which the entry below silences on a version gate.
+
+### The theme became a funnel instead of a pile of declarations
+
+`packages/ui/src/_bootstrap.scss` used to be 40 bare variable declarations that each app `@import`ed
+*before* Bootstrap, relying on `@import` dumping them into one shared scope for Bootstrap's
+`!default`s to find. `@use ... with` configures a module once, by argument, so that trick has no
+equivalent.
+
+It forwards Bootstrap instead:
+
+```scss
+@forward 'bootstrap/scss/bootstrap' with ($primary: #F75C03 !default, …);
+@use 'bootstrap/scss/bootstrap' as bs;
+```
+
+An app now loads Bootstrap *by* loading the theme, and configures it in its own `@use ... with`.
+Three facts had to be checked before committing to that shape, because the whole migration rests on
+them: a downstream `@use ... with` can configure variables the `@forward` never names, which is what
+lets the extension set 41 Bootstrap variables the theme says nothing about; `@forward` and `@use` can
+name the same module in one file, which the theme needs because `@forward` re-exports members without
+making them available locally and the `::selection` rule at the bottom reads two of them; and
+Bootstrap 5.3.8 accepts `@use ... with` at all, which is not documented anywhere in its docs.
+
+### Two overrides that had never done anything
+
+`@use ... with` fails on a variable the target module does not declare `!default`. `@import` just
+created a local variable and moved on. So the migration would not compile until two lines were dealt
+with, and neither was doing what it said:
+
+- **`$font-monospace`** is not a Bootstrap variable. Bootstrap's is `$font-family-monospace`. Nothing
+  in this repo read the name we were setting, and Lekton is spelled out literally at each of its ~20
+  call sites — so Bootstrap's `code`, `pre` and `kbd` stack has never been Lekton and still is not.
+  Pointing the real variable at it is a visible change, so it is not smuggled in here.
+- **`$form-switch-checked-bg`** is not a Bootstrap variable either. The switch's orange comes from
+  `$form-check-input-checked-bg-color`, which was the next line down and was always doing the work.
+
+Both are gone with a note in their place. Cross-checking the rest of the overrides against
+Bootstrap's own 1,005 `!default` declarations turned up no others: every remaining name is either
+Bootstrap's, bootstrap-icons', or ours by design.
+
+### The site's stylesheet had to be split, for one rule at 1600px
+
+`@use` has to precede every rule in a file. `apps/docs/src/styles/global.scss` held 1,498 rules and
+*then* loaded four landing-page partials underneath them, which is a shape `@use` cannot express —
+hoisting those four to the top would emit them before the file's own rules instead of after.
+
+Whether that mattered was worth measuring rather than assuming. Across the boundary the file's own
+rules use 4,338 class names and the four partials 113, and exactly 7 appear on both sides. Six are
+harmless: every partial rule touching them is a two-class descendant selector, which outranks the
+bare `.crest` or `.h2` it competes with on specificity regardless of order.
+
+The seventh decided it. `_bands.scss` widens Bootstrap's own `.container` above 1600px and again
+above 1920px, with a **bare `.container` inside a media query** — Bootstrap's own specificity, so it
+wins on source order alone. Hoisted, Bootstrap's `max-width: 1320px` would have won and the page
+would have quietly stopped widening on a large display.
+
+So the 1,498 rules moved to `_site.scss` and `global.scss` is a ten-line loader that states the
+order. Verified positionally in the compiled output rather than by reasoning: Bootstrap's 1320px
+lands at line 772 and the 1560px override at 22,455, the same way round as before.
+
+### A duplicate copy of Reboot, and 39 selectors that could never match
+
+Two things came out of the docs stylesheet on the way past, both of them shrinking the output by a
+combined 411 lines.
+
+`@import 'bootstrap/scss/reboot'` sat on the line after `@import 'bootstrap/scss/bootstrap'`, and
+`bootstrap.scss` imports reboot itself — so the site shipped **two identical copies of Reboot**. It
+cannot be expressed as a module anyway, because `_reboot.scss` reads variables it does not declare,
+so it is simply gone. 6,212 bytes, and not one selector lost: all 61 of the dropped Reboot selectors
+still appear in the output, once each.
+
+The other is a genuine semantic difference between `@import` and `@use`, and worth knowing about
+before the next person trips on it. **`@extend` only reaches the stylesheet it is written in and the
+ones that stylesheet loads — not the ones that load it.** Bootstrap's `_type.scss` does
+`.h2 { @extend h2; }` for all six headings plus `small` and `mark`, and under `@import` that reached
+into our files: `.docs-index h2` was being emitted as `.docs-index h2, .docs-index .h2`. Under `@use`
+it is not, so 39 of those twins are gone.
+
+Nothing can notice. The site puts a heading class on an element exactly three times — `class="h5"` in
+`Machine.astro`, on real `<h3>` elements — and Bootstrap's own `h5, .h5` rule lives inside Bootstrap's
+module where the `@extend` still applies, so it survives untouched. `.h1` to `.h4`, `.h6`, `.small`
+and `.mark` appear on nothing the site renders.
+
+### Two blocks moved, and a keyframe that was defined twice
+
+The popup's CSS is the same bytes in a different order: `*::selection` moves from the first rule in
+the file to just after Bootstrap's, because the theme now loads Bootstrap ahead of its own rule, and
+Bootstrap styles `::selection` nowhere. `@keyframes livePulse` moves from before the shared card and
+popup rules to after them.
+
+That second one looked like it mattered, because two `@keyframes` of the same name are resolved by
+source order and the relocation flips which wins. It turns out `livePulse` is **declared twice** —
+once in the popup's entry stylesheet and once in `packages/ui/src/_game-card.scss` — and the two are
+character-for-character identical, so whichever wins is the same animation. lightningcss collapses
+them to one in the build. The duplicate is not removed here, because doing so would stop the CSS
+being a provable relocation; it is worth its own line.
+
+### Coverage
+
+The bar for this change is that the compiled CSS did not move, so that is measured directly on all
+four entry stylesheets rather than argued.
+
+| | bytes | verdict |
+| --- | --- | --- |
+| `apps/extension/assets/bootstrap.scss` | 426,359 → 426,359 | identical line multiset; 2 blocks relocated |
+| `apps/extension/assets/global.scss` | 22,256 → 22,038 | relocated; one obsolete `/* Fonts */` comment dropped |
+| `apps/docs/src/pages/screenshots/_screenshot.scss` | 291,737 → 291,737 | identical line multiset; `::selection` relocated |
+| `apps/docs/src/styles/global.scss` | 453,928 → 447,716 | duplicate Reboot and 39 unreachable selectors |
+
+Sorting both sides and diffing is what makes "relocated" a measurement rather than a claim — it
+compares the multiset of output lines, so a moved block passes and a changed declaration cannot. Each
+of the four differences above was then read line by line, which is how the `@extend` change was
+found at all; a byte count would have shown 411 fewer lines and said nothing about which.
+
+Bootstrap is confirmed emitted exactly once per entry, by counting its `--as-blue` declaration. Two
+modules of the same file loaded under different specifiers would have doubled 330KB of CSS silently.
+
+Then the repo's own suite, which is the part that covers the cascade: **528 component tests and 78
+end-to-end tests pass**, across `lint`, `test`, `test:e2e`, all three browser builds and all three
+zips, 13 turbo tasks, zero Sass warnings in any of them. Those component specs read computed styles
+and measure pixel geometry, so a cascade inversion is the kind of thing they fail on — which is what
+makes them worth more here than any assertion written specifically for this change.
+
+Nothing was added to the suite. There is no unit to test: the subject is the compiler's output, and
+the output is unchanged on purpose.
+
+## Bootstrap's Sass warnings go quiet on a gate that lifts itself — 2026-09-11
+
+Compiling the popup printed **336 deprecation warnings**. The site printed 342 and the screenshot
+pages 335. Dart Sass caps its own output at five per deprecation, so what anybody saw was twenty
+lines and a note about the rest being omitted — which is how two warnings of our own sat inside the
+pile.
+
+331 of each of those totals is Bootstrap 5.3.8's own Sass: legacy `@import`, global built-in
+functions, the pre-Color-4 colour functions, and the `if()` that Dart Sass 1.95 deprecated in favour
+of CSS's. Bootstrap's own docs say to ignore them until a long-term fix lands. So they are ignored,
+deliberately and with an expiry date.
+
+### quietDeps, not silenceDeprecations
+
+Two options could do this and only one is scoped to the problem.
+
+`silenceDeprecations` takes deprecation ids and applies them to the whole compilation. The list this
+needed is `color-functions`, `global-builtin` and `if-function` — and
+`apps/extension/assets/bootstrap.scss:718` was emitting a `global-builtin` of its own. An id list
+would have buried that one too, which is the opposite of what silencing Bootstrap is for.
+
+`quietDeps` is scoped by origin instead: Dart Sass counts anything reached through a load path or an
+importer as a dependency, so `node_modules` goes quiet and the entry stylesheets stay audible.
+Measured on the popup — 331 silenced, 5 left, every one of the 5 in our own file.
+
+One consequence of the origin rule rather than a choice: `packages/ui` resolves through the workspace
+symlink at `node_modules/@arenaswap/ui`, so its own `@import 'crest'` counts as a dependency and goes
+quiet with the rest.
+
+### The gate is the installed Bootstrap major
+
+Nothing in Sass reports that a silenced deprecation stopped being emitted, so an unconditional
+`quietDeps` is permanent by default — it would keep swallowing Bootstrap's warnings for years after
+Bootstrap stopped producing any, including whatever new ones it picks up meanwhile.
+
+`packages/ui/src/sassOptions.ts` reads the installed `bootstrap/package.json` and returns
+`{ quietDeps: true }` only below **5.5.0**, which is where Bootstrap's roadmap puts "refactor our
+Sass code to use the Sass module system" — under the maintainers' caveat that it moves to v6 if it
+turns out too large. The day an install crosses that the module returns `{}` and anything still
+warning is heard.
+
+The threshold is the announced fix rather than the next major, and that distinction is the whole
+value of the gate. Pinned to `< 6` it would have kept silencing a fixed 5.5, 5.6 and 5.7 — including
+any *new* warning Bootstrap picked up on the way — and never said so. Pinned to the announced
+version, a 5.5.0 that still warns because the work slipped brings the warnings back until somebody
+raises the number: loud and wrong, which for a switch whose job is hiding output is the only safe
+direction to be wrong in.
+
+A prerelease compares on its release part alone, so `5.5.0-beta1` counts as 5.5.0 and shows its
+warnings — trialling a prerelease is exactly when you want to see them.
+
+It is one module read by three build configs rather than the same expression written three times,
+because the failure mode of a copy is two apps disagreeing about when to stop silencing.
+
+**Three configs, not two.** `apps/extension/wxt.config.ts` and `apps/docs/astro.config.mjs` are the
+builds, and `apps/extension/cypress.config.ts` carries its own `viteConfig` — its support file
+imports both `.scss` entries, so the component runner compiles Bootstrap exactly the way the build
+does and printed the same wall of warnings on every `cypress run`.
+
+### The two that were ours
+
+```scss
+.sensitivity-tick-#{$i} { left: percentage($i / 6); }
+```
+
+One line, two deprecations: `slash-div` for the division and `global-builtin` for `percentage()`.
+It is now `calc($i / 6 * 100%)`, which is one expression rather than two and needs no `sass:math`
+import — which matters, because `@use` may not follow an `@import` and that file opens with five of
+them. Sass folds the calc at compile time, so all seven emitted rules are byte-identical.
+
+### What is left, on purpose
+
+21 `@import` warnings, all in our own four entry stylesheets. `@import` is not removed until Dart
+Sass 3.0, and the migration is a restructure rather than a rename: `@use ... with` configures a
+module once, so the ~85 Bootstrap variable overrides the three entries declare between them have to
+become argument lists, and `packages/ui/src/_bootstrap.scss` has to forward Bootstrap rather than
+declare into it.
+
+### Coverage
+
+No tests, because there is nothing here a test can hold: the subject is compiler output, and the
+assertion that matters is that the CSS did not move.
+
+That one was made directly. All four entry stylesheets were compiled to CSS before the change and
+after it and diffed — 426,359 bytes for the popup, 453,928 for the site, 291,737 for the screenshot
+pages and 22,256 for the extension's second sheet, byte-identical across every one.
+
+Then all three pipelines were run for real, because a compiler option in a config file is worth
+nothing if the config does not load it. And each was run twice: once as it ships, and once with
+`bootstrapSassFixedIn` lowered below the installed 5.3.8 so the gate opens. Without that
+second run the whole mechanism could have been a no-op agreeing with itself.
+
+| | ships | gate forced open |
+| --- | --- | --- |
+| `wxt build` | 6 | 21 |
+| `astro build` | 9 | 40 |
+| `cypress run --component` | 3 | 21 |
+
+All six runs exit clean and the component spec passes 9 of 9 either way. The figures are Sass's
+default five-per-deprecation cap rather than totals; the totals behind them are the 336, 342 and 335
+above, read with `--verbose`.
+
+## The postseason boost knows which round it is paying for — 2026-09-09
+
+A Wild Card game and a Super Bowl were worth the same five points. The boost is now a ladder keyed
+on how far a game is from the trophy, and the card says which round it is looking at, in ESPN's own
+words with the sponsors left on.
+
+### Distance from the trophy, not round number from the start
+
+0 is the game that decides the title, 1 a semifinal, 2 a quarterfinal, 3 anything earlier. Every
+league maps onto that without a per-league round table, because it is the same question in all of
+them — a Sweet 16 game and an NHL first-rounder are both several wins away, and an NBA Finals Game 1
+and a Super Bowl are both win-this-and-it-is-over.
+
+The preference is now the **ceiling** rather than a flat amount, paid out in quarters: 25% at the
+bottom rung, then 50, 75 and 100. Its default moves from 5 to 8, because quartering 5 puts the
+bottom two rungs on 1 and 3 and squeezes most of the ladder into two points. At 8 the rungs are
+2/4/6/8 and each is a whole point clear of the one below. A saved value keeps meaning what it said:
+the most a title game can add.
+
+### Three things that were already broken, found by sampling every league
+
+The issue proposed grading six leagues. Pulling live payloads for all 31 turned up games the flat
+boost was getting wrong before any tiering existed:
+
+- **The 2026 World Cup's round of 32 was not postseason at all.** The 48-team format added a first
+  knockout round of 32 matches under `season.slug: 'round-of-32'`, which is in neither the slug
+  allowlist nor any of its patterns. The whole round scored as regular-season football.
+- **NCAA baseball and softball had it inverted.** ESPN files those tournaments as a season type per
+  stage — 3 Regionals, 4 Super Regionals, 5 the College World Series, 6 the Championship Series —
+  and the check was `type === 3`. So the opening weekend counted and the College World Series
+  championship final did not.
+- **The Pro Bowl was worth as much as a conference championship.** It is `season.type: 3` and it is
+  an exhibition.
+
+### Whose trophy?
+
+The harder question was what to do with games ESPN calls postseason that are not on anybody's
+championship path, and the rule that resolved all of them is one sentence: **a game earns the ladder
+only if the trophy at the end of its bracket is the one the sport's entire field was competing
+for.** Every other trophy is a side trophy — its final earns the bottom rung, its earlier rounds
+nothing.
+
+That falls out of what the boost is for. The live signals already encode what the scoreboard shows,
+so the boost only has to encode stakes, which means paying an exhibition nothing cannot hide a good
+game: a close Alamo Bowl still surfaces on closeness and late-game.
+
+- **~26 non-playoff bowls score nothing.** Detection inverts rather than listing them: in college
+  football postseason, an affirmative playoff signal in the headline is required to pay anything, so
+  absence of one identifies a bowl. That survives the bracket growing, because a 16-team CFP will
+  still call its games "College Football Playoff First Round".
+- **The NIT, the WBIT and the College Basketball Crown** earn the bottom rung for their final and
+  nothing before it.
+- **The Women's NIT earns nothing at all.** Since the WBIT launched it is the third tier of the
+  women's postseason, and when a sport runs two secondary tournaments the lower one gets nothing.
+
+Conference tournaments are deliberately out. Every NCAA conference tournament — men's and women's
+basketball, hockey, and college football's conference championship games — reports
+`season.type: 2, slug: 'regular-season'`, so Championship Week is invisible to the switcher today
+and stays that way until its own issue. It is the largest thing this change does not do.
+
+### The card names the round, in ESPN's words
+
+`competition.notes[].headline` carries the round for the US leagues and was never read; `type` was
+not even declared on the schema, so zod stripped it. The card prints that name beside the LIVE
+marker, in the right half of a status row that has always been empty. It costs no height on any
+card.
+
+**In ESPN's own casing, which is the whole point.** Uppercasing turns *Cheez-It*, *AT&T*, *IS4S* and
+*TaxSlayer* into shouting, and a bowl's sponsor is most of the reason its name is worth printing. So
+the row carries an uppercase status and a sentence-case round, which reads as chrome against
+content.
+
+**Nothing is ever truncated.** Raw and uppercased, ESPN's headline fits the 228.6px budget in 178 of
+390 real cases. Two changes take it to all of them: keep the casing, and strip the one leading
+phrase that repeats the league the popup already names twice, in the section header and the league
+logo. That turns a 404px string into a 168px one —
+`NCAA Women's Basketball Championship - Regional 4 in Sacramento - 2nd Round` becomes
+`Regional 4 in Sacramento · 2nd Round`. Two labels are still too wide to share the row; they wrap
+to a line of their own, which is a CSS fallback rather than a text one, so a round name ESPN invents
+next year wraps instead of losing its tail.
+
+**Which prefixes are redundant is not a matter of taste, and getting it wrong destroyed
+information.** Stripping `NIT`, `WBIT`, `Women's NIT` and `College Basketball Crown` collapsed
+`WBIT - Semifinal` and `Women's NIT - Semifinal` onto one label — two tournaments this change scores
++2 and 0 respectively, so the card would have shown identical words over different numbers, four
+times over. Those four prefixes are not redundant with the league; they are the fact that says which
+of four tournaments a March basketball card is showing. The rule is now that a prefix goes only when
+it is recoverable from what is already on screen.
+
+Two smaller rules came from single real strings.
+`NCAA Baseball Championship - Atlanta Regional Rescheduled from 5/29` is a scheduling note ESPN
+sends through the round field, and resolves to no label. `NCAA Women's Ice Hockey Championship`
+arrives with no round suffix at all, so the strip consumes the whole string — when reduction leaves
+nothing, nothing is shown, rather than falling back to a tournament name the section header already
+gives.
+
+The breakdown row names the round too, so a +6 has something accounting for it.
+
+### The fallbacks, which is most of what makes this safe
+
+The feature grades free text from a third party, so every branch degrades rather than failing.
+
+A postseason game whose round cannot be graded takes the **bottom rung**, not the ceiling and not
+zero — ESPN renames things, and the failure mode should be a small boost rather than either losing
+the feature silently or promoting a first-rounder to a final. A game that scores nothing on purpose
+is a different state from one we could not grade, and the two are distinguishable in the data. The
+label and the boost degrade independently, which is why a bowl shows its sponsor and scores zero.
+Nothing in the grader can throw on a malformed payload.
+
+### Coverage
+
+**126 unit tests** on the grader, and **the 790-row corpus they run against is transcribed from live
+ESPN across all 31 leagues** rather than written by hand — which is the only reason the collision
+above was found before it shipped. Two of those tests are properties over the whole corpus: that no
+label is ever a partial word of the headline it came from, and that no two distinct headlines in one
+league ever produce the same label.
+
+**11 component tests** measuring what only a browser can answer: that the label shares the status
+row to within a pixel, that a card carrying one is exactly as tall as one that is not, that a
+too-wide label lands on a second line whole rather than clipped, and that the label is not
+uppercased *when mounted inside an uppercased ancestor* — because without one that rule is inert and
+the assertion passes whether it exists or not, which is what the first version of that test did.
+
+**Every one of these was checked by breaking the code and watching it fail.** Nine mutations of the
+grader and four of the stylesheet: re-adding the four tournament prefixes, truncating every label,
+restoring the mandatory hockey dash, removing the unknown-round fallback, letting bowls and the Pro
+Bowl and the Women's NIT score, grading `NBA Finals` as a conference final, flattening the ladder,
+shouting the label, and adding an ellipsis. Two assertions survived their first mutation and were
+rewritten: the ladder's monotonicity test read `sorted`, which a flat ladder satisfies, and is
+strict now; and the no-truncation check was inferred from a width comparison that stays true while
+the row still wraps, so it asserts `text-overflow` and `overflow` directly.
+
+Four bugs were found this way rather than in review. `NBA Finals` and `WNBA Finals` graded a rung
+low, because the conference-final rule matched the league name as well as `East` and `West`. The
+soccer slug table had two ordering faults: `semi-finals` ends in `-finals`, so a bare rule above it
+graded a semifinal as the title match, and `playoffs---championship` contains `playoffs`, so a
+catch-all above it graded the NWSL final as an opening round. And MLS brackets per conference, so
+its conference final is one win from MLS Cup rather than being it.
+
+### Strings
+
+Two keys across twelve locales. The setting's explainer promised a flat boost and now describes the
+ladder, and its value reads "up to" a ceiling. The round name itself is untranslated, like the venue
+and broadcast names beside it on the same card.
+
+## A dome game stops reporting the weather outside — 2026-09-09
+
+ESPN sends a weather block for every game it has a forecast for and never once checks the roof. Off
+one scoreboard pull this afternoon: U.S. Bank Stadium reading Thunderstorms, Ford Field Mostly
+cloudy at 80, Allegiant Stadium Sunny at 95, all three flagged `indoor: true` on that same payload.
+It is the stadium postcode's AccuWeather forecast, which is a true fact about the car park and
+nothing at all about the game.
+
+So the detail screen printed conditions nobody in the building could feel, and come December the
+falling-snow decoration would have buried a Vikings home game on the strength of a Minneapolis
+forecast.
+
+### It is baseball too
+
+The issue was written off the NFL slate. Live MLB carries the same pairing: loanDepot park at Partly
+cloudy and American Family Field at Mostly clear, both `indoor: true`, both mid-game. Three of the
+fifteen venues on today's MLB card are roofed.
+
+Soccer was the one thing worth checking before touching anything, because MLS and the European
+competitions send no `indoor` key at all. Mercedes-Benz Stadium arrives from the MLS scoreboard with
+nothing on it saying it has a roof. They send no weather either, in any competition sampled, so the
+gap never bites — but a missing flag is read as open air rather than as a dome, which is the only
+safe reading of an absent key, and it has its own test for the day one of them starts carrying a
+forecast.
+
+### One gate, at the parse
+
+`comp.venue?.indoor` was declared in `EspnCompetitionVenueSchema` and read nowhere. `parseWeather`
+takes it now and returns undefined for a dome, which is the single point both consumers pass
+through: the chip in the venue row and `isSnowing` behind the decoration each get it without a line
+of their own.
+
+The alternative was to put the flag on `Game` and check it at both readers, which writes the same
+rule twice and lets the third reader of `game.weather` forget one of them. Nothing else in the
+product wants to know a venue is roofed, so nothing carries it.
+
+A retractable roof reports `indoor: true` whether it is open or shut, and ESPN publishes no roof
+position anywhere, so NRG and Lucas Oil lose their weather on the days the roof is genuinely open.
+That trade goes the right way. A forecast printed over a closed roof is a lie, and a missing one
+under an open roof is a line the panel already drops for every game with no reading.
+
+### Coverage
+
+8 tests on the parse, every payload transcribed off a live scoreboard this afternoon, including the
+field swap ESPN does on live baseball — `displayValue` holding the icon number 35 while the words sit
+in `conditionId`, which is the shape loanDepot park actually arrives in. `parseWeather` had no tests
+at all before this.
+
+The one that matters most is not in core. The suppression lives in the parser and the decoration
+that acts on it lives in the extension, so a unit test either side of that seam passes while a snowy
+dome still buries the screen. A real dome payload runs through the real fetch into
+`resolveDecorations` now, with an open-air control carrying the identical reading — without that
+control the dome assertion would hold just as well on a payload that never had snow in it.
+
+The snow value is December's rather than transcribed, and it has to be: ESPN drops the weather block
+entirely once a game is final, so a January dome payload cannot be fetched back out to copy. The
+venue blocks are verbatim.
+
+`gameInfoPanel.cy.tsx` carried a test called "drops the weather line indoors" that mounted
+`weather: undefined`. That is the shape a dome arrives in and says nothing about whether it ever
+gets there, so it could never have caught this. It keeps its assertion under a name that describes
+it, and a second test runs the Ford Field payload through the real parser into the mounted panel.
+Both dome assertions in core, the end-to-end and the panel test were confirmed failing with the
+gate removed.
+
+## The standby strip stops being a white slab with dark-theme ink on it — 2026-09-09
+
+Turn on Standby Stream, drop below the threshold, and the line that tells you so was `#8b949e` on
+`#e9ecef` — **2.59:1**, against 4.5:1 for small text. Two thirds of the way to invisible, on a strip
+whose whole job is to say why nothing is switching.
+
+The strip is `.text-body-secondary` on `.bg-body-secondary`. Only one of that pair had ever been
+themed. `$body-secondary-color` is this project's dim `#8b949e`; `$body-secondary-bg` was left at
+Bootstrap's `#e9ecef`, so the strip printed dark-theme ink onto Bootstrap's light default and
+punched a near-white bar across the popup directly under the header.
+
+### The token had been patched around three times rather than set
+
+Bootstrap 5.3 computes a light pair of surface tokens on `:root` and a dark pair under
+`[data-bs-theme=dark]`, and this theme never sets that attribute — the darkness is the hand-picked
+`$body-bg` in `packages/ui`, not Bootstrap's colour-mode switch. So the light pair wins everywhere,
+and each component that reached for it got its own repair:
+
+| | what it reached for | patched with |
+| --- | --- | --- |
+| Up Next pager | `$pagination-disabled-bg`, `-hover-bg` | `#0d1117`, `#161b22` |
+| language switcher | `$dropdown-link-hover-bg` | `#21262d` |
+| box score tab strip | `$nav-tabs-link-hover-border-color` | `#e5e7eb …` |
+
+Three comments in three files, each saying the theme never overrode the token. The standby strip is
+the first thing to reach for `.bg-body-secondary` **directly**, where there is no component variable
+to patch — so the tokens are set at the root and the next thing to ask for one inherits it.
+
+`$body-tertiary-bg` is `#161b22` and `$body-secondary-bg` is `#21262d`, ordered the way Bootstrap's
+own dark values are: tertiary nearest the body, secondary a step further. Neither is a new colour —
+both are already in the palette, 19 and 30 times over. The strip lands at **4.95:1** and reads as a
+surface a step above the popup rather than as a hole in it.
+
+### One thing had to be pinned so it would not move
+
+`$progress-bg` is `var(--as-secondary-bg)`, and the two progress bars we draw — the game card's
+PowerScore bar and the breakdown's five signal bars — both sit on light cards, where `#e9ecef` is
+the right track and a dark one would be a black slot. It is pinned to the value it has always had,
+so the token move leaves both byte-identical.
+
+Nothing else moved. Everything else the two tokens feed is either already pinned (pagination, the
+range track, the tab strip) or unreachable in this product: no `.input-group`, no `.list-group`, no
+`.popover`, no file inputs, and `.form-check-input` disables through opacity rather than a
+background.
+
+### What is still a light plate, on purpose for now
+
+The two banners above the strip are `.alert`s, and Bootstrap builds an alert out of the
+`-bg-subtle` / `-text-emphasis` pair rather than the surface tokens — so the suggestion banner is
+`#632501` on `#fddecd` and the Pro Tip is `#055160` on `#cff4fc`. Both clear contrast comfortably;
+they are simply light. The docs site already overrode that pair for the four variants it renders,
+and the extension never did. That is the same gap one layer over, and it is a decision about how
+loud a banner should be rather than a contrast failure, so it is not in this change.
+
+### Coverage
+
+The strip had no component test at all, which is why a 2.59:1 label shipped. It has two, both
+confirmed failing against `#e9ecef` first.
+
+One reads the ink and the plate off the strip's own computed style and requires 4.5:1 — measured
+rather than hardcoded, so a surface token that moves later cannot leave the ink checked against a
+colour it no longer sits on.
+
+The other pins the decision rather than the value: the plate's luminance sits **above** the popup's,
+so the strip has an edge, and **below** its own ink, so it still reads as part of a dark theme.
+Either bound on its own passes on a colour that is wrong in the other direction.
+
+## The sticky bar counts down to a scheduled game instead of printing two zeros — 2026-09-09
+
+Scroll the hero off a game that has not started and the bar handed you `ATL 0 — 0 PHI`. Both
+figures are zero and stay zero until first pitch, so the two abbreviations were doing the bar's
+entire job and the scores were furniture. A scheduled game keeps its crests and abbreviations and
+drops the scores; the time to the start takes the slot on the right.
+
+Live and final games are byte-identical. The score is the number you scrolled past and the reason
+the bar exists.
+
+### The countdown goes in the status slot, not where the scores were
+
+`resolveStatusText` returns `''` for a scheduled game, so the right-hand slot is already empty
+before a start and the two never render together. That is what settles it: a delay description is
+the one thing a pre-game game does put there, and it wins the slot outright — a postponement has
+something to say that a time until a start nobody is holding to does not. One element, three
+states.
+
+The alternative was the centre, between the abbreviations where the scores had been. A figure in
+that position reads as a score, which is the thing being removed.
+
+The 1px rule between the two teams stays either way. It is what makes the pair read as one matchup
+rather than two adjacent teams, and with the scores gone it is the only thing doing that.
+
+### Two units where the hero shows three
+
+The slot is 5.5rem and shared with a live game's period and clock, so `startCountdownDisplay`'s
+three-segment clock and its date line do not fit. `formatCompactCountdown` prints the largest unit
+that is not zero and the one below it: `2d 05h`, `5h 13m`, `13m 42s`, and `9s` on its own under a
+minute, where there is no unit below to pair with.
+
+Dropping a zero leading segment rather than printing it matters more than it sounds. The hero shows
+`0h 13m 42s` a quarter of an hour out, because its segment set is chosen once at the day boundary;
+the bar has two slots and cannot spend one on a zero.
+
+The trailing figure is padded to two digits and the leading one never is, which is the hero's own
+rule. The string is pinned to the right of the bar, so its left edge is the one that moves — and a
+countdown that ticks every second should not shuffle sideways each time a digit crosses 9.
+
+The widest any locale reaches is 53px against the slot's 88, and German and Japanese tie for it —
+`23Std 59Min` and `23時間 59分`, both of them the hours-and-minutes shape rather than the
+days-and-hours one that looks longest written out. No new locale keys: all four unit abbreviations
+were already in all twelve files for the hero, and ten of those twelve differ from the English
+letters, from `min` in the five Romance locales through `Std`/`Sek` to `時間`/`시간`.
+
+### The countdown owns its own hook
+
+Both heroes drive their countdown from `useStartCountdown` inside `startCountdownDisplay` rather
+than taking parts as a prop, so a tick re-renders a few spans instead of the screen. The bar's slot
+is its own component for the same reason — a second-by-second tick that re-rendered
+`gameDetailView` would take the breakdown and the four ECharts canvases with it.
+
+It is gated on `game.status === 'pre'` rather than on `startTime` being present, because `startTime`
+is populated for every status now and a live game carries a kickoff in the past. Every reader of
+that field but one sits behind a pre-game check, and the exception is the tab matcher's tiebreak,
+which sorts two equally-scored live games by kickoff on purpose.
+
+### Coverage
+
+8 unit tests on the formatter, including the zero-hours case, both padding rules, and the fallback
+to Starts soon once the clock runs out rather than counting up past it.
+
+8 component tests on the scheduled bar and one more on the live one, which pins the whole status
+string rather than only the two scores — the countdown is kept off a live bar by the pre-game gate
+alone. The absent scores were confirmed failing with the gate forced open, and five of the eight
+failed with the countdown removed from the slot.
+
+**The first version of these tests could not reach the bar at all.** A scheduled game mounted from
+the existing fixture is 422px of content in a 560px popup, so the hero never leaves the viewport,
+the IntersectionObserver never fires and the compact state is unreachable — `cy.scrollTo` failed the
+scrollable check outright. Adding team leaders got the page to 701px and it still failed, because
+the poster hero is 186px and only 141px of that could be scrolled away: the observer wants the hero
+fully out, not mostly out. The fixture is what a real scheduled game actually carries now — both
+probable pitchers, three leaders a side, a venue, a broadcast, the weather and a line — which runs
+to 808px.
+
+The per-locale measurement substitutes each locale's string into the one element rather than
+mounting twelve times, which this changelog has twice recorded as a false positive. It is sound here
+and only here: the slot is absolutely positioned at a fixed `max-width`, so its box does not depend
+on its content or on anything beside it. Confirmed by narrowing the slot to 2.5rem, which fails it —
+and the string being measured comes out of the real formatter reading the real locale file, not out
+of the test.
+
+## The settings cog turns under the pointer — 2026-09-09
+
+A quarter turn over 0.35s when the button is hovered or takes keyboard focus, and back when it is
+left. Nothing else about the header moves.
+
+The gear has eight lobes, so 90deg is two of them and the mark comes to rest on the silhouette it
+started from. The alternative was an arbitrary angle, which leaves the cog visibly crooked for as
+long as the pointer is on it and reads as a rendering fault rather than as a response.
+
+The rotation sits on the icon's `::before` rather than on the `<i>`. An `<i>` is a non-replaced
+inline box and takes no transform at all, and the `::before` is where Bootstrap Icons puts the glyph
+and the only element in the pair that is already `inline-block`. Transforms do not lay out either
+way, so the button's box is the same width it has always been.
+
+`:not(:disabled)` on the hover half is what keeps it off the website. `apps/docs` imports this same
+stylesheet and mounts `PopupHeader` with `interactive={false}`, which disables both buttons — and a
+disabled button still matches `:hover`. A control that answers the pointer and then does nothing is
+worse than one that sits still.
+
+Under `prefers-reduced-motion: reduce` the flourish is off rather than instant. Dropping only the
+transition would leave a gear that snaps a quarter turn under the cursor, which is the motion the
+reader opted out of.
+
+### Coverage
+
+7 component tests. The turn is read off the pseudo-element's computed transform and pinned to the
+resolved matrix, through a retrying assertion rather than a one-shot `then` — the first frame after
+focus is still the identity matrix, which is what the first version of this test measured and
+passed on. Both positive assertions were confirmed failing with the rule commented out.
+
+The reduced-motion case drives Chrome's own media emulation over CDP, since a media query cannot be
+exercised from the page, and it was confirmed failing with only its `transform: none` removed — so
+the emulation is doing something rather than the test agreeing with itself.
+
+The help mark beside the cog has its own test. Both buttons share `.popup-settings-icon`, so a rule
+hung on that class would turn a question mark too, and a rotated question mark is a different shape
+rather than the same one further round.
+
+The disabled guard is checked as the rule's own selector against both rendered states, because
+Cypress cannot force `:hover` and focus is not a route to a disabled button in either direction.
+
 ## A navy crest in the tab-match list stops being a silhouette — 2026-09-08
 
 The two crests on a suggestion row sat straight on the popup's `#0d1117` with nothing behind them.

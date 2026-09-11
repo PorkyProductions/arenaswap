@@ -722,8 +722,8 @@
 	},
 	"postseasonBoost": {
 		"label": "Postseason boost",
-		"points": "+$1 pts",
-		"explainer": "Added to every game classified as postseason (playoffs, tournaments, knockout rounds)."
+		"points": "up to +$1 pts",
+		"explainer": "The most a title game can add. Earlier rounds earn a share — three quarters for a semifinal, half for a quarterfinal, a quarter for anything earlier. Exhibitions earn nothing."
 	},
 	"proTip": {
 		"label": "Pro tip:",

@@ -722,8 +722,8 @@
 	},
 	"postseasonBoost": {
 		"label": "Bonus de playoffs",
-		"points": "+$1 pts",
-		"explainer": "Ajouté à chaque match classé en playoffs (postseason, tournois, phases éliminatoires)."
+		"points": "jusqu'à +$1 pts",
+		"explainer": "Le maximum que peut ajouter une finale. Les tours précédents en touchent une part : trois quarts pour une demi-finale, la moitié pour un quart de finale, un quart pour tout tour antérieur. Les matchs d'exhibition n'ajoutent rien."
 	},
 	"proTip": {
 		"label": "Conseil :",

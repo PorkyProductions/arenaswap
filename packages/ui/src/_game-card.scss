@@ -1,6 +1,6 @@
-// Import AFTER Bootstrap variables and source.
-
-@import 'crest';
+// Loaded after the theme, whose $warning and $score-loser-color it reads.
+@use 'bootstrap' as bs;
+@use 'crest';
 
 @keyframes scoreSlideOut {
 	from { transform: translateY(0%); }
@@ -72,7 +72,7 @@
 	}
 
 	&.is-delayed {
-		box-shadow: 0 0 0 1px rgba($warning, 0.4);
+		box-shadow: 0 0 0 1px rgba(bs.$warning, 0.4);
 
 		.game-score-value,
 		.game-detail-score-value,
@@ -127,7 +127,7 @@
 .delay-status-label {
 	font-size:      0.65rem;
 	letter-spacing: 0.08em;
-	color:          shade-color($warning, 40%);
+	color:          bs.shade-color(bs.$warning, 40%);
 }
 
 .delay-type-badge {
@@ -167,6 +167,27 @@
 	letter-spacing: 0.03em;
 }
 
+// The status and the postseason round share one row, so naming the round costs no height on a
+// card that has none to spare. `flex-wrap` is the fallback and the reason nothing is ever
+// truncated: a label too wide to share drops to a line of its own with the card's full width,
+// which two of the 389 real ESPN round names need.
+.game-card-status-row {
+	gap: 0.25rem;
+	justify-content: space-between;
+}
+
+.game-postseason-label {
+	font-size: 0.62rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: #6c757d;
+	white-space: nowrap;
+
+	// ESPN's own casing, against the uppercase status beside it. Uppercasing turns Cheez-It and
+	// AT&T into shouting, and the sponsor is most of the reason a bowl's name is worth printing.
+	text-transform: none;
+}
+
 .game-card-matchup {
 	gap: 0.75rem;
 }
@@ -182,7 +203,7 @@
 
 // Shade the warning yellow 60% toward black so it passes WCAG AA on the
 // white card base. contrast-ratio() is Bootstrap's built-in WCAG checker.
-$pre-game-time-color: shade-color($warning, 60%);
+$pre-game-time-color: bs.shade-color(bs.$warning, 60%);
 
 .pre-game-start-time {
 	font-size: 0.7rem;
@@ -213,7 +234,7 @@ $pre-game-time-color: shade-color($warning, 60%);
 	// Half of what says who won on a final card; the other half is the weight, which is a
 	// Bootstrap utility on the element because `.fw-bold` is `!important` and would win here.
 	&.is-loser {
-		color: $score-loser-color;
+		color: bs.$score-loser-color;
 	}
 }
 

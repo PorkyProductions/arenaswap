@@ -1,6 +1,7 @@
 import GameDetailView from '../../entrypoints/popup/components/gameDetailView';
 import LiveGameCard from '@arenaswap/ui/src/components/liveGameCard';
 import type { Game, PowerScoreResult, PowerScoreSnapshot, ScoreSnapshot } from '@arenaswap/core/types';
+import { countdownParts, formatCompactCountdown } from '../../entrypoints/popup/components/startCountdown';
 import de from '../../locales/de.json';
 import en from '../../locales/en.json';
 import es from '../../locales/es.json';
@@ -36,10 +37,48 @@ const makePreGame = (msUntilStart: number): Game => ({
 	awayTeam: { id: 'a', name: 'Oklahoma City Thunder', abbreviation: 'OKC', score: 0 },
 });
 
+const seasonLeaders = (side: string) => ([
+	{ category: 'homeRuns', fallbackLabel: 'HR', player: `${side} Slugger`, value: '31 HR' },
+	{ category: 'battingAverage', fallbackLabel: 'AVG', player: `${side} Bat`, value: '.312' },
+	{ category: 'earnedRunAverage', fallbackLabel: 'ERA', player: `${side} Arm`, value: '2.94' },
+]);
+
+// A bare scheduled game is 422px of content in a 560px popup, so the hero never leaves the
+// viewport and the sticky bar never reaches its compact state. This is what a real scheduled
+// game carries — both probable pitchers, three team leaders a side, a venue, a broadcast, the
+// weather and a line — and it runs to 808px, which puts the hero out of view.
+const makeScheduledSlate = (msUntilStart: number): Game => ({
+	...makePreGame(msUntilStart),
+	league: 'mlb',
+	sportType: 'baseball',
+	venueName: 'Citizens Bank Park',
+	broadcasts: ['NBCSP'],
+	weather: { temperatureF: 74, conditionLabel: 'Clear' },
+	odds: { details: 'PHI -1.5', overUnder: 8.5 },
+	homeTeam: {
+		id: 'h',
+		name: 'Philadelphia Phillies',
+		abbreviation: 'PHI',
+		score: 0,
+		leaders: seasonLeaders('Home'),
+		probableStarter: { name: 'Home Ace', winLoss: '12-4', era: '2.81' },
+	},
+	awayTeam: {
+		id: 'a',
+		name: 'Atlanta Braves',
+		abbreviation: 'ATL',
+		score: 0,
+		leaders: seasonLeaders('Away'),
+		probableStarter: { name: 'Away Ace', winLoss: '9-7', era: '3.45' },
+	},
+});
+
 interface MountOverrides {
 	excitementResult?: PowerScoreResult;
 	scoreHistory?: ScoreSnapshot[];
 	powerScoreHistory?: PowerScoreSnapshot[];
+	proTipsEnabled?: boolean;
+	bettingEnabled?: boolean;
 }
 
 const mountDetail = (game: Game, overrides: MountOverrides = {}) => {
@@ -49,9 +88,9 @@ const mountDetail = (game: Game, overrides: MountOverrides = {}) => {
 			excitementResult={overrides.excitementResult}
 			scoreHistory={overrides.scoreHistory ?? []}
 			powerScoreHistory={overrides.powerScoreHistory ?? []}
-			proTipsEnabled={false}
+			proTipsEnabled={overrides.proTipsEnabled ?? false}
 			gameBoosts={{}}
-			bettingPrefs={{ bettingEnabled: false }}
+			bettingPrefs={{ bettingEnabled: overrides.bettingEnabled ?? false }}
 			weatherPrefs={{ temperatureUnit: 'F' }}
 			decorationPrefs={{ holidayDecorationsEnabled: false, holidaySnowEnabled: false, holidayLightsEnabled: false, holidayLeavesEnabled: false }}
 			onSetGameBoost={() => {}}
@@ -438,6 +477,15 @@ describe('gameDetailView sticky bar', () => {
 		});
 	});
 
+	it('keeps its scores while a game is under way', () => {
+		mountDetail(makeLiveGame({ startTime: new Date(now.getTime() - hourMs).toISOString() }), { excitementResult: excitement, powerScoreHistory });
+		cy.get('.popup-container').scrollTo('bottom');
+		cy.get('.gd-bar-score').should('have.length', 2);
+		// startTime is populated for every status, so the countdown is kept off a live bar by the
+		// pre-game gate alone. Pinned to the whole string: a period and clock is what belongs here.
+		cy.get('.gd-bar-status').should('have.text', 'Q3 \u2022 6:42');
+	});
+
 	it('keeps the compact matchup on one line in every locale', () => {
 		mountDetail(makeLiveGame({ intermission: true, period: 2 }), { excitementResult: excitement, powerScoreHistory });
 		cy.get('.popup-container').scrollTo('bottom');
@@ -448,6 +496,89 @@ describe('gameDetailView sticky bar', () => {
 			});
 			cy.get('.gd-bar-compact').should(([el]: JQuery<HTMLElement>) => {
 				expect(el.getBoundingClientRect().width, `compact fits in ${name}`).to.be.at.most(296);
+			});
+		});
+	});
+});
+
+// Before a start the two scores are both 0 and stay 0 until first pitch, so the bar hands its
+// whole job to the abbreviations and the figures are noise. The countdown takes the slot the
+// live status text holds, which resolveStatusText leaves empty for a scheduled game.
+describe('gameDetailView sticky bar before a start', () => {
+	beforeEach(() => {
+		cy.viewport(320, 560);
+		cy.clock(now.getTime(), ['Date', 'setTimeout', 'clearTimeout']);
+	});
+
+	const mountScrolled = (game: Game) => {
+		mountDetail(game, { proTipsEnabled: true, bettingEnabled: true });
+		cy.get('.popup-container').scrollTo('bottom');
+		cy.get('.gd-bar-compact').should('have.class', 'is-visible');
+	};
+
+	it('drops both scores and keeps the matchup', () => {
+		mountScrolled(makeScheduledSlate(5 * hourMs + 13 * minuteMs + 42_000));
+		cy.get('.gd-bar-score').should('not.exist');
+		cy.get('.gd-bar-compact').should('contain.text', 'ATL').and('contain.text', 'PHI');
+		cy.get('.gd-bar-logo').should('have.length', 2);
+		cy.get('.gd-bar-sep').should('have.length', 1);
+	});
+
+	it('counts down to the start in the slot the status text would hold', () => {
+		mountScrolled(makeScheduledSlate(5 * hourMs + 13 * minuteMs + 42_000));
+		cy.get('.gd-bar-status').should('have.text', '5h 13m').and('have.css', 'opacity', '1');
+	});
+
+	it('shows days and hours further out, and pairs minutes with seconds close in', () => {
+		mountScrolled(makeScheduledSlate(2 * dayMs + 5 * hourMs + 13 * minuteMs));
+		cy.get('.gd-bar-status').should('have.text', '2d 05h');
+		mountScrolled(makeScheduledSlate(13 * minuteMs + 42_000));
+		cy.get('.gd-bar-status').should('have.text', '13m 42s');
+	});
+
+	it('ticks once a second', () => {
+		mountScrolled(makeScheduledSlate(2 * hourMs + 30_000));
+		cy.get('.gd-bar-status').should('have.text', '2h 00m');
+		cy.tick(31_000);
+		cy.get('.gd-bar-status').should('have.text', '1h 59m');
+	});
+
+	it('says "Starts soon" once the clock runs out rather than counting up', () => {
+		mountScrolled(makeScheduledSlate(0));
+		cy.get('.gd-bar-status').should('have.text', 'Starts soon');
+	});
+
+	it('carries nothing at all when no start time is scheduled', () => {
+		mountScrolled({ ...makeScheduledSlate(0), startTime: undefined });
+		cy.get('.gd-bar-status').should('not.exist');
+	});
+
+	it('gives the slot to a delay description instead of the countdown', () => {
+		mountScrolled({ ...makeScheduledSlate(5 * hourMs), delayed: true, delayDescription: 'Rain Delay' });
+		cy.get('.gd-bar-status').should('have.text', 'Rain Delay');
+	});
+
+	it('fits the slot in every locale, in all three shapes the countdown takes', () => {
+		const target = now.getTime() + dayMs;
+		// The widest value each shape can reach, so a locale that fits these fits everything.
+		const shapes = {
+			'days and hours': 13 * dayMs + 23 * hourMs,
+			'hours and minutes': 23 * hourMs + 59 * minuteMs,
+			'minutes and seconds': 59 * minuteMs + 59_000,
+		};
+
+		mountScrolled(makeScheduledSlate(dayMs));
+		Object.entries(locales).forEach(([name, locale]) => {
+			// Substituted rather than mounted per locale, which is sound only because the slot is
+			// absolutely positioned at a fixed max-width: its box does not depend on its content or
+			// on anything beside it, so a locale that clips here clips exactly the same way mounted.
+			// The string itself comes from the real formatter reading the real locale file.
+			const t = (key: string) => (locale.detail as Record<string, string>)[key.split('.')[1]];
+			Object.entries(shapes).forEach(([shape, offset]) => {
+				cy.get('.gd-bar-status').should(([el]: JQuery<HTMLElement>) => {
+					el.textContent = formatCompactCountdown(countdownParts(target + offset, target), t);
+					expectSingleLine(el, `${shape} in ${name} (${el.textContent})`);
+				});
 			});
 		});
 	});

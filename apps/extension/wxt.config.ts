@@ -1,5 +1,6 @@
 import { defineConfig } from 'wxt';
 import pkg from '../../package.json';
+import sassOptions from '@arenaswap/ui/src/sassOptions';
 
 const year = new Date().getFullYear();
 const version = pkg.version;
@@ -33,6 +34,13 @@ export default defineConfig({
 		],
 		build: {
 			target: 'es2023',
+		},
+		// Silences Bootstrap 5.3's Sass deprecation warnings, and only for as long as Bootstrap
+		// is the one emitting them. See packages/ui/src/sassOptions.ts.
+		css: {
+			preprocessorOptions: {
+				scss: sassOptions,
+			},
 		},
 		// Firefox MV3 dev server: serve responses uncompressed. Compressed responses trip
 		// NS_ERROR_CORRUPTED_CONTENT when loaded from an extension page.

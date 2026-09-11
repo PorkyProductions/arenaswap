@@ -1,6 +1,6 @@
 import { i18n } from '#i18n';
 import { randomInRange } from '@porkyproductions/hat';
-import { fetchGamesWithLeagueLogos, fetchWinProbability, computePowerScore, isWithinFinalRetention, computeScoringOpportunityBoost, isPlayFrozen, normalizePowerScoreResult, scoreMaxTotal, MockGameSimulator, createPollModeTracker, isObjectRecord, isScoreSnapshotLike, isPowerScoreSnapshotLike, normalizeGameBoosts, computeLeagueIntervalMs, pollWinProbabilityMs as winProbPollIntervalMs, logWarn, logError } from '@arenaswap/core';
+import { fetchGamesWithLeagueLogos, fetchWinProbability, computePowerScore, isWithinFinalRetention, computeScoringOpportunityBoost, isPlayFrozen, normalizePowerScoreResult, scoreMaxTotal, MockGameSimulator, createPollModeTracker, isObjectRecord, isScoreSnapshotLike, isPowerScoreSnapshotLike, normalizeGameBoosts, computeLeagueIntervalMs, pollWinProbabilityMs as winProbPollIntervalMs, logWarn, logError, postseasonBoostShare } from '@arenaswap/core';
 import { computeStandbyStreamDecision } from '../utils/standbyStreamLogic';
 import { loadStoredUserPreferences } from '../utils/prefsStorage';
 import {
@@ -608,7 +608,13 @@ export default defineBackground(() => {
 			const favoriteBonus = frozen ? 0 : favoriteTeamCount * favoriteBonusPoints;
 			const gameBoost = frozen ? 0 : (gameBoosts[g.id] ?? 0);
 			const scoringOpportunityBoost = computeScoringOpportunityBoost(g);
-			const postseasonBoost = !frozen && g.isPostseason ? postseasonBoostPoints : 0;
+			// Scaled by how close the game is to deciding a trophy rather than paid flat, so a Wild
+			// Card game stops being worth the same as a Super Bowl. A postseason game we could not
+			// grade, or one that deliberately scores nothing like a non-playoff bowl, pays a share
+			// of 0.25 and 0 respectively — see gradePostseason.
+			const postseasonBoost = frozen
+				? 0
+				: Math.round(postseasonBoostPoints * postseasonBoostShare(g.postseasonRound));
 			// Automatic scoring saturates at 100; only a manual game boost may push the headline
 			// total past the ceiling.
 			const automaticTotal = Math.min(

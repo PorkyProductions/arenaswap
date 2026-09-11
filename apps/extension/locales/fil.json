@@ -722,8 +722,8 @@
 	},
 	"postseasonBoost": {
 		"label": "Boost sa Postseason",
-		"points": "+$1 pts",
-		"explainer": "Naidadagdag sa bawat larong kinikategorya bilang postseason (playoffs, tournaments, knockout rounds)."
+		"points": "hanggang +$1 pts",
+		"explainer": "Ito ang pinakamataas na maidaragdag ng championship game. May share ang mas maagang rounds — 75% sa semifinal, 50% sa quarterfinal, 25% sa kahit anong mas maagang round pa. Wala namang maidaragdag ang mga exhibition game."
 	},
 	"proTip": {
 		"label": "Pro Tip:",

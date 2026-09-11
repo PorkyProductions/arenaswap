@@ -1,7 +1,7 @@
 import { createFavoriteTeamKey } from '@arenaswap/core/constants';
 import FlipScore from './flipScore';
 import type { GameCardDisplayProps } from './gameCardTypes';
-import { buildCardHandlers, GameMeta, TeamColumn } from './gameCardShared';
+import { buildCardHandlers, CardStatusRow, GameMeta, PostseasonLabel, TeamColumn } from './gameCardShared';
 import { useT } from './i18nContext';
 
 // A finished game offers nothing to act on, so this card is the live one with every affordance
@@ -48,9 +48,9 @@ const finalGameCard = ({ game, favoriteTeamIds, onToggleFavoriteTeam, onOpenGame
 			onKeyDown={onCardKeyDown}
 			aria-label={t('gameCard.openDetails', { away: game.awayTeam.abbreviation, home: game.homeTeam.abbreviation })}
 		>
-			<div className='d-flex align-items-center gap-1 fw-bold text-uppercase final-status-label mb-1'>
-				{statusLabel}
-			</div>
+			<CardStatusRow status={<span className='d-flex align-items-center gap-1 fw-bold text-uppercase final-status-label'>{statusLabel}</span>}>
+				<PostseasonLabel game={game} />
+			</CardStatusRow>
 
 			<div className='d-flex align-items-center justify-content-center game-card-matchup'>
 				<TeamColumn leagueId={game.league} team={game.awayTeam} isFavorited={awayFavorited} onToggleFavoriteTeam={onToggleFavoriteTeam} />

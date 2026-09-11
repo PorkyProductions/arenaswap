@@ -26,6 +26,7 @@ const makeEvent = (params: {
 	season?: Record<string, unknown>;
 	notes?: Record<string, unknown>[];
 	venue?: Record<string, unknown>;
+	weather?: Record<string, unknown>;
 	attendance?: number;
 	homeShootoutScore?: number;
 	awayShootoutScore?: number;
@@ -36,6 +37,7 @@ const makeEvent = (params: {
 }): Record<string, unknown> => ({
 	id: params.id,
 	date: params.date ?? '2026-10-05T00:00:00.000Z',
+	...(params.weather !== undefined && { weather: params.weather }),
 	...(params.season !== undefined && { season: params.season }),
 	competitions: [
 		{
@@ -1465,6 +1467,79 @@ describe('apiClient', () => {
 
 			const result = await fetchGamesWithLeagueLogos(['nba']);
 			expect(result.games[0]?.venueLocation).toBe('Boston, MA');
+		});
+	});
+
+	describe('weather parsing', () => {
+		// Every weather block below is transcribed off a live scoreboard on 2026-09-09, and every
+		// venue below carries the `indoor` flag ESPN sent with it on that same response.
+		const weatherFor = async (venue: Record<string, unknown>, weather: Record<string, unknown>) => {
+			const { fetchGamesWithLeagueLogos } = mockSingleEvent(makeEvent({
+				id: 'weather',
+				state: 'in',
+				period: 2,
+				clock: '5:00',
+				homeScore: '10',
+				awayScore: '7',
+				venue,
+				weather,
+			}));
+			const result = await fetchGamesWithLeagueLogos(['nfl']);
+			return result.games[0]?.weather;
+		};
+
+		const domeVenue = { fullName: 'U.S. Bank Stadium', address: { city: 'Minneapolis', state: 'MN' }, indoor: true };
+		const openVenue = { fullName: 'Arrowhead Stadium', address: { city: 'Kansas City', state: 'MO' }, indoor: false };
+
+		test('reads the label out of displayValue', async () => {
+			expect(await weatherFor(openVenue, { displayValue: 'Thunderstorms', temperature: 86, highTemperature: 86, conditionId: '15' }))
+				.toEqual({ temperatureF: 86, conditionLabel: 'Thunderstorms' });
+		});
+
+		// ESPN swaps the two fields on live baseball: loanDepot park came back with displayValue '35'
+		// and the words in conditionId. The numeric one has to lose whichever key it arrives under.
+		test('reads the label out of conditionId when displayValue holds the icon number', async () => {
+			expect(await weatherFor(openVenue, { displayValue: '35', temperature: 82, highTemperature: 82, conditionId: 'Partly cloudy' }))
+				.toEqual({ temperatureF: 82, conditionLabel: 'Partly cloudy' });
+		});
+
+		test('drops a reading with no words in either field', async () => {
+			expect(await weatherFor(openVenue, { displayValue: '35', temperature: 82, conditionId: '15' })).toBeUndefined();
+		});
+
+		test('drops a reading with no temperature', async () => {
+			expect(await weatherFor(openVenue, { displayValue: 'Sunny', conditionId: '1' })).toBeUndefined();
+		});
+
+		// The bug this gate exists for: ESPN sends the stadium postcode's outdoor forecast on a dome
+		// exactly as it does on an open-air venue, so a September dome game rendered a weather chip
+		// for conditions nobody in the building could feel.
+		test('drops the outdoor forecast ESPN sends for a dome', async () => {
+			expect(await weatherFor(domeVenue, { displayValue: 'Thunderstorms', temperature: 64, highTemperature: 64, conditionId: '15' }))
+				.toBeUndefined();
+			expect(await weatherFor({ fullName: 'Ford Field', indoor: true }, { displayValue: 'Mostly cloudy', temperature: 80, conditionId: '6' }))
+				.toBeUndefined();
+		});
+
+		// The winter case the decoration reads. ESPN drops the weather block entirely once a game is
+		// final, so a snowy dome payload cannot be fetched back out of January — the venue is verbatim
+		// and the reading is the one a Minneapolis forecast supplies in December.
+		test('drops a snowy dome forecast, which is what feeds the snow decoration', async () => {
+			expect(await weatherFor(domeVenue, { displayValue: 'Snow', temperature: 19, highTemperature: 19, conditionId: '22' }))
+				.toBeUndefined();
+		});
+
+		test('leaves an open-air venue alone', async () => {
+			expect(await weatherFor(openVenue, { displayValue: 'Snow', temperature: 19, highTemperature: 19, conditionId: '22' }))
+				.toEqual({ temperatureF: 19, conditionLabel: 'Snow' });
+		});
+
+		// MLS and the European soccer competitions send no `indoor` key on the venue at all. They send
+		// no weather either, so the pairing never arises today — but a missing flag must not be read
+		// as a dome the day one of them starts carrying a forecast.
+		test('treats a venue with no indoor flag as open air', async () => {
+			expect(await weatherFor({ fullName: 'Subaru Park', address: { city: 'Chester', state: 'PA' } }, { displayValue: 'Snow', temperature: 31, conditionId: '22' }))
+				.toEqual({ temperatureF: 31, conditionLabel: 'Snow' });
 		});
 	});
 

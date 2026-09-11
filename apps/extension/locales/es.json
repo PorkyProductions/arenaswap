@@ -722,8 +722,8 @@
 	},
 	"postseasonBoost": {
 		"label": "Impulso de postemporada",
-		"points": "+$1 pts",
-		"explainer": "Se añade a cada partido clasificado como postemporada (playoffs, torneos, eliminatorias)."
+		"points": "hasta +$1 pts",
+		"explainer": "Lo máximo que puede sumar la final. Las rondas anteriores reciben una parte: tres cuartos en semifinales, la mitad en cuartos de final, un cuarto en cualquier ronda anterior. Los partidos de exhibición no suman nada."
 	},
 	"proTip": {
 		"label": "Consejo:",

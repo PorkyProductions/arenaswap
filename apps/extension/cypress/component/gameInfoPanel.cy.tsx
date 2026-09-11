@@ -1,5 +1,6 @@
 import GameDetailView from '../../entrypoints/popup/components/gameDetailView';
 import GameInfoPanel from '../../entrypoints/popup/components/gameInfoPanel';
+import { fetchGames } from '@arenaswap/core';
 import type { Game, PowerScoreResult } from '@arenaswap/core/types';
 import de from '../../locales/de.json';
 import en from '../../locales/en.json';
@@ -161,10 +162,44 @@ describe('game info panel', () => {
 		cy.get('.game-info-weather').should('not.exist');
 	});
 
-	it('drops the weather line indoors', () => {
+	it('drops the weather line when the game carries no reading', () => {
 		mountDetail({ ...liveGame, weather: undefined });
 		cy.get('.game-info-row').should('have.length', 3);
 		cy.get('.game-info-weather').should('not.exist');
+	});
+
+	// The test above used to carry the name this one does, and mounted `weather: undefined` to earn
+	// it — which is the shape a dome arrives in but says nothing about whether it ever gets there.
+	// ESPN sends the stadium postcode's outdoor forecast for a dome exactly as for an open roof, so
+	// the payload below is run through the real parser rather than hand-shaped around it. Both the
+	// venue block and the reading are verbatim from the live NFL scoreboard on 2026-09-09.
+	it('drops the outdoor forecast ESPN sends for a dome', () => {
+		const domeEvent = {
+			id: 'dome',
+			date: '2026-09-14T17:00:00.000Z',
+			weather: { displayValue: 'Mostly cloudy', temperature: 80, highTemperature: 80, conditionId: '6' },
+			competitions: [{
+				competitors: [
+					{ id: 'h', homeAway: 'home', score: '17', team: { displayName: 'Detroit Lions', abbreviation: 'DET' } },
+					{ id: 'a', homeAway: 'away', score: '14', team: { displayName: 'Chicago Bears', abbreviation: 'CHI' } },
+				],
+				status: { period: 3, displayClock: '5:00', type: { state: 'in', name: 'STATUS_IN_PROGRESS' } },
+				venue: { fullName: 'Ford Field', address: { city: 'Detroit', state: 'MI' }, indoor: true },
+			}],
+		};
+		cy.stub(window, 'fetch').resolves({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({ events: [domeEvent] }),
+		} as unknown as Response);
+
+		cy.then(() => fetchGames(['nfl'])).then((games: Game[]) => {
+			expect(games[0]?.venueName, 'the parser reached the dome payload').to.equal('Ford Field');
+			mountDetail(games[0]!);
+		});
+		cy.get('.game-info-row').eq(0).should('contain.text', 'Ford Field').and('contain.text', 'Detroit, MI');
+		cy.get('.game-info-weather').should('not.exist');
+		cy.get('.game-info-panel').should('not.contain.text', 'Mostly cloudy').and('not.contain.text', '80°F');
 	});
 
 	// Attribution belongs to the odds, not to a line of its own — it used to take a full row.

@@ -40,7 +40,7 @@ describe('types runtime smoke', () => {
 			holidaySnowEnabled: true,
 			holidayLightsEnabled: true,
 			holidayLeavesEnabled: true,
-			postseasonBoostPoints: 5,
+			postseasonBoostPoints: 8,
 		};
 		const message: ExtensionMessage = { type: 'UPDATE_PREFS', prefs };
 

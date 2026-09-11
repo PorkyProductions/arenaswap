@@ -1,4 +1,6 @@
-// Popup chrome. Import AFTER Bootstrap variables and source, and after `game-card`.
+// Popup chrome. Loaded after the theme, whose $font-family-base and $primary it reads, and
+// after `game-card`.
+@use 'bootstrap' as bs;
 //
 // These rules used to live only in `apps/extension/assets/bootstrap.scss`, which meant the
 // website's popup mockups were a hand-copied approximation that drifted every time the popup
@@ -25,7 +27,7 @@
 }
 
 .popup-section-title {
-	font-family: $font-family-base;
+	font-family: bs.$font-family-base;
 	font-size: 1.2rem;
 	font-weight: 700;
 	letter-spacing: -0.01em;
@@ -33,7 +35,7 @@
 	margin-bottom: 0.5rem;
 	margin-top: 1rem;
 	padding-left: 0.6rem;
-	border-left: 3px solid $primary;
+	border-left: 3px solid bs.$primary;
 }
 
 .popup-section-label {
@@ -80,6 +82,22 @@
 
 .popup-settings-icon {
 	font-size: 0.9rem;
+}
+
+// The rotation is on the `::before` rather than on the `<i>`, which is an inline box and so
+// takes no transform. The gear has eight lobes, so a quarter turn is two of them and the mark
+// comes to rest on the silhouette it started from — only the travel reads.
+//
+// `:not(:disabled)` is what keeps it off the website, which renders this same header as a
+// picture of the popup with both buttons disabled. A disabled button still matches `:hover`,
+// and a control that answers the pointer and then does nothing is worse than an inert one.
+.popup-settings-button .bi-gear-fill::before {
+	transition: transform 0.35s ease-out;
+}
+
+.popup-settings-button:not(:disabled):hover .bi-gear-fill::before,
+.popup-settings-button:focus-visible .bi-gear-fill::before {
+	transform: rotate(90deg);
 }
 
 .game-detail-chart-card {
@@ -129,8 +147,14 @@
 
 @media (prefers-reduced-motion: reduce) {
 	.popup-view-shell,
-	.game-card-clickable {
+	.game-card-clickable,
+	.popup-settings-button .bi-gear-fill::before {
 		animation: none;
 		transition: none;
+	}
+
+	.popup-settings-button:not(:disabled):hover .bi-gear-fill::before,
+	.popup-settings-button:focus-visible .bi-gear-fill::before {
+		transform: none;
 	}
 }

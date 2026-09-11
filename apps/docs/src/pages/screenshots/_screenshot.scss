@@ -2,12 +2,11 @@
 // These pages are intentionally throwaway routes used only to capture
 // promotional product screenshots for the Chrome Web Store.
 
-@import '@arenaswap/ui/src/bootstrap';
-$font-size-base:   0.9375rem;
-@import 'bootstrap/scss/bootstrap';
-@import '@arenaswap/ui/src/game-card';
-$font-base-url: '/arenaswap/fonts';
-@import '@arenaswap/ui/src/fonts';
+// `@arenaswap/ui/src/bootstrap` is the theme and forwards Bootstrap itself, so there is no second
+// Bootstrap load to order these against.
+@use '@arenaswap/ui/src/bootstrap' with ($font-size-base: 0.9375rem);
+@use '@arenaswap/ui/src/game-card';
+@use '@arenaswap/ui/src/fonts' with ($font-base-url: '/arenaswap/fonts');
 
 @font-face {
 	font-family: 'bootstrap-icons';
