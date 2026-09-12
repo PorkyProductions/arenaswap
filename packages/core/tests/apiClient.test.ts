@@ -1,4 +1,5 @@
 import { leagueLogoFallbacks } from '../src/constants';
+import { buildCurrentDatesQuery } from '../src/apiClient';
 
 interface MockResponseInit {
 	ok?: boolean;
@@ -119,6 +120,14 @@ const loadApiClient = (): typeof import('../src/apiClient') => {
 	jest.resetModules();
 	return require('../src/apiClient') as typeof import('../src/apiClient');
 };
+
+// Both scoreboard requests carry `dates=` now: the live poll names the two-day window ending
+// today, the slate poll the days ahead. They are told apart by which window they ask for rather
+// than by call order, so a test cannot quietly start reading whichever request came first.
+const isLivePoll = (url: string): boolean => url.includes(`dates=${buildCurrentDatesQuery()}`);
+const findSlatePoll = (urls: string[]): string | undefined => (
+	urls.find(url => url.includes('dates=') && !isLivePoll(url))
+);
 
 const mockSingleEvent = (event: Record<string, unknown>) => {
 	const fetchMock = jest.fn().mockResolvedValue(createResponse({ events: [event] }));
@@ -355,7 +364,7 @@ describe('apiClient', () => {
 		await fetchGamesWithLeagueLogos(['nba'], { includeUpcoming: true, upcomingDays: 3 });
 
 		const calledUrls = fetchMock.mock.calls.map(([url]) => String(url));
-		const datesUrl = calledUrls.find(u => u.includes('dates='));
+		const datesUrl = findSlatePoll(calledUrls);
 		expect(datesUrl).toBeDefined();
 		// TZ is UTC in these tests, so the viewer's Sep 5 through Sep 8 runs from 20:00 Eastern on
 		// Sep 4 to 19:59 Eastern on Sep 8, which is five Eastern dates for a three day setting.
@@ -382,7 +391,9 @@ describe('apiClient', () => {
 		const result = await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: false });
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(result.games).toHaveLength(1);
-		expect(String(fetchMock.mock.calls[0][0])).not.toContain('dates=');
+		// The single request is the live poll, and it names the day rather than leaning on ESPN's
+		// dateless scoreboard — which in college football is a curated week rather than a full card.
+		expect(isLivePoll(String(fetchMock.mock.calls[0][0]))).toBe(true);
 		expect(result.leagueLogos.mlb).toBe(leagueLogoFallbacks.mlb);
 	});
 
@@ -696,10 +707,10 @@ describe('apiClient', () => {
 
 	test('keeps fulfilled games when one scoreboard request fails for a league', async () => {
 		const fetchMock = jest.fn(async (url: string) => {
-			if (url.includes('/basketball/nba/scoreboard') && !url.includes('dates=')) {
+			if (url.includes('/basketball/nba/scoreboard') && isLivePoll(url)) {
 				return createResponse({}, { ok: false, status: 500 });
 			}
-			if (url.includes('/basketball/nba/scoreboard') && url.includes('dates=')) {
+			if (url.includes('/basketball/nba/scoreboard') && !isLivePoll(url)) {
 				return createResponse({
 					leagues: [{ logos: [{ href: 'https://cdn.example/nba-upcoming-logo.png' }] }],
 					events: [makeEvent({
@@ -725,7 +736,7 @@ describe('apiClient', () => {
 
 	test('aggregates fulfilled leagues when another league fails entirely', async () => {
 		const fetchMock = jest.fn(async (url: string) => {
-			if (url.includes('/basketball/nba/scoreboard') && !url.includes('dates=')) {
+			if (url.includes('/basketball/nba/scoreboard') && isLivePoll(url)) {
 				return createResponse({
 					leagues: [{ logos: [{ href: 'https://cdn.example/nba-logo.png' }] }],
 					events: [makeEvent({
@@ -738,7 +749,7 @@ describe('apiClient', () => {
 					})],
 				});
 			}
-			if (url.includes('/basketball/nba/scoreboard') && url.includes('dates=')) {
+			if (url.includes('/basketball/nba/scoreboard') && !isLivePoll(url)) {
 				return createResponse({
 					events: [makeEvent({
 						id: 'nba-pre',
@@ -2514,8 +2525,11 @@ describe('finished games', () => {
 			(globalThis as { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch;
 			const { fetchGamesWithLeagueLogos } = loadApiClient();
 			await fetchGamesWithLeagueLogos(['mlb'], { includeUpcoming: true, upcomingDays: 7, ...options });
+			// Picked while the clock is still pinned: the live window the slate request is told apart
+			// from is whatever `buildCurrentDatesQuery` answers now, not under the real clock.
+			const slateUrl = findSlatePoll(urls)!;
 			jest.useRealTimers();
-			return datesRange(urls.find(u => u.includes('dates='))!);
+			return datesRange(slateUrl);
 		};
 
 		// Two local days back, not one. Retention runs 24 hours past the estimated wrap, so a game

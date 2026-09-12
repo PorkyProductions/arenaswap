@@ -1,4 +1,9 @@
 import type { ScoreSnapshot } from '../../src/types';
+import { buildCurrentDatesQuery } from '../../src/apiClient';
+
+// Both scoreboard requests name a date window now, so the live poll is identified by the window it
+// asks for rather than by the absence of `dates=`.
+const isLivePoll = (url: string): boolean => url.includes(`dates=${buildCurrentDatesQuery()}`);
 
 const toUrl = (input: RequestInfo | URL): string => {
 	if (typeof input === 'string') return input;
@@ -128,7 +133,7 @@ describe('core API + excitement e2e flow', () => {
 			if (!url.includes('/basketball/nba/scoreboard')) {
 				throw new Error(`Unexpected URL requested: ${url}`);
 			}
-			if (url.includes('dates=')) return jsonResponse(upcomingPayload);
+			if (!isLivePoll(url)) return jsonResponse(upcomingPayload);
 			return jsonResponse(todayPayload);
 		});
 
@@ -165,7 +170,7 @@ describe('core API + excitement e2e flow', () => {
 
 		const requestedUrls = fetchSpy.mock.calls.map(([input]) => toUrl(input as RequestInfo | URL));
 		expect(requestedUrls.length).toBeGreaterThanOrEqual(4);
-		expect(requestedUrls.some(url => url.includes('dates='))).toBe(true);
+		expect(requestedUrls.some(url => !isLivePoll(url))).toBe(true);
 	});
 
 	it('uses only today scoreboard when includeUpcoming=false and returns non-final games', async () => {
@@ -205,7 +210,7 @@ describe('core API + excitement e2e flow', () => {
 		const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
 			const url = toUrl(input);
 			if (!url.includes('/basketball/nba/scoreboard')) throw new Error(`Unexpected URL requested: ${url}`);
-			if (url.includes('dates=')) throw new Error('Upcoming dates query should not be requested');
+			if (!isLivePoll(url)) throw new Error('Upcoming dates query should not be requested');
 			return jsonResponse(todayPayload);
 		});
 
@@ -221,7 +226,7 @@ describe('core API + excitement e2e flow', () => {
 		const requestedUrls = fetchSpy.mock.calls.map(([input]) => toUrl(input as RequestInfo | URL));
 		expect(requestedUrls).toHaveLength(1);
 		expect(requestedUrls[0]).toContain('/basketball/nba/scoreboard');
-		expect(requestedUrls[0]).not.toContain('dates=');
+		expect(isLivePoll(requestedUrls[0]!)).toBe(true);
 	});
 
 	it('keeps successful leagues when one league fails in a multi-league fetch', async () => {
@@ -313,7 +318,7 @@ describe('core API + excitement e2e flow', () => {
 		jest.spyOn(global, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
 			const url = toUrl(input);
 			if (!url.includes('/basketball/nba/scoreboard')) throw new Error(`Unexpected URL requested: ${url}`);
-			if (url.includes('dates=')) throw new Error('Upcoming dates query should not be requested');
+			if (!isLivePoll(url)) throw new Error('Upcoming dates query should not be requested');
 			return jsonResponse(todayPayload);
 		});
 
@@ -378,7 +383,7 @@ describe('core API + excitement e2e flow', () => {
 		const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
 			const url = toUrl(input);
 			if (!url.includes('/basketball/nba/scoreboard')) throw new Error(`Unexpected URL requested: ${url}`);
-			if (url.includes('dates=')) return jsonResponse(upcomingPayload);
+			if (!isLivePoll(url)) return jsonResponse(upcomingPayload);
 			return jsonResponse({ message: 'today scoreboard unavailable' }, 503);
 		});
 
@@ -392,7 +397,7 @@ describe('core API + excitement e2e flow', () => {
 
 		const requestedUrls = fetchSpy.mock.calls.map(([input]) => toUrl(input as RequestInfo | URL));
 		expect(requestedUrls).toHaveLength(2);
-		expect(requestedUrls.some(url => url.includes('dates='))).toBe(true);
+		expect(requestedUrls.some(url => !isLivePoll(url))).toBe(true);
 	});
 
 });

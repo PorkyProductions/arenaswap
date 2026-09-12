@@ -104,6 +104,16 @@ export const buildUpcomingDatesRangeQuery = (days: number, now: Date = new Date(
 	return `${toQueryDate(windowStart)}-${toQueryDate(windowEnd)}`;
 };
 
+// The window the live poll asks for. ESPN's dateless scoreboard is not a full slate in every
+// league: college football files by week rather than by day and trims that week to about 25
+// featured games, so a live game can simply be absent from it. Asking for the days by name returns
+// the complete card in every league instead.
+//
+// It reaches back a day because ESPN files a game under its Eastern start date, so an 11pm kickoff
+// is still filed under yesterday while it is on screen after Eastern midnight. `days: 0` ends the
+// window at the end of today, which is the last day a live game can have started.
+export const buildCurrentDatesQuery = (now: Date = new Date()): string => buildUpcomingDatesRangeQuery(0, now, 1);
+
 const ch = (n: number): number => {
 	const c = n / 255;
 	return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
@@ -595,8 +605,9 @@ const fetchLeagueGames = async (config: LeagueConfig, options: LeagueFetchOption
 	const baseParams = scoreboardParams(config);
 
 	const scoreboardUrl = `${espnBase}/${config.espnPath}/scoreboard`;
-	const baseQuery = baseParams.toString();
-	const baseUrl = baseQuery ? `${scoreboardUrl}?${baseQuery}` : scoreboardUrl;
+	const currentParams = new URLSearchParams(baseParams);
+	currentParams.set('dates', buildCurrentDatesQuery());
+	const baseUrl = `${scoreboardUrl}?${currentParams.toString()}`;
 
 	if (!includeUpcoming) {
 		const todayResult = await fetchScoreboard(baseUrl, config.id);

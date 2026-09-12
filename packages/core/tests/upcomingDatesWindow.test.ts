@@ -85,9 +85,14 @@ describe('the scoreboard request in the viewer\'s own time zone', () => {
 		(globalThis as { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch;
 
 		const leagues: LeagueId[] = ['nba'];
+		// The live poll carries `dates=` too now, so the slate request is the one naming a window
+		// other than the current one rather than simply the first with a date on it. Read before the
+		// request: `loadApiClient` resets the module registry, which takes the mock's calls with it.
+		const currentWindow = loadApiClient().buildCurrentDatesQuery();
 		await loadApiClient().fetchGamesWithLeagueLogos(leagues);
-
-		const datesUrl = fetchMock.mock.calls.map(([url]) => String(url)).find(u => u.includes('dates='));
+		const datesUrl = fetchMock.mock.calls
+			.map(([url]) => String(url))
+			.find(u => u.includes('dates=') && !u.includes(`dates=${currentWindow}`));
 		expect(datesUrl).toBeDefined();
 		expect(new URL(datesUrl!).searchParams.get('dates')).toBe('20260905-20260913');
 	});

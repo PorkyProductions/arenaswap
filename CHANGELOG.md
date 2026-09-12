@@ -1,5 +1,80 @@
 # Changelog
 
+## A live college football game stops being missing because ESPN did not feature it — 2026-09-11
+
+BC/Rutgers and Richmond/NC State were both in progress and neither was in the extension. ESPN was
+serving both the whole time.
+
+### The dateless scoreboard is a curated week, not a day
+
+Every other league's dateless scoreboard carries the current Eastern day, which is the assumption
+the live poll has always been built on. College football does not work that way: it files by week,
+and it trims that week to a featured set. Measured on the afternoon this was found, three identical
+requests came back with **24 events** against a week that has well over a hundred, and the trimming
+is editorial rather than chronological — it kept three live games and dropped two others that were
+on at that moment.
+
+`limit` does not widen it. `limit=1000` came back with fewer events than no `limit` at all, and the
+parameter is unreliable enough elsewhere that it is not worth leaning on: on one dated query
+`limit=25` returned 50 rows, `limit=50` returned 80, and `limit=1000` returned 25.
+
+Asking for the days by name is what returns the full card. The same slate that gave 24 dateless
+gives 86 dated, with all five live games in it rather than three.
+
+### The window is every league's, not college football's
+
+A league-specific branch would fix the reported games and leave the same trap set for whatever ESPN
+decides to feature next. Nothing in the product ever wanted a curated set, so the live poll now
+names its window in every league. For the leagues whose dateless response was already a full day,
+the request returns the same games it always did.
+
+**It reaches back a day.** ESPN files a game under its Eastern start date, so an 11pm kickoff is
+still filed under yesterday while it is on screen after Eastern midnight — which the dateless board
+drops at the rollover. `days: 0` ends the window at the end of today, the last day a live game can
+have started.
+
+### Why the game vanished at kickoff rather than never appearing
+
+Worth recording, because the symptom points at the wrong half of the system. `refreshSlate` keeps
+`status === 'pre'` games only, so a scheduled game reaches the popup through the slate fetch, which
+is a dated range and has always seen the whole card. The moment it kicks off it is no longer `pre`,
+it leaves `upcomingGames`, and the only thing that can carry it is `tickLeague` — which fetches with
+`includeUpcoming: false` and therefore hit the bare dateless URL. So the game was visible right up
+until it became worth watching.
+
+### Coverage
+
+No new assertions, because there is no new unit: the subject is which URL the poll asks for, and the
+bar is that every existing test still describes the request it means to.
+
+Six of them did not, and the way they broke is the part worth keeping. All six told the live poll
+and the slate poll apart by `url.includes('dates=')`, which was a true statement about the old code
+and is now true of both requests. Three failed outright. **One passed for the wrong reason** — both
+branches of its mock matched, so it served the slate payload to both requests and still asserted the
+right games. They route on the window each request names now, so neither can be picked up by
+accident.
+
+Two of the three failures were the test harness rather than the change. `openingDate` read the
+window after `jest.useRealTimers()`, which resolves it against a different day than the pinned clock
+the request was built under. And the Tokyo case read it after a second `loadApiClient()` call —
+`jest.resetModules()` empties the fetch mock's recorded calls, so the assertion was filtering an
+empty list. Both read the window while the clock is still pinned.
+
+457 core unit tests, 5 core e2e, 32 extension end-to-end and 46 docs end-to-end pass, across `lint`,
+`test` and `test:e2e`, 11 turbo tasks, zero lint warnings.
+
+The fix was then confirmed against live ESPN rather than against a fixture: the window the shipped
+code builds returns 86 events including both games, and the request it replaces returns 24 including
+neither.
+
+### What this does not fix
+
+A dated college football Saturday is **capped at about 80 events**, and that Saturday's full card is
+125 — the union of `groups=80` and `groups=81` carries 45 games the plain dated query does not. Every
+live game in the reported case is inside the 80, and closing the rest means splitting college
+football's poll into one request per division, which is a second request on the busiest slate of the
+week and belongs in its own change.
+
 ## The font warnings go quiet, and DM Sans stops shipping four copies of one file — 2026-09-11
 
 `astro build` printed **13 unresolved-asset warnings**, one per font:
