@@ -1,5 +1,117 @@
 # Changelog
 
+## The font warnings go quiet, and DM Sans stops shipping four copies of one file — 2026-09-11
+
+`astro build` printed **13 unresolved-asset warnings**, one per font:
+
+```
+/arenaswap/fonts/DMSans-Regular.woff2 referenced in /arenaswap/fonts/DMSans-Regular.woff2
+didn't resolve at build time, it will remain unchanged to be resolved at runtime
+```
+
+Nine were harmless noise and four were covering for a real broken path. Both come from the same
+misunderstanding about where the deployed base path belongs.
+
+### `checkPublicFile` joins the URL onto publicDir verbatim
+
+Vite's CSS url resolver tries `checkPublicFile` first, and that function does no base-stripping at
+all — `path.join(publicDir, url)`. The site set `$font-base-url: '/arenaswap/fonts'` to match the
+GitHub Pages base, so Vite went looking for `apps/docs/public/arenaswap/fonts/DMSans-Regular.woff2`,
+found nothing, warned, and passed the string through untouched. It reached the browser correct
+**by coincidence** — the hardcoded prefix happened to equal the base Vite would have added itself.
+
+Written bare as `/fonts`, the file is found in publicDir and Vite prepends `base` on the way out.
+The emitted declaration is byte-identical, `url(/arenaswap/fonts/DMSans-Regular.woff2)`, and the
+warning is gone. The comment block in `packages/ui/src/_fonts.scss` said the opposite, which is how
+the convention would have been reintroduced; it now says why the prefix has to be left off.
+
+### The other four were a `@font-face` nobody could have downloaded
+
+`global.scss` loaded `bootstrap-icons/font/bootstrap-icons.scss` without configuring it, so it kept
+its default `$bootstrap-icons-font-dir: './fonts'` — relative to the built stylesheet at
+`/arenaswap/_astro/global.HASH.css`, which is `/arenaswap/_astro/fonts/bootstrap-icons.woff2`. That
+file has never existed.
+
+Nothing broke, because `_site.scss` declared a **second** `@font-face` for the same family further
+down and the later rule wins outright. So the site has been shipping one dead icon-font declaration
+and one working one, and the working one was a repair for a default nobody had set. The extension
+already set `$bootstrap-icons-font-dir: '/fonts'` in `apps/extension/assets/bootstrap.scss`, which is
+what confirmed the intended shape.
+
+The docs entry sets it the same way. The duplicate in `_site.scss` is **left in place** — both
+declarations now resolve to the same two files, so removing it is a provable no-op rather than a fix,
+and it is worth its own line. `_screenshot.scss` keeps its hand-written copy because it never loads
+bootstrap-icons' stylesheet at all and that declaration is the only one those pages get.
+
+### The fonts were never only loading on one machine
+
+Worth recording, because the warning text invites exactly that fear and this machine has DM Sans,
+DM Serif Text and Lekton installed locally.
+
+It cannot happen. Nothing in `src` uses `local()` — every declaration is `url()` only — and a family
+name defined by an `@font-face` resolves to that rule rather than to an installed font of the same
+name. Verified rather than argued: the built `docs/` output was served and driven through headless
+Chrome, and all nine font files answered **200** with every `FontFace` reporting `loaded`. Every
+`url()` in the extension's compiled CSS was cross-checked against `.output/chrome-mv3/`, and all ten
+resolve to a shipped file.
+
+### DM Sans was one variable font copied four times
+
+`DMSans-Regular`, `-Medium`, `-SemiBold` and `-Bold` were **byte-identical**, all four MD5
+`7c87a648...`. Each was `DM Sans 9pt` carrying a `wght` axis from 100 to 1000 with a default instance
+of 400. Both apps shipped all four, so **110.8 kB of every install was the same file twice over
+again**.
+
+They rendered correctly, which is the part worth knowing before assuming this was a visual bug. A
+single `font-weight` descriptor on a variable font **pins** the axis to that value, so four
+declarations against one file produce four real weights rather than one weight and three synthetic
+smears. Measured in Chrome at 100px, against a family name chosen so no installed font could match
+it and contaminate the result:
+
+| descriptor | 400 | 500 | 600 | 700 |
+| --- | --- | --- | --- | --- |
+| four files | 721.703 | 734.734 | 751.047 | 763.266 |
+| one file | 721.703 | 734.734 | 751.047 | 763.266 |
+
+The 400→500 step is what settles that the axis is live rather than synthesized — synthetic bolding
+never fires below 600 and could not produce it. So three files are deleted, `DMSans-Regular.woff2`
+becomes `DMSans.woff2`, and the four `@font-face` rules all point at it. The table above is the
+measurement that the swap is free: identical to the thousandth of a pixel on every weight.
+
+**A single `font-weight: 100 1000` range would be the tidier shape and is deliberately not used.**
+It would let the axis interpolate continuously instead of resolving to one of four pinned instances,
+which is a rendering change rather than a packaging one — and this suite measures pixel geometry to
+the tenth of a pixel. Four declarations keep the bytes and leave the glyphs alone.
+
+The cost of that choice, stated plainly: **`font-weight: 800` and `900` are requested and not
+declared**, so both still resolve to the 700 face against a font that goes to 1000. All five 900s are
+in the Ludicrous Speed overlay and all fourteen 800s are in the throwaway store-screenshot routes.
+Nothing in the shipped popup asks for a weight the declarations do not cover, which is why this is a
+note rather than a fix.
+
+### Coverage
+
+Nothing was added to the suite. The subject is which path a build tool writes into a URL, and the
+bar is that the emitted CSS did not move — which is measured directly rather than asserted.
+
+Every `url()` in the compiled output was captured before and after. The nine DM Sans, Lekton, Geist
+and DM Serif declarations are unchanged to the byte. The only difference anywhere is the two
+bootstrap-icons entries moving from `./fonts/` to `/arenaswap/fonts/`, which is the broken path being
+repaired.
+
+`astro build` goes from 13 unresolved-asset warnings to **0**. The three `wxt build` targets were
+already clean of them and still are; their one remaining warning is Rolldown's chunk-size notice,
+which is unrelated.
+
+The DM Sans consolidation is measured the same way — the four weights were rendered and their widths
+compared against the four-file baseline before the duplicates were deleted, and all four match to the
+thousandth of a pixel. All three store zips were opened and confirmed to carry one `fonts/DMSans.woff2`
+at 36,932 bytes and no `-Regular`, `-Medium`, `-SemiBold` or `-Bold` beside it.
+
+536 component tests, 32 extension end-to-end tests and 46 docs end-to-end tests pass, across `lint`,
+`test`, `test:e2e`, all three builds and all three zips. Those component specs read computed styles
+and measure text geometry, which is the coverage that matters most for a font swap.
+
 ## "Starts soon" comes out of the scoreboard face — 2026-09-11
 
 A refinement pass over the popup, run against the rendered screens rather than the source. Most of

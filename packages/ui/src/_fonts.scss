@@ -1,6 +1,8 @@
-// Set $font-base-url before importing this file:
-//   $font-base-url: '/arenaswap/fonts';  // docs (GitHub Pages base path)
-//   $font-base-url: '/fonts';            // extension (no base path)
+// Set $font-base-url before importing this file. It is a path into the app's own public/
+// directory and must NOT carry the deployed base path: Vite's checkPublicFile joins it onto
+// publicDir verbatim, so '/arenaswap/fonts' sends it looking for public/arenaswap/fonts and
+// it gives up with a 'didn't resolve at build time' warning. Written bare, Vite finds the
+// file and prepends `base` itself, which is how the docs site still emits /arenaswap/fonts.
 // Defaults to '/fonts' if not set.
 
 $font-base-url: '/fonts' !default;
@@ -15,10 +17,14 @@ $font-base-url: '/fonts' !default;
 	}
 }
 
-@include as-woff2-face('DM Sans', 'DMSans-Regular',  400);
-@include as-woff2-face('DM Sans', 'DMSans-Medium',   500);
-@include as-woff2-face('DM Sans', 'DMSans-SemiBold', 600);
-@include as-woff2-face('DM Sans', 'DMSans-Bold',     700);
+// One file for all four weights. DM Sans ships as a variable font with a wght axis from 100 to
+// 1000, and a single font-weight descriptor pins that axis rather than leaving the browser to
+// synthesize — so these are four real weights out of one download, not one weight and three
+// smears. The four were separate files until 2026-09-11 and were byte-identical to each other.
+@include as-woff2-face('DM Sans', 'DMSans', 400);
+@include as-woff2-face('DM Sans', 'DMSans', 500);
+@include as-woff2-face('DM Sans', 'DMSans', 600);
+@include as-woff2-face('DM Sans', 'DMSans', 700);
 // Only for the Lattice & Company parent lockup, never for ArenaSwap's own type.
 @include as-woff2-face('DM Serif Text', 'DMSerifText-Regular', 400);
 @include as-woff2-face('Lekton', 'Lekton-Regular',   400);
