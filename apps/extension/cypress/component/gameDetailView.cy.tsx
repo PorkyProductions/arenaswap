@@ -212,6 +212,20 @@ describe('gameDetailView countdown', () => {
 		cy.get('.gd-countdown-soon').should('have.text', 'Starts soon');
 	});
 
+	// The fallback is a word, not a figure, so it takes the body face. Lekton is for the countdown
+	// digits beside it and for every other number in the popup.
+	it('sets "Starts soon" in the body font rather than the scoreboard face', () => {
+		mountDetail(makePreGame(0));
+
+		// Three DM Sans stacks coexist in this project, so the first family is the assertion
+		// rather than the whole string.
+		cy.get('.gd-countdown-soon').should($el => {
+			const face = getComputedStyle($el[0]).fontFamily;
+			expect(face.split(',')[0].replace(/["']/g, ''), 'countdown fallback face').to.equal('DM Sans');
+			expect(face.toLowerCase(), 'countdown fallback face').to.not.contain('lekton');
+		});
+	});
+
 	it('falls back to "Starts soon" when no start time is scheduled', () => {
 		mountDetail({ ...makePreGame(0), startTime: undefined });
 		cy.get('.gd-countdown-soon').should('have.text', 'Starts soon');

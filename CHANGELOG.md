@@ -1,5 +1,81 @@
 # Changelog
 
+## "Starts soon" comes out of the scoreboard face — 2026-09-11
+
+A refinement pass over the popup, run against the rendered screens rather than the source. Most of
+what it looked for is not there: the extension uses Lekton for the game clock, the period, the
+down-and-distance line, the shootout score, team records and the pre-game start time, all of which
+are scoreboard data, and the scores themselves are Geist rather than Lekton because DM Sans ships no
+tabular figures at all. The debug panel is monospace top to bottom, which is what a developer
+readout should be, and the Ludicrous Speed cockpit wears it as a costume.
+
+One string was not data. `.gd-countdown-soon` holds `detail.startsSoon` — the words "Starts soon",
+which the countdown falls back to once the clock runs out — and it was set in Lekton beside digits
+that are set in Geist. It takes the body face now.
+
+### Two things that looked like redundancy and were the fixture
+
+Both came out of the e2e screenshots and neither is real, which is worth recording so the next person
+reading those images does not chase them:
+
+- The signal values rendered as `32.800000000000004` and the subtotal as `82.00000000000001`. That
+  is `makeScore`'s `total * 0.4` in `cypress/support/fixtures.ts`; `scorer.ts` rounds every signal,
+  boost and penalty it emits, so no real game can produce it.
+- Each team's abbreviation appeared twice per card. The fixture carries no crest images, so
+  `.crest-fallback` prints the abbreviation inside the empty circle — which is the fallback doing its
+  job, above a `.team-abbreviation` that is the only copy a real card shows.
+
+Dumping the element tree settled both in one pass. A screenshot of this popup is worth less than its
+DOM, because at 320px a fallback and a duplicate look identical.
+
+### A dead locale key, and a label set that could not agree on capitals
+
+`detail.powerScoreLabel` was in all twelve locale files and rendered nowhere — the only reference to
+it was the `structure.d.ts` WXT generates from the files themselves, which is how it survived. No
+key in the popup is built dynamically in a way that could reach it: the three template-literal call
+sites are `loading.m*` and `noGames.m*`, and every other indirect lookup goes through an explicit
+map.
+
+The breakdown card's seven boost and penalty labels were split four to three on capitalization —
+`Game boost`, `Scoring opportunity`, `Postseason boost` and `Clock stall penalty` in sentence case
+against `Volatility Boost`, `Volatility Penalty` and `Favorite Boost` in title case. The three moved
+to sentence case, and **only in English**: German capitalizes the nouns by rule, the five Romance
+locales were already sentence case throughout, Filipino is internally consistent in title case, and
+the four CJK locales have no case to be inconsistent about. Checking that before editing is the
+difference between fixing an inconsistency and inventing one in eleven other files.
+
+### What was deliberately left
+
+The `LIVE` label on a live card stays. It sits beside a pulsing dot inside a section already headed
+Live Games, so the word is redundant to a sighted reader — but it is the only part of that state
+that does not depend on colour, and the row it shares with the postseason round label is not tight
+enough for the space to be worth buying.
+
+`Game boost` still appears twice on the detail screen, once as a breakdown row and once as the card
+with the input; `Signals total` still restates `Final PowerScore` when no boost or penalty is
+non-zero; and the five boost rows still render at `0` on an ordinary game. Each is a real
+redundancy and each is a decision about what the breakdown is for rather than a slip, so none is
+smuggled in here.
+
+### Coverage
+
+One component test, which asserts the countdown fallback's resolved first family is DM Sans and that
+`lekton` appears nowhere in its stack. It was confirmed failing with the declaration put back —
+`expected 'Lekton' to equal 'DM Sans'` — so it measures the rule rather than agreeing with itself.
+
+The first version of it compared the element's whole computed `fontFamily` against `body`'s and
+failed for the wrong reason: **three DM Sans stacks coexist in this project**, and the element and
+the body resolve to two different ones. `packages/ui/src/_bootstrap.scss` sets Bootstrap's
+`$font-family-base` to `'DM Sans', system-ui, -apple-system, sans-serif`, while
+`apps/extension/assets/global.scss` declares `'DM Sans', system-ui, sans-serif` at line 37 and
+`'DM Sans', sans-serif` at 105 and 365. Nothing renders wrong, because DM Sans is bundled and always
+the first family to resolve, so the fallbacks behind it are unreachable. Consolidating them is its
+own change.
+
+Three existing assertions in `powerScoreBreakdown.cy.tsx` hardcoded the old capitals and were
+updated with the strings. 459 unit tests, 536 component tests and 32 end-to-end tests pass, and
+`oxlint` and both `tsc` projects are clean.
+
 ## The test browser is Chrome, and Cypress is 16 — 2026-09-11
 
 Every `cypress run` in the repo was launching the bundled Electron, and the run banner had started

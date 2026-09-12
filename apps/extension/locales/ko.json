@@ -250,7 +250,6 @@
 		"totalLabel": "{total} / {max}",
 		"totalLabelBaseMax": "{total} (기본 최대 {max})",
 		"back": "뒤로",
-		"powerScoreLabel": "PowerScore",
 		"teamRecord": "전적: {record}",
 		"unitDays": "일",
 		"unitHours": "시간",

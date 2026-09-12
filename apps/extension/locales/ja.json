@@ -250,7 +250,6 @@
 		"totalLabel": "{total} / {max}",
 		"totalLabelBaseMax": "{total}（ベース上限 {max}）",
 		"back": "戻る",
-		"powerScoreLabel": "PowerScore",
 		"teamRecord": "戦績: {record}",
 		"unitDays": "日",
 		"unitHours": "時間",

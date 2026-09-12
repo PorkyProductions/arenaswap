@@ -250,7 +250,6 @@
 		"totalLabel": "{total} / {max}",
 		"totalLabelBaseMax": "{total} (máx. base {max})",
 		"back": "Atrás",
-		"powerScoreLabel": "PowerScore",
 		"teamRecord": "Récord: {record}",
 		"unitDays": "d",
 		"unitHours": "h",

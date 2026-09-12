@@ -250,7 +250,6 @@
 		"totalLabel": "{total} / {max}",
 		"totalLabelBaseMax": "{total} (max base {max})",
 		"back": "Indietro",
-		"powerScoreLabel": "PowerScore",
 		"teamRecord": "Bilancio: {record}",
 		"unitDays": "g",
 		"unitHours": "h",

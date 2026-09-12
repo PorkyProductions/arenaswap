@@ -250,7 +250,6 @@
 		"totalLabel": "{total} / {max}",
 		"totalLabelBaseMax": "{total} (max na base {max})",
 		"back": "Bumalik",
-		"powerScoreLabel": "PowerScore",
 		"teamRecord": "Record: {record}",
 		"unitDays": "d",
 		"unitHours": "h",

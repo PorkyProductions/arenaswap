@@ -250,7 +250,6 @@
 		"totalLabel": "{total} / {max}",
 		"totalLabelBaseMax": "{total} (base max {max})",
 		"back": "Retour",
-		"powerScoreLabel": "PowerScore",
 		"teamRecord": "Bilan : {record}",
 		"unitDays": "j",
 		"unitHours": "h",

@@ -250,7 +250,6 @@
 		"totalLabel": "{total} / {max}",
 		"totalLabelBaseMax": "{total} (máx. base {max})",
 		"back": "Voltar",
-		"powerScoreLabel": "PowerScore",
 		"teamRecord": "Balanço: {record}",
 		"unitDays": "d",
 		"unitHours": "h",

@@ -66,15 +66,15 @@ describe('PowerScoreBreakdown win probability variance', () => {
 		cy.contains(/volatility/i).should('not.exist');
 	});
 
-	it('shows "Volatility Boost" label and positive value for positive variance', () => {
+	it('shows "Volatility boost" label and positive value for positive variance', () => {
 		cy.mount(<PowerScoreBreakdown {...defaultProps} winProbabilityVariance={7} />);
-		cy.contains('Volatility Boost').should('exist');
+		cy.contains('Volatility boost').should('exist');
 		cy.contains('+7').should('exist');
 	});
 
-	it('shows "Volatility Penalty" label and negative value for negative variance', () => {
+	it('shows "Volatility penalty" label and negative value for negative variance', () => {
 		cy.mount(<PowerScoreBreakdown {...defaultProps} winProbabilityVariance={-5} />);
-		cy.contains('Volatility Penalty').should('exist');
+		cy.contains('Volatility penalty').should('exist');
 		cy.contains('-5').should('exist');
 	});
 
@@ -118,7 +118,7 @@ describe('PowerScoreBreakdown factor icons', () => {
 describe('PowerScoreBreakdown boosts', () => {
 	it('shows "+N" for favorite bonus when > 0', () => {
 		cy.mount(<PowerScoreBreakdown {...defaultProps} favoriteBonus={10} favoriteTeamCount={1} />);
-		cy.contains('Favorite Boost').parent().contains('+10').should('exist');
+		cy.contains('Favorite boost').parent().contains('+10').should('exist');
 	});
 
 	it('shows the favorite team count note when favoriteBonus > 0', () => {
