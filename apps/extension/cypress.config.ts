@@ -27,6 +27,10 @@ const componentStubs: Record<string, string> = {
 };
 
 export default defineConfig({
+	// Cypress 16 deprecates its bundled Electron and will drop it in a later major. Chrome is
+	// the browser the extension ships against, so both runners take it rather than a flag at each
+	// call site — `defaultBrowser` covers `cypress open` too, which a `--browser` flag would not.
+	defaultBrowser: 'chrome',
 	component: {
 		devServer: {
 			framework: 'react',

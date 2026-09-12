@@ -10,6 +10,10 @@ const basePath = '/arenaswap/';
 const e2ePort = 5198;
 
 export default defineConfig({
+	// Cypress 16 deprecates its bundled Electron and will drop it in a later major. The site is
+	// a static build, so any installed browser would serve — Chrome matches what the extension's
+	// suite runs on, which keeps one browser to install rather than two.
+	defaultBrowser: 'chrome',
 	e2e: {
 		baseUrl: `http://127.0.0.1:${e2ePort}${basePath}`,
 		specPattern: 'cypress/e2e/**/*.cy.ts',

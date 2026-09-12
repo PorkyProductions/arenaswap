@@ -1,5 +1,103 @@
 # Changelog
 
+## The test browser is Chrome, and Cypress is 16 — 2026-09-11
+
+Every `cypress run` in the repo was launching the bundled Electron, and the run banner had started
+saying what that costs:
+
+```
+Browser: Electron 146 (headless) (deprecated)
+```
+
+Cypress 16 deprecates its bundled Electron and a later major removes it, at which point an implicit
+fallback to it fails the run outright. `defaultBrowser: 'chrome'` at the root of both
+`cypress.config.ts` files is the whole fix — 535 component tests and 78 end-to-end tests pass on
+Chrome 152 with the counts and the wall time unchanged.
+
+### Config rather than a flag on each script
+
+`--browser chrome` would have to go on four scripts — `test:component`, `test:e2e` twice, and
+`cypress:open` — and `cypress open` is the one that matters, because a flag there is the one a person
+running the interactive runner by hand will not have typed. `defaultBrowser` covers every entry
+point, including a bare `npx cypress run`, from one line per app.
+
+Chrome rather than Edge or Firefox, both of which are also installed here: it is the browser the
+extension's primary build targets, so the component specs measure text in the engine that will
+render it. It does mean the suite is now Chrome-only where it used to be Chrome-or-Electron, and the
+Firefox gap the review notes already call out — a `dragstart` that never sets `dataTransfer` is
+broken only in Firefox and green under 11 Cypress tests — is unchanged by this. Neither browser was
+ever going to catch it.
+
+### What else 16 broke, and how much of it this repo touches
+
+Nine of the ten breaking changes are inert here, which is worth writing down so the next person does
+not go looking:
+
+| | this repo |
+| --- | --- |
+| `Cypress.env()` removed | no call sites |
+| `cy.exec()` removed, `execTimeout` with it | no call sites |
+| `cy.end()` removed | no call sites |
+| `experimentalSourceRewriting` removed | never set |
+| `experimentalMemoryManagement` → `manageBrowserMemory` | never set |
+| `experimentalFastVisibility` → `visibilityStrategy` | never set; `'modern'` is the new default |
+| CoffeeScript support removed | no `.coffee` files |
+| cookie and storage queries now retry | no call sites |
+| Vite 5, 6 and 7 dropped from component testing | on 8.2.2 already |
+| native browser network on Chrome | **this one** |
+
+`keystrokeDelay` dropping from 10ms to 0 is the one that looked like it should matter, since there
+are 20 `cy.type()` calls and every one of them drives a React-controlled search box that filters as
+it goes. All 20 pass untouched, because the specs assert on the filtered result through retrying
+assertions rather than on a keystroke landing within a window.
+
+### The native network is the part that could have bitten
+
+Chrome, Chromium and Edge intercept test traffic on the browser's own network in 16 rather than
+routing it through Cypress's proxy, which is what buys HTTP/2 and removes the six-connection
+ceiling. Firefox, WebKit and Electron stay on the legacy path, so this is a difference the Electron
+run could not have surfaced.
+
+The e2e support file leans on `cy.intercept` for everything a spec would otherwise fetch off the
+network: a 1x1 PNG for every crest on `a.espncdn.com`, a blanket stub for `site.api.espn.com`, and a
+`/teams` handler that replies per league. Two things are gone under the new path —
+`req.httpVersion` is no longer reported, and compression headers are absent from intercepted
+responses. Nothing in the suite reads either, and all 32 extension specs stub and match the same way
+they did.
+
+`forceHttp1` exists to put every browser back on the legacy path during a migration, and it is
+deprecated on arrival. It is not set. Reaching for it would mean shipping a flag that is scheduled
+for removal in order to avoid a change that turned out to cost nothing.
+
+### Node 20 and 25 are out
+
+Cypress 16 wants Node 22.x, 24.x or 26.x. The root `engines.node` read `^20.17.0 || >=22.9.0`, which
+both permitted a Node 20 that Cypress will now refuse and a Node 25 that went EOL in June. It reads
+`^22.9.0 || ^24.0.0 || >=26.0.0`. The deploy workflow was already pinned to 26.
+
+### Coverage
+
+Nothing was added to the suite. There is no unit here to test — the subject is which binary the
+runner launches, and the bar is that none of the 613 existing assertions moved.
+
+That bar is measured against a **baseline on 16 with Electron still selected**, not against the
+suite as it stood on 15. Running 16-on-Electron first is what separates the two things this change
+does at once: a version bump that could have broken something on its own, and a browser swap.
+
+| | Electron 146 | Chrome 152 |
+| --- | --- | --- |
+| component | 535 passing, 01:07 | 535 passing, 01:03 |
+| `apps/extension` e2e | 32 passing, 00:12 | 32 passing, 00:11 |
+| `apps/docs` e2e | 46 passing, 00:10 | 46 passing, 00:09 |
+
+The component suite is the one that had the most to lose, because those specs read computed styles
+and measure pixel geometry against budgets down to the tenth of a pixel, and Chrome 152 is six
+Chromium majors ahead of what Electron 146 bundles. Not one measurement crossed a threshold.
+
+Both `tsc -p cypress` projects and both apps' `tsc --noEmit` pass against 16's types. The three
+`wxt build` targets and the Jest projects are deliberately not re-run: Cypress is in neither path,
+and the working tree is not clean.
+
 ## A league with nothing on stops asking ESPN every three minutes — 2026-09-11
 
 Polling had two states. Eager scales from 6 to 25 seconds off the best live PowerScore in the
