@@ -63,6 +63,7 @@ interface mainViewProps {
 	onReviewSuggestions: () => void;
 	onDismissSuggestions: () => void;
 	onStartWalkthrough: () => void;
+	onOpenGuide: () => void;
 	onRefresh: () => void;
 	showReviewPrompt: boolean;
 	onToggleEnabled: () => void;
@@ -157,6 +158,7 @@ const mainView = ({
 	onReviewSuggestions,
 	onDismissSuggestions,
 	onStartWalkthrough,
+	onOpenGuide,
 	onRefresh,
 	showReviewPrompt,
 	onToggleEnabled,
@@ -241,6 +243,7 @@ const mainView = ({
 				onToggleEnabled={onToggleEnabled}
 				onOpenSettings={onOpenSetup}
 				onStartTour={onStartWalkthrough}
+				onOpenGuide={onOpenGuide}
 			/>
 
 			<GameListHeader isLoading={isLoading} hasError={hasError} loadingMessage={loadingMessage} onRefresh={onRefresh} />

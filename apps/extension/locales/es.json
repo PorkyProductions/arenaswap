@@ -229,6 +229,7 @@
 	"main": {
 		"tourButton": "Recorrido",
 		"settingsButton": "Ajustes",
+		"guideButton": "Guía",
 		"onStandbyStream": "En Standby Stream — esperando acción",
 		"sectionActiveLiveTabs": "Pestañas activas",
 		"sectionOtherLiveGames": "Partidos en vivo",
@@ -238,6 +239,21 @@
 		"upcomingPreviousDay": "Día anterior",
 		"upcomingNextDay": "Día siguiente",
 		"enableToggleLabel": "Activar cambio automático"
+	},
+	"guide": {
+		"bestWindow": "Mejor momento para ver",
+		"bandGames": {
+			"1": "1 partido",
+			"n": "$1 partidos"
+		},
+		"bandFavorites": {
+			"1": "1 favorito",
+			"n": "$1 favoritos"
+		},
+		"empty": "Hoy no hay nada en cartelera.",
+		"loading": "Cargando los partidos de hoy…",
+		"favoriteGame": "Uno de tus equipos favoritos",
+		"at": "vs."
 	},
 	"detail": {
 		"legendCloseness": "Igualdad",

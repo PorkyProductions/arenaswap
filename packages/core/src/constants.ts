@@ -128,6 +128,10 @@ export const defaultUpcomingGamesDays = 7;
 export const upcomingGamesDaysMin = 1;
 export const upcomingGamesDaysMax = 14;
 
+// The guide pages a day at a time and its whole point is having somewhere to page to, so it floors
+// the Up Next setting rather than following it all the way down. At 1 there is no future to look at.
+export const guideMinUpcomingDays = 3;
+
 
 // Score delta required to trigger a switch. Calibrated via `npm run powerscore:simulate`, then
 // nudged ~25% stickier; level 4 sits just above the median best-vs-runner-up gap.
@@ -212,6 +216,16 @@ export const createFavoriteTeamKey = (leagueId: LeagueId, teamId: string): strin
 
 export const isFavoriteTeamKey = (value: unknown): value is string => (
 	typeof value === 'string' && parseFavoriteTeamKey(value) !== null
+);
+
+// Lives here rather than in the popup because the guide asks the same question, and a second
+// favourite-matching path is how the two drift.
+export const isFavoriteTeamGame = (
+	game: Pick<Game, 'league' | 'homeTeam' | 'awayTeam'>,
+	favoriteTeamIds: Set<string>,
+): boolean => (
+	favoriteTeamIds.has(createFavoriteTeamKey(game.league, game.homeTeam.id))
+	|| favoriteTeamIds.has(createFavoriteTeamKey(game.league, game.awayTeam.id))
 );
 
 export const allSignalNames: readonly SignalName[] = ['closeness', 'lateGame', 'momentum', 'leadChanges', 'comeback'] as const;

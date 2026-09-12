@@ -229,6 +229,7 @@
 	"main": {
 		"tourButton": "Tour",
 		"settingsButton": "Einstellungen",
+		"guideButton": "Guide",
 		"onStandbyStream": "Im Standby Stream, wartet auf Action",
 		"sectionActiveLiveTabs": "Aktive Tabs",
 		"sectionOtherLiveGames": "Live-Spiele",
@@ -238,6 +239,21 @@
 		"upcomingPreviousDay": "Vorheriger Tag",
 		"upcomingNextDay": "Nächster Tag",
 		"enableToggleLabel": "Automatisches Wechseln aktivieren"
+	},
+	"guide": {
+		"bestWindow": "Beste Zeit zum Zuschauen",
+		"bandGames": {
+			"1": "1 Spiel",
+			"n": "$1 Spiele"
+		},
+		"bandFavorites": {
+			"1": "1 Favorit",
+			"n": "$1 Favoriten"
+		},
+		"empty": "Heute läuft nichts.",
+		"loading": "Die heutigen Spiele werden geladen…",
+		"favoriteGame": "Eines deiner Lieblingsteams",
+		"at": "-"
 	},
 	"detail": {
 		"legendCloseness": "Ausgeglichenheit",

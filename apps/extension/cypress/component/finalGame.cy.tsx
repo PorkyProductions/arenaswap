@@ -189,6 +189,7 @@ const StatefulMainView = ({ games, prefs, favoriteTeamIds = new Set<string>() }:
 			onReviewSuggestions={() => {}}
 			onDismissSuggestions={() => {}}
 			onStartWalkthrough={() => {}}
+			onOpenGuide={() => {}}
 			onRefresh={() => {}}
 			showReviewPrompt={false}
 			onToggleEnabled={() => {}}

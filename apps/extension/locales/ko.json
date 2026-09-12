@@ -229,6 +229,7 @@
 	"main": {
 		"tourButton": "투어",
 		"settingsButton": "설정",
+		"guideButton": "편성표",
 		"onStandbyStream": "Standby Stream 대기 중 — 액션을 기다리고 있어요",
 		"sectionActiveLiveTabs": "활성 탭",
 		"sectionOtherLiveGames": "진행 중인 경기",
@@ -238,6 +239,21 @@
 		"upcomingPreviousDay": "이전 날",
 		"upcomingNextDay": "다음 날",
 		"enableToggleLabel": "자동 전환 활성화"
+	},
+	"guide": {
+		"bestWindow": "최고의 시청 시간",
+		"bandGames": {
+			"1": "1경기",
+			"n": "$1경기"
+		},
+		"bandFavorites": {
+			"1": "내 팀 1경기",
+			"n": "내 팀 $1경기"
+		},
+		"empty": "오늘은 경기가 없네요.",
+		"loading": "오늘 경기 불러오는 중…",
+		"favoriteGame": "응원팀 경기",
+		"at": "vs"
 	},
 	"detail": {
 		"legendCloseness": "접전도",

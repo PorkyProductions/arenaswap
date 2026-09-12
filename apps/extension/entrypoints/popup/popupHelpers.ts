@@ -1,5 +1,5 @@
 import { BackgroundStateSchema } from '@arenaswap/core';
-import { createFavoriteTeamKey, estimatedWrapMs, leagueConfigs } from '@arenaswap/core/constants';
+import { estimatedWrapMs, isFavoriteTeamGame, leagueConfigs } from '@arenaswap/core/constants';
 import type {
 	BackgroundState,
 	Game,
@@ -97,10 +97,8 @@ export const moveLeague = (order: LeagueId[], fromIndex: number, toIndex: number
 	return next;
 };
 
-export const isFavoriteTeamGame = (game: Game, favoriteTeamIds: Set<string>): boolean => (
-	favoriteTeamIds.has(createFavoriteTeamKey(game.league, game.homeTeam.id))
-	|| favoriteTeamIds.has(createFavoriteTeamKey(game.league, game.awayTeam.id))
-);
+// Re-exported rather than redefined: it moved to core so the guide can ask the same question.
+export { isFavoriteTeamGame };
 
 export const buildFavoritePinnedComparator = (
 	leagueRank: Record<LeagueId, number>,

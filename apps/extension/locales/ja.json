@@ -229,6 +229,7 @@
 	"main": {
 		"tourButton": "ツアー",
 		"settingsButton": "設定",
+		"guideButton": "番組表",
 		"onStandbyStream": "Standby Stream 中 — アクションを待っています",
 		"sectionActiveLiveTabs": "アクティブタブ",
 		"sectionOtherLiveGames": "ライブ試合",
@@ -238,6 +239,21 @@
 		"upcomingPreviousDay": "前の日",
 		"upcomingNextDay": "次の日",
 		"enableToggleLabel": "自動切り替えを有効にする"
+	},
+	"guide": {
+		"bestWindow": "観戦のベストタイム",
+		"bandGames": {
+			"1": "1試合",
+			"n": "$1試合"
+		},
+		"bandFavorites": {
+			"1": "1件がお気に入り",
+			"n": "$1件がお気に入り"
+		},
+		"empty": "今日は試合がお休みです。",
+		"loading": "今日の試合を読み込み中…",
+		"favoriteGame": "あなたのお気に入りチーム",
+		"at": "vs"
 	},
 	"detail": {
 		"legendCloseness": "接戦度",

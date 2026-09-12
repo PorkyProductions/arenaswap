@@ -12,6 +12,7 @@ import {
 	applyDisabledSignals,
 	createDefaultUserPreferences,
 	createFavoriteTeamKey,
+	guideMinUpcomingDays,
 	normalizeUserPreferences,
 	pollIntervalMs,
 	pollDormantMinMs,
@@ -26,6 +27,7 @@ import type {
 	DebugState,
 	ExtensionMessage,
 	Game,
+	GuideSlate,
 	LeagueId,
 	PowerScoreResult,
 	PowerScoreSnapshot,
@@ -1059,6 +1061,33 @@ export default defineBackground(() => {
 					cooldownSeconds: prefs.cooldownSeconds,
 					switchDelaySeconds: prefs.switchDelaySeconds,
 				};
+			});
+		}
+
+		if (msg.type === 'GET_GUIDE_SLATE') {
+			return stateReady.then(async (): Promise<GuideSlate> => {
+				// Demo mode has no network behind it, so the simulator's own slate is the answer.
+				if (demoMode && simulator) return { games, leagueLogos, gameBoosts };
+
+				// Deliberately bypasses both of refreshSlate's preference gates: the guide draws the
+				// whole day whatever the popup is configured to list. Equally deliberately it does not
+				// widen `games` — afterFetch scores off games.filter(status === 'in'), and the switch
+				// target and the poll cadence read that same array, so extra entries would change
+				// which game the extension switches to.
+				try {
+					const result = await fetchGamesWithLeagueLogos(prefs.enabledLeagues, {
+						includeUpcoming: true,
+						// Follows the Up Next setting so the two surfaces agree about how far ahead the
+						// product looks, floored so a guide that can only ever show today still has a
+						// future to page into.
+						upcomingDays: Math.max(prefs.upcomingGamesDays, guideMinUpcomingDays),
+						includeFinal: true,
+					});
+					return { ...result, gameBoosts };
+				} catch (err) {
+					logWarn('Failed to fetch the guide slate.', err);
+					return { games: [], leagueLogos, gameBoosts };
+				}
 			});
 		}
 	});

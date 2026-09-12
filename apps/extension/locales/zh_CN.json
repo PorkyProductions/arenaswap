@@ -229,6 +229,7 @@
 	"main": {
 		"tourButton": "引导教程",
 		"settingsButton": "设置",
+		"guideButton": "节目表",
 		"onStandbyStream": "处于 Standby Stream，等待精彩时刻",
 		"sectionActiveLiveTabs": "活跃标签页",
 		"sectionOtherLiveGames": "直播比赛",
@@ -238,6 +239,21 @@
 		"upcomingPreviousDay": "前一天",
 		"upcomingNextDay": "后一天",
 		"enableToggleLabel": "启用自动切换"
+	},
+	"guide": {
+		"bestWindow": "最佳观赛时间",
+		"bandGames": {
+			"1": "1 场比赛",
+			"n": "$1 场比赛"
+		},
+		"bandFavorites": {
+			"1": "1 场收藏",
+			"n": "$1 场收藏"
+		},
+		"empty": "今天没什么好看的。",
+		"loading": "今天的比赛加载中……",
+		"favoriteGame": "您收藏的球队之一",
+		"at": "vs"
 	},
 	"detail": {
 		"legendCloseness": "接近度",

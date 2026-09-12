@@ -28,6 +28,7 @@ export const defaultStrings: Record<string, string> = {
 	'field.noPossession': 'Field position',
 	'main.tourButton': 'Tour',
 	'main.settingsButton': 'Settings',
+	'main.guideButton': 'Guide',
 	'main.sectionActiveLiveTabs': 'Active Tabs',
 	'main.sectionOtherLiveGames': 'Live Games',
 	'main.sectionUpNext': 'Up Next',

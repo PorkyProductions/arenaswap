@@ -70,16 +70,20 @@ describe('the settings cog', () => {
 		}));
 	});
 
+	// Addressed through the gear glyph rather than as the last `.popup-settings-button`: the header
+	// carries a third button now, and an ordinal selector that meant the cog by accident would have
+	// silently started asserting against that one instead.
+	//
 	// The website mounts this same header as a picture of the popup, with both buttons disabled — and
 	// a disabled button still matches `:hover`. Focus is not a route in either direction there, so
 	// the guard is checked as the rule's own selector against the two rendered states.
 	it('stays inert on a header that is only being shown', () => {
 		mountHeader(false);
-		cy.get('.popup-settings-button').last().should(([button]: JQuery<HTMLElement>) => {
+		cy.get('.bi-gear-fill').parent().should(([button]: JQuery<HTMLElement>) => {
 			expect(button.matches('.popup-settings-button:not(:disabled)')).to.equal(false);
 		});
 		mountHeader();
-		cy.get('.popup-settings-button').last().should(([button]: JQuery<HTMLElement>) => {
+		cy.get('.bi-gear-fill').parent().should(([button]: JQuery<HTMLElement>) => {
 			expect(button.matches('.popup-settings-button:not(:disabled)')).to.equal(true);
 		});
 	});
@@ -88,7 +92,7 @@ describe('the settings cog', () => {
 	// so nothing in the header may move under it.
 	it('moves no part of the header with it', () => {
 		mountHeader();
-		cy.get('.popup-settings-button').last().then(([button]: JQuery<HTMLElement>) => {
+		cy.get('.bi-gear-fill').parent().then(([button]: JQuery<HTMLElement>) => {
 			const resting = button.getBoundingClientRect();
 			button.focus();
 			const turned = button.getBoundingClientRect();

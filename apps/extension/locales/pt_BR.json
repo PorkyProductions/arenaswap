@@ -229,6 +229,7 @@
 	"main": {
 		"tourButton": "Tour",
 		"settingsButton": "Configurações",
+		"guideButton": "Guia",
 		"onStandbyStream": "No Standby Stream, aguardando ação",
 		"sectionActiveLiveTabs": "Abas ativas",
 		"sectionOtherLiveGames": "Jogos ao vivo",
@@ -238,6 +239,21 @@
 		"upcomingPreviousDay": "Dia anterior",
 		"upcomingNextDay": "Próximo dia",
 		"enableToggleLabel": "Ativar troca automática"
+	},
+	"guide": {
+		"bestWindow": "Melhor horário para assistir",
+		"bandGames": {
+			"1": "1 jogo",
+			"n": "$1 jogos"
+		},
+		"bandFavorites": {
+			"1": "1 favorito",
+			"n": "$1 favoritos"
+		},
+		"empty": "Nada rolando hoje.",
+		"loading": "Carregando os jogos de hoje…",
+		"favoriteGame": "Um dos seus times favoritos",
+		"at": "x"
 	},
 	"detail": {
 		"legendCloseness": "Equilíbrio",

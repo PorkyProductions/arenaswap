@@ -7,6 +7,7 @@ import type {
 	SportTypeConfig,
 	ScorerTunables,
 	LeagueConfig,
+	LeagueRunMinutes,
 } from 'powerscore';
 
 export type SignalName = 'closeness' | 'lateGame' | 'momentum' | 'leadChanges' | 'comeback';
@@ -19,6 +20,7 @@ export type {
 	SportTypeConfig,
 	ScorerTunables,
 	LeagueConfig,
+	LeagueRunMinutes,
 };
 
 // Baseball pitchers and hockey goalies arrive in the same `probables` structure, so this is not
@@ -275,6 +277,20 @@ export interface GetDebugStateMessage {
 	type: 'GET_DEBUG_STATE';
 }
 
+// The guide draws today's whole slate, including finals, whatever the popup's display preferences
+// say. refreshSlate discards `pre` games when showUpcomingGames is off and `post` games when
+// keepFinalGames is off, and tickLeague evicts anything extra within one poll, so the guide fetches
+// for itself rather than reading GET_STATE.
+export interface GetGuideSlateMessage {
+	type: 'GET_GUIDE_SLATE';
+}
+
+export interface GuideSlate {
+	games: Game[];
+	leagueLogos: LeagueLogoMap;
+	gameBoosts: Record<string, number>;
+}
+
 export interface DebugState {
 	pollModes: Record<string, 'eager' | 'dormant' | 'hebetudinous'>;
 	leagueIntervals: Record<string, number>;
@@ -304,4 +320,5 @@ export type ExtensionMessage =
 	| GetStateMessage
 	| SetDemoModeMessage
 	| SetStandbyStreamTabMessage
-	| GetDebugStateMessage;
+	| GetDebugStateMessage
+	| GetGuideSlateMessage;

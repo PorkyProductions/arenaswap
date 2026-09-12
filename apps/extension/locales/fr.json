@@ -229,6 +229,7 @@
 	"main": {
 		"tourButton": "Visite guidée",
 		"settingsButton": "Paramètres",
+		"guideButton": "Guide",
 		"onStandbyStream": "En Standby Stream, en attente d'action",
 		"sectionActiveLiveTabs": "Onglets actifs",
 		"sectionOtherLiveGames": "Matchs en direct",
@@ -238,6 +239,21 @@
 		"upcomingPreviousDay": "Jour précédent",
 		"upcomingNextDay": "Jour suivant",
 		"enableToggleLabel": "Activer le changement automatique"
+	},
+	"guide": {
+		"bestWindow": "Meilleur moment pour regarder",
+		"bandGames": {
+			"1": "1 match",
+			"n": "$1 matchs"
+		},
+		"bandFavorites": {
+			"1": "1 favori",
+			"n": "$1 favoris"
+		},
+		"empty": "Rien à l'affiche aujourd'hui.",
+		"loading": "Chargement des matchs du jour…",
+		"favoriteGame": "Une de tes équipes favorites",
+		"at": "-"
 	},
 	"detail": {
 		"legendCloseness": "Serré",

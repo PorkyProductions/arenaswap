@@ -229,6 +229,7 @@
 	"main": {
 		"tourButton": "Visita guiada",
 		"settingsButton": "Definições",
+		"guideButton": "Guia",
 		"onStandbyStream": "Em Standby Stream, à espera de acção",
 		"sectionActiveLiveTabs": "Separadores activos",
 		"sectionOtherLiveGames": "Jogos em directo",
@@ -238,6 +239,21 @@
 		"upcomingPreviousDay": "Dia anterior",
 		"upcomingNextDay": "Dia seguinte",
 		"enableToggleLabel": "Activar mudança automática"
+	},
+	"guide": {
+		"bestWindow": "Melhor horário para ver",
+		"bandGames": {
+			"1": "1 jogo",
+			"n": "$1 jogos"
+		},
+		"bandFavorites": {
+			"1": "1 favorito",
+			"n": "$1 favoritos"
+		},
+		"empty": "Hoje não há jogos.",
+		"loading": "A carregar os jogos de hoje…",
+		"favoriteGame": "Uma das tuas equipas favoritas",
+		"at": "-"
 	},
 	"detail": {
 		"legendCloseness": "Equilíbrio",

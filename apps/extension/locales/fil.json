@@ -229,6 +229,7 @@
 	"main": {
 		"tourButton": "Tour",
 		"settingsButton": "Mga Setting",
+		"guideButton": "Guide",
 		"onStandbyStream": "Naka-Standby Stream, naghihintay ng aksyon",
 		"sectionActiveLiveTabs": "Mga Aktibong Tab",
 		"sectionOtherLiveGames": "Mga Live na Laro",
@@ -238,6 +239,21 @@
 		"upcomingPreviousDay": "Nakaraang araw",
 		"upcomingNextDay": "Susunod na araw",
 		"enableToggleLabel": "I-enable ang awtomatikong paglipat"
+	},
+	"guide": {
+		"bestWindow": "Pinakamagandang oras panoorin",
+		"bandGames": {
+			"1": "1 laro",
+			"n": "$1 na laro"
+		},
+		"bandFavorites": {
+			"1": "1 paborito",
+			"n": "$1 na paborito"
+		},
+		"empty": "Walang laro ngayon.",
+		"loading": "Nilo-load ang mga laro ngayon…",
+		"favoriteGame": "Isa sa mga paborito mong team",
+		"at": "vs"
 	},
 	"detail": {
 		"legendCloseness": "Kalapitan",

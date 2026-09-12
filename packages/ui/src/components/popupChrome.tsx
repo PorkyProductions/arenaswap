@@ -24,6 +24,7 @@ export const PopupHeader = ({
 	onToggleEnabled,
 	onOpenSettings,
 	onStartTour,
+	onOpenGuide,
 }: {
 	logoSrc: string;
 	enabled: boolean;
@@ -36,12 +37,23 @@ export const PopupHeader = ({
 	onToggleEnabled: () => void;
 	onOpenSettings: () => void;
 	onStartTour: () => void;
+	// Optional, and the button is absent without it. The website renders this header twice and has no
+	// guide page to open, so there is nothing there for a third control to do.
+	onOpenGuide?: () => void;
 }) => {
 	const t = useT();
 	return (
 		<div className='d-flex justify-content-between align-items-center mb-2 pb-2'>
 			<img src={logoSrc} alt='ArenaSwap' className='arenaswap-logo' />
 			<div className='d-flex align-items-center gap-2' aria-hidden={interactive ? undefined : true}>
+				{/* Before the help mark rather than after the cog: settingsCog.cy.tsx identifies the cog
+				    as `.popup-settings-button` .last(), and a third button appended after it would
+				    silently repoint those assertions at this one. */}
+				{onOpenGuide && (
+					<button className='btn btn-sm p-0 popup-settings-button' onClick={onOpenGuide} title={t('main.guideButton')} aria-label={t('main.guideButton')} disabled={!interactive} tabIndex={interactive ? undefined : -1}>
+						<i className='bi bi-calendar-week popup-settings-icon' />
+					</button>
+				)}
 				<button className='btn btn-sm p-0 popup-settings-button' onClick={onStartTour} title={t('main.tourButton')} aria-label={t('main.tourButton')} disabled={!interactive} tabIndex={interactive ? undefined : -1}>
 					<i className='bi bi-question-circle popup-settings-icon' />
 				</button>

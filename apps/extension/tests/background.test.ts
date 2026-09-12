@@ -1,5 +1,5 @@
 import { pollWinProbabilityMs } from '@arenaswap/core';
-import { createDefaultUserPreferences, createFavoriteTeamKey, historyWindowMs, normalizeUserPreferences, pollDormantMaxMs, pollHebetudinousMaxMs, pollIntervalMs, pollMaxEagerMs } from '@arenaswap/core/constants';
+import { createDefaultUserPreferences, createFavoriteTeamKey, guideMinUpcomingDays, historyWindowMs, normalizeUserPreferences, pollDormantMaxMs, pollHebetudinousMaxMs, pollIntervalMs, pollMaxEagerMs } from '@arenaswap/core/constants';
 import { chartHistory, coversWholeGame } from '../entrypoints/popup/components/wrapCoverage';
 import type { Game, LeagueId, TabRegistration, UserPreferences } from '@arenaswap/core/types';
 import { prefsStorageUpdatedAtKey } from '../utils/prefsStorage';
@@ -1522,5 +1522,104 @@ describe('polling a league with nothing on', () => {
 		const state = await debugState();
 		expect(state.pollModes.nba).toBe('dormant');
 		expect(state.leagueIntervals.nba).toBe(pollDormantMaxMs);
+	});
+});
+
+const game = (id: string, status: Game['status']): Game => ({
+	id,
+	league: 'nba' as LeagueId,
+	sportType: 'basketball',
+	status,
+	homeTeam: { id: `${id}-h`, name: 'Home', abbreviation: 'HOM', score: 0 },
+	awayTeam: { id: `${id}-a`, name: 'Away', abbreviation: 'AWY', score: 0 },
+	period: 0,
+	clockSeconds: 0,
+});
+
+// The guide draws today's whole slate — scheduled games, live games and finals — whatever the
+// popup's display preferences say. refreshSlate discards two of those three depending on prefs, so
+// the guide asks for its own.
+describe('GET_GUIDE_SLATE', () => {
+	const nbaOnly: Partial<UserPreferences> = { enabledLeagues: ['nba' as LeagueId], enabled: false };
+
+	const guideSlate = () => onMessageHandler({ type: 'GET_GUIDE_SLATE' }) as Promise<{ games: Game[] }>;
+
+	const guideDebugState = async () => await onMessageHandler({ type: 'GET_DEBUG_STATE' }) as {
+		totalGameCount: number;
+		upcomingGameCount: number;
+	};
+
+	test('asks for scheduled games and finals even with both display preferences off', async () => {
+		await loadBackground({
+			prefs: { ...nbaOnly, showUpcomingGames: false, keepFinalGames: false },
+			fetchReturnValue: { games: [game('live', 'in')], leagueLogos: {} },
+		});
+		fetchMock.mockClear();
+		await guideSlate();
+
+		const options = fetchMock.mock.calls.at(-1)![1];
+		expect(options.includeUpcoming).toBe(true);
+		expect(options.includeFinal).toBe(true);
+	});
+
+	test('spans as many days ahead as Up Next is set to', async () => {
+		await loadBackground({
+			prefs: { ...nbaOnly, upcomingGamesDays: 9 },
+			fetchReturnValue: { games: [game('live', 'in')], leagueLogos: {} },
+		});
+		fetchMock.mockClear();
+		await guideSlate();
+
+		expect(fetchMock.mock.calls.at(-1)![1].upcomingDays).toBe(9);
+	});
+
+	// The guide pages a day at a time and its whole point is having somewhere to page to, so the
+	// setting is floored rather than followed all the way down.
+	test('still reaches a few days out when Up Next is set to one day', async () => {
+		await loadBackground({
+			prefs: { ...nbaOnly, upcomingGamesDays: 1 },
+			fetchReturnValue: { games: [game('live', 'in')], leagueLogos: {} },
+		});
+		fetchMock.mockClear();
+		await guideSlate();
+
+		expect(fetchMock.mock.calls.at(-1)![1].upcomingDays).toBe(guideMinUpcomingDays);
+		expect(guideMinUpcomingDays).toBeGreaterThan(1);
+	});
+
+	test('returns the finals the popup would have thrown away', async () => {
+		await loadBackground({
+			prefs: { ...nbaOnly, showUpcomingGames: false, keepFinalGames: false },
+			fetchReturnValue: { games: [game('live', 'in')], leagueLogos: {} },
+		});
+		fetchMock.mockResolvedValue({ games: [game('done', 'post'), game('later', 'pre')], leagueLogos: {} });
+
+		const slate = await guideSlate();
+		expect(slate.games.map(g => g.id).toSorted()).toEqual(['done', 'later']);
+	});
+
+	// The switch target, the debug counts and the popup's own list all read `games`, so widening it
+	// would change which game the extension switches to.
+	test('does not leak its wider slate into the state the switcher scores', async () => {
+		await loadBackground({
+			prefs: { ...nbaOnly, showUpcomingGames: false, keepFinalGames: false },
+			fetchReturnValue: { games: [game('live', 'in')], leagueLogos: {} },
+		});
+		fetchMock.mockResolvedValue({ games: [game('done', 'post'), game('later', 'pre')], leagueLogos: {} });
+		await guideSlate();
+
+		const state = await guideDebugState();
+		expect(state.totalGameCount).toBe(1);
+		expect(state.upcomingGameCount).toBe(0);
+	});
+
+	test('answers with an empty slate rather than throwing when ESPN cannot be reached', async () => {
+		await loadBackground({
+			prefs: nbaOnly,
+			fetchReturnValue: { games: [game('live', 'in')], leagueLogos: {} },
+		});
+		fetchMock.mockRejectedValue(new Error('503'));
+
+		await expect(guideSlate()).resolves.toEqual({ games: [], leagueLogos: {}, gameBoosts: {} });
 	});
 });

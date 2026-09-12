@@ -42,6 +42,10 @@ const onSetGameBoost = (gameId: string, boost: number) => {
 	void browser.runtime.sendMessage({ type: 'SET_GAME_BOOST', gameId, boost });
 };
 
+const openGuide = () => {
+	void browser.tabs.create({ url: browser.runtime.getURL('/guide.html') });
+};
+
 const isScoreUpdateMessage = (value: unknown): value is { type: 'SCORES_UPDATED' } => (
 	typeof value === 'object'
 	&& value !== null
@@ -451,6 +455,7 @@ export default () => {
 						onReviewSuggestions={() => setView('suggest')}
 						onDismissSuggestions={onDismissSuggestions}
 						onStartWalkthrough={() => setWalkthroughActive(true)}
+						onOpenGuide={openGuide}
 						showReviewPrompt={shouldShowReviewPrompt(reviewPromptState)}
 						onToggleEnabled={() => persistPrefs(currentPrefs => ({ ...currentPrefs, enabled: !currentPrefs.enabled }))}
 						onDismissReviewPrompt={dismissReviewPrompt}

@@ -67,6 +67,7 @@ const defaultProps = {
 	onToggleFavoriteTeam: () => {},
 	onRegistryChange: () => {},
 	onStartWalkthrough: () => {},
+	onOpenGuide: () => {},
 	formatTabLabel: () => 'Tab',
 	suggestionCount: 0,
 	onReviewSuggestions: () => {},

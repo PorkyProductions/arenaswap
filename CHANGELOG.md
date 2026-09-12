@@ -1,5 +1,127 @@
 # Changelog
 
+## The Guide opens on today rather than on the day before yesterday — 2026-09-12
+
+Opening the guide landed on a past day. The pager said the right thing about whatever day it was
+showing, so nothing looked broken — it was just the wrong day, and the games on it had all finished.
+
+`buildUpcomingDatesRangeQuery` takes a `pastDays`, and `fetchLeagueGames` passes **2** whenever
+finals are asked for. The guide asks for finals on every fetch, because finished games stay on the
+timeline dimmed so the day keeps its shape. So the slate legitimately reaches two local days back,
+the day list is built from the slate, and the selection fell back to index 0 — the oldest group.
+
+The entry below is where that was introduced: the day list arrived with the pager, and index 0 was
+today right up until finals widened the window behind it.
+
+### Today, and only failing to today
+
+`defaultDayKey` resolves the opening day rather than taking the first group. Today when today has
+games; otherwise the next day that has any, so a guide opened on a dead Tuesday shows what is coming
+rather than what has been; and only if every day is in the past does it fall back — to the **most
+recent** of them, not the oldest.
+
+It is a pure function taking the day list and the instant, which is what makes the four cases above
+testable without a browser.
+
+### The past days stay on the pager
+
+Filtering them out would have been the shorter fix and it is wrong. A game that kicked off at 11pm
+yesterday and is still running belongs to yesterday by start date, and dropping that day would make a
+live game disappear from the guide entirely — the one thing this product must never do.
+
+So the back arrow is enabled when the guide opens, and it goes to yesterday's results. That is
+honest: there is a yesterday, and it has something on it.
+
+### Coverage
+
+Five unit tests on `defaultDayKey`: today among past days, today alone, nothing on today, everything
+in the past, and an empty slate. Three of them fail against the old behaviour of taking the first
+group, which is the mutation they were written against.
+
+The page was also driven headlessly with two days of finals behind today on the fixture — the shape
+the range query actually returns — and opens on **Today** with nine bars, with both arrows live.
+
+One process note: this slipped through a root-level `oxlint` invocation that the workspace's own
+`npm run lint` catches. The repo's lint task is the one that counts.
+
+## The Guide pages into the week, and follows the Up Next setting to do it — 2026-09-11
+
+The guide showed today and nothing else, which made a timeline of a slate you could already see. It
+now spans as many days ahead as Up Next is set to and pages through them a day at a time.
+
+### A day on screen, not a week
+
+A continuous axis across the whole window was the obvious reading of "scroll right to see the
+future", and it does not survive contact with the row model. Rows are one per game, and the default
+window is **seven days** — so the canvas would be about 21,000px wide and scrolling past today would
+leave today's twenty-five rows as empty bands stretching into next week. A guide whose rows are
+mostly blank is a Gantt chart of nothing.
+
+So the axis stays a day wide and clamped to that day's games, and the future is reached with the
+pager rather than with the scrollbar. Horizontal scrolling still does what it did: move through the
+hours of the day you are on. Every row on screen has a game on it, which is the property that makes
+the grid worth reading.
+
+### It reuses the pager Up Next already has
+
+`UpcomingDayPager`, `groupByDate` and `resolveSelectedDayIndex` are all already exported, and
+`date.today`, `date.tomorrow` and the pager's three aria strings are already in all twelve locale
+files. **This change adds no locale keys at all.** It also means the guide and Up Next label the same
+day with the same words, which is the point of reusing it rather than writing a second one.
+
+The selected day is held as a **date key rather than an index**, which `resolveSelectedDayIndex`'s
+own comment explains and which matters more here than in the popup: the guide refetches on every
+`SCORES_UPDATED`, so games kick off and leave the list under you. An index would silently land you on
+a different date than the one you navigated to.
+
+The day list is built from the games rather than from a date range, so the pager can never step onto
+a day with nothing on it.
+
+### The window follows the preference, with a floor
+
+`upcomingDays` on the guide's fetch is `Math.max(prefs.upcomingGamesDays, guideMinUpcomingDays)`.
+Following the setting is what keeps the two surfaces agreeing about how far ahead the product looks.
+The floor is 3, and it exists because the guide's whole point is having somewhere to page to — at a
+setting of 1 there is no future, and the feature reduces to what it was before.
+
+That is the one place the guide deliberately disagrees with the preference, and it only ever
+disagrees upward.
+
+### Today is the only day with a now line
+
+`now` is nullable on the grid now and null on every other day. A line labelled as the present moment
+sitting in the middle of next Tuesday is worse than no line at all.
+
+Paging also repositions the scroller: a future day opens at its own first game rather than wherever
+today happened to leave it, and paging **back** to today returns to the current moment rather than to
+breakfast. Both happen in the click handler rather than in an effect watching the day — which is
+where the behaviour belongs, and is what the effect-dependency lint was pointing at.
+
+### The first hour label was half off the screen
+
+The axis opens on a whole hour, so the first ruler mark sits at x=0, and centring it on its own
+position cut the left half of `12:00 PM` off the edge. It was there from the first render and only
+became obvious on a day whose axis starts at noon.
+
+### Coverage
+
+531 extension unit tests and 567 component tests, up from 529 and 565.
+
+Two on the fetch window — that it asks for nine days when Up Next says nine, and that it still
+reaches `guideMinUpcomingDays` when Up Next says one. The second asserts the floor is above 1 as well
+as being applied, since a floor of 1 would satisfy the first half while doing nothing.
+
+Two on the grid: that no now line is drawn when the day is not today — paired with the positive case,
+because an absence test is worth nothing until the selector is shown to match something — and that
+the first hour label opens fully inside the canvas.
+
+Both fetch tests were confirmed failing against the window pinned back to one day, and the floor test
+against the floor removed.
+
+The page was driven headlessly through a real page turn: Today with nine bars and the previous arrow
+disabled, then Tomorrow with three bars, no now line, its own league groups and the scroller back at
+the left edge.
+
 ## A live college football game stops being missing because ESPN did not feature it — 2026-09-11
 
 BC/Rutgers and Richmond/NC State were both in progress and neither was in the extension. ESPN was
@@ -74,6 +196,344 @@ A dated college football Saturday is **capped at about 80 events**, and that Sat
 live game in the reported case is inside the 80, and closing the rest means splitting college
 football's poll into one request per division, which is a second request on the busiest slate of the
 week and belongs in its own change.
+
+## The Guide stops looking like a wireframe of itself — 2026-09-11
+
+A polish pass over the entry below, against the rendered page rather than the source. Most of it is
+things the guide had no business being without, and two are decisions from the first pass that were
+simply wrong.
+
+### Team colour came back off the bars, and should not have
+
+"Do not tint the bars for favourites, and drop the live green" was read one step too far, and the
+team-colour hairlines went with it. They are not a status tint — they are which two teams this is,
+and without them a slate is a field of identical grey rectangles.
+
+They are back as two 3px rails at the ends of the bar rather than as a fill, because at 22px tall a
+filled bar is a colour swatch you cannot read a matchup off. The pair is resolved through
+`resolveTeamColorPair` with lightening **on**, unlike the game card, which passes it off: the card is
+a white plate and the guide is `#0d1117`, and half the league's primaries are navies that come
+nowhere near 3:1 against it. The climb scales the channels rather than mixing toward white, so a blue
+is still a blue at the end of it.
+
+What stays flat is what was actually asked for: no status fill and no favourite fill. Every bar is
+the same `#21262d` whether it is live, scheduled or one of yours.
+
+### The crests were silhouettes
+
+Straight on `#0d1117`, which is the exact problem `CrestDisc` already exists for — a Cowboys star or
+a Yankees monogram is navy on near-black, so the row showed an empty box beside an abbreviation doing
+all the work. The changelog records solving this once already for the tab-match list and explicitly
+leaving other surfaces for later. This is later.
+
+Both team crests and the league mark now sit on the tinted white disc, sampled out of the crest
+itself. The league mark needed it as much as the teams did: the NHL shield is black.
+
+### The grid stopped halfway down the screen
+
+`.guide-canvas` was only as tall as the games on it, so on a quiet evening the hour lines, the band
+and the now line all ended in mid-air with a screen of empty background under them — which reads as a
+rendering fault rather than as a quiet night. The scroller is a flex container and the canvas
+stretches to it, so the grid is the surface of the tab at any slate size.
+
+### The drawer was covering the header it sits under
+
+It was `position: fixed`, which put it over the top-right of the page — including the band toggle and
+the end of the summary line. Opening a game hid the control that changes the thing you opened it to
+look at.
+
+It is a flex sibling of the grid now, so the two share the row under the header and nothing can be
+occluded. Its basis is `calc(320px + 1px)` rather than `320px`, because `box-sizing` is `border-box`
+here and the left rule would otherwise come out of the detail screen's own width — which is a hard
+320 by design. That is a test rather than a comment: the first version of it measured 319.
+
+**And it fills the height.** `.popup-container` is `320x560`; the width is what the detail screen is
+laid out against and is kept, but 560 is the popup's frame rather than anything about the content,
+and in a browser tab it left a band of empty surface under the detail.
+
+**It slides.** 0.22s in on a decelerating curve, 0.18s out on an accelerating one — a different
+keyframe rather than the entry reversed, with `forwards` so the panel stays off screen for the frame
+between the animation ending and React unmounting it. The panel is kept mounted through the exit and
+dropped on `animationend`.
+
+Under `prefers-reduced-motion` the animation is off rather than instant, and the close path checks
+the same query directly — with no animation there is no `animationend` to wait for, and a drawer
+whose only exit is an event that never fires is a drawer that never closes.
+
+### The band label was being sliced into a fragment
+
+Anchored to the left edge of a band it is four times wider than, so any horizontal scroll past it
+left `4 games` floating at the top of the screen with nothing saying what it counted. Making it
+sticky does not help — sticky clamps to the containing block, and the label is wider than the band.
+
+So it is not on the grid at all. It is a sentence about the whole day rather than a property of a
+position on it, and it reads in the header beside the toggle that controls it, where no scroll
+position can cut it. The band on the grid is now purely the visual marker, and `aria-hidden`, since
+the header line says the same thing in words.
+
+### The rest of the pass
+
+**Row hairlines.** At ten-plus rows a guide without them is a field of floating rectangles and the
+eye cannot carry a time across the grid. With a hover tint on the row and a lift, a shadow and a
+border change on the bar.
+
+**A focus ring on the bars,** separate from the hover lift, which a keyboard user cannot read as
+position. Offset outward so it never lands on the team rails.
+
+**Escape closes the drawer**, which is what every panel over a page does and was the only way out
+that did not need the mouse.
+
+**The league headings take the popup's own treatment** — 0.75rem at 0.03em in `#8b949e`, which is
+what `.popup-section-label` is. A guide that sets its league marks differently from the popup reads
+as a different product. They also fade out to the right rather than ending on a hard edge, so the
+sticky label rides along the grid instead of sitting on top of it.
+
+**The now line is 2px.** At 1px, orange over a gridline of nearly the same lightness disappears, and
+the whole point of that line is being findable without looking for it.
+
+**A tick under each hour label,** so the hour lands on a mark rather than on the middle of a word.
+
+**The empty state takes the popup's own orange plate**, and the loading state deliberately does not —
+dressing a wait up as an outcome is how a slow network reads as "nothing on today". They were one
+line with a ternary in it; they are two states now.
+
+**The tab has a title and the page has a heading.** `Guide · ArenaSwap`, built from
+`main.guideButton` rather than a thirteenth locale key that would have said the same word, and not
+from `extName`, which is the full store listing name. The heading is `visually-hidden` — the page had
+a wordmark and nothing for a screen reader to announce it by.
+
+### Coverage
+
+565 component tests, up from 556. The new ones are the things this pass fixed: that each team colour
+lands as a rail at its own end of the bar, that a navy is lifted off the background rather than drawn
+raw, that every crest sits on a light disc, that the rows are ruled off, and five on the drawer —
+width, height, both animations, and reduced motion.
+
+The rail and disc assertions run against a fixture of **two navies on purpose**. A pair of
+already-bright colours would satisfy a contrast assertion without ever exercising the climb that
+exists for them.
+
+Each was confirmed failing against a mutation: drawing the rails raw, removing the row hairlines,
+putting the drawer back to the 560px popup frame, and removing the open animation.
+
+Two things worth recording about the specs themselves. The first version of the grid spec measured a
+grid **with no stylesheet loaded** — the guide's layout is entirely CSS, so every box reported zero
+and four assertions failed for reasons that had nothing to do with the code; `component.ts` loads
+`guide.scss` now. And the drawer spec had no imports at all, which compiles its JSX to a `require()`
+call and fails the file before any test runs; it imports the stylesheet it is about.
+
+The reduced-motion test sets Chrome's media emulation **before** mounting rather than after. Flipping
+it afterwards does not reliably re-resolve an animation that was applied at mount, which is how the
+first version of it failed.
+
+The page was driven headlessly at 1400px and at 980px: 18 crest discs, 3 league discs, nine bars each
+with a distinct pair of rails, one fill colour across all of them, row hairlines present, the body
+filling the scroller, and the drawer at a true 320px of content over the full height.
+
+## Today's slate gets a timeline, and the best window comes out of arithmetic — 2026-09-11
+
+The popup answers "what should I watch **right now**" well. It answers "what should I watch later
+today" with Up Next, which is a flat list of kickoff times with no shape to it — you cannot see that
+six games overlap at four o'clock, that your two teams play back to back, or that seven o'clock is
+dead.
+
+The Guide is a full browser tab where every game on today's card is a bar starting at its published
+start time and running for that league's typical broadcast length, grouped under league headings,
+with a band across the grid marking when the most is actually happening. A calendar button in the
+popup header opens it.
+
+### The button goes left of the help mark, and that is not a style choice
+
+`settingsCog.cy.tsx` identified the cog three times as `.popup-settings-button` `.last()`, which
+worked only because the cog was the second of two. A third button appended after it would have
+silently repointed those three assertions at the calendar — including "stays inert on a header that
+is only being shown", which would then have been asserting the inertness of a different control
+while continuing to pass.
+
+Putting the calendar first keeps `.last()` meaning the cog. The three selectors are addressed
+through `.bi-gear-fill` now anyway, because an ordinal selector that means the right thing by
+accident is worth removing while adding the thing that makes it ambiguous.
+
+`onOpenGuide` is **optional** and the button is absent without it. The website renders this same
+header twice as a picture of the popup and has no guide to open, so there is nothing there for a
+third control to do — which is also why no `apps/docs` locale key was needed. The prop repeats all
+three parts of the `interactive={false}` contract: `disabled`, `tabIndex={-1}`, and sitting inside
+the `aria-hidden` cluster. The gear's quarter-turn is hung on `.bi-gear-fill` rather than the shared
+`.popup-settings-icon`, so a calendar inherits none of it.
+
+### Bar length is a new per-league table, and `sportWrapAllowanceMs` is not it
+
+`packages/core`'s six per-sport durations exist to decide whether a finished game is still worth
+keeping for another hour, and their own comment says they are deliberately generous because
+over-estimating is the harmless direction there. On a guide it is not: a long bar overstates
+concurrency and drags the band with it. Keyed on sport, the NBA and FIBA basketball draw identical
+bars across a real 32-minute gap.
+
+So `LeagueConfig` gains a required `runMinutes` beside `periodDurationSecs`, which is the same kind
+of league fact. Required rather than optional, because a league with no duration cannot be drawn and
+an optional field with a silent sport-average fallback recreates exactly the two-sources-of-truth
+problem this avoids. `sportWrapAllowanceMs` is untouched and keeps doing retention.
+
+`bar` is roughly p75. The failure modes are asymmetric: a bar that ends while the game is still on is
+the one thing a TV guide must never do, and a slightly long bar only overstates concurrency a little.
+`p25` and `p99` bound the occupancy taper.
+
+**Two values would be wrong from memory.** NCAA football lost about 24 minutes to the 2023 clock
+rules and is no longer far longer than the NFL; MLB lost about 25 to the 2023 pitch clock.
+
+**Three are soft and say so in the source.** `wbbc` is the softest number in the table — 2026 is the
+first World Baseball Classic with a pitch clock, so there is no measured precedent to read it off.
+`olybb` has been played in one of the last five Games. `olymih` assumes IIHF-like commercial load,
+and Milan 2026 has NHL players and a US broadcast.
+
+**And one was simply wrong.** `olybb` is Olympic Men's *Baseball*. The design mockup had it at 110
+minutes sitting in the basketball block — a bar ending in the sixth inning — because the id reads
+like an abbreviation for basketball and is not one. The 110 belongs to `olybkm`/`olybkw`. The table
+has its own test that every league's `p25 <= bar <= p99` and that no baseball league is under two
+hours, which is the assertion that would have caught it.
+
+Four competitions carry a second `knockoutRunMinutes`, selected by the game's existing
+`isPostseason` flag: the two World Cups and both Olympic soccer tournaments, where a single match
+reaches extra time often enough to move p75. The UEFA competitions deliberately do **not** have one —
+only a second leg can reach extra time, which is about 5% of matches, and that belongs in p99 rather
+than in the drawn bar.
+
+### A live game's bar is extended rather than predicted
+
+Once `status === 'in'`, the bar ends at `max(estimate, now + 10 minutes)`. One rule covers a double
+overtime, a rain delay and a knockout going to penalties without any per-sport extrapolation, and it
+is always wrong in the safe direction. With no live colour on a bar, crossing the now line is the
+only thing saying a game is still on — so a bar ending behind that line would be the one genuinely
+broken state.
+
+### The best window is leverage-weighted concurrency, and that changes the answer
+
+`heat(t)` sums, over every game, the probability it is still running times how much of the good part
+of it is happening times a favourite weight. Occupancy is flat to `p25` then smoothsteps to `p99`;
+summing survival probabilities rather than thresholding on the drawn bar is what gives a curve
+instead of a staircase that drops by nine the moment the one o'clock window nominally ends.
+
+Leverage is a piecewise-linear per-sport curve over the fraction of the bar elapsed, and it is what
+makes late afternoon beat 1:05pm — nine games in the fourth quarter beats nine games in the first.
+Measured on a fixture NFL Sunday, the weighted peak and the moment the most bars overlap are 35
+minutes and about 1.7× apart, which is the whole reason the weighting exists.
+
+**Dead zones sit at a hard zero rather than at a low point on a smooth ramp.** Nearly a quarter of a
+hockey broadcast is intermission, and a curve that smooths through that is lying about a fifth of the
+game. College men's basketball is the one league that does not resolve to its sport's curve: it plays
+halves, so there is no fourth quarter to ramp from.
+
+**The band is never narrower than half an hour.** The first rendered slate produced a ten-minute
+band, which is arithmetic precision the inputs cannot support — bar lengths are p75 estimates with
+tens of minutes of spread in them, and a ten-minute band reads as "be watching at 3:55" when what is
+true is "late afternoon is the good part". A sharp peak is exactly what a sparse evening produces, so
+this is the common case rather than an edge one.
+
+**No per-bar leverage smear.** Before a game starts that curve is identical for every game in a
+league, so every NBA bar would carry the same wash on its right quarter — decoration rather than
+information.
+
+### The guide fetches its own slate
+
+`refreshSlate` discards scheduled games when Up Next is off and finals when Keep finished games is
+off, and `tickLeague` evicts anything extra from `games` within one poll. The guide shows the whole
+day regardless, so it asks for it: a new `GET_GUIDE_SLATE` message that calls the same fetch with
+both gates bypassed.
+
+It deliberately does **not** widen `games`. `afterFetch` scores off `games.filter(status === 'in')`,
+and the switch target, the debug counts and the popup's own list read that same array — extra entries
+would change which game the extension switches to. That has its own test, driving the real message
+and then asserting the debug counts did not move.
+
+### Every bar is the same grey
+
+No live colour, no favourite tint, no per-status fill. A green "live" bar and an orange "favourite"
+bar are two unrelated legends the reader has to learn before the grid means anything, and the two
+facts are already carried better elsewhere: the now line crosses a live bar, and a favourite takes
+the same star the game cards already draw. Finals stay on the timeline at 55% opacity, because a day
+with holes where the afternoon was reads as broken rather than as finished.
+
+Both of those are asserted off computed style rather than off class names, and each absence test is
+paired with something that proves the selector matches — the favourite test also requires the star to
+exist, or it would be comparing two identical bars and proving nothing.
+
+### The matchup pins to the visible edge of the bar
+
+Found by rendering rather than by reading. The guide opens scrolled to now, which puts most of the
+afternoon off to the left, so a game that started earlier is the ordinary case. With the label at the
+bar's own left edge, those rows showed the tail of a bar with the matchup scrolled out of sight — four
+NFL rows reading `PHI`, `EN`, `NYJ` and `HI`.
+
+The content is `position: sticky` inside the bar now, the way a TV guide pins a programme title. The
+bar is `overflow: clip` rather than `hidden` for it: `hidden` would make the bar its own scroll
+container, and sticky resolves against the nearest one, which has to be the grid's scroller for the
+pinning to follow the horizontal scroll. Sticky is bounded by its containing block, so the label
+stops at the bar's right edge instead of being dragged past it — which has its own test, because that
+is the failure the fix could have introduced.
+
+### The grid is CSS, not echarts
+
+The design carried a popup teaser strip with a heat sparkline, and dropping it took the only thing
+that wanted a chart library. `gameDetailChart` registers exactly five echarts modules and this
+changelog records that trimming to those saved 590KB; a Gantt would have needed `CustomChart` and
+`MarkAreaComponent` on top. Absolutely-positioned bars on a fixed scale are lighter and keep every
+bar wide enough to read a matchup off — the shortest bar in the whole table is 108 minutes, which is
+227px, and that is why no narrow-bar variant exists.
+
+The scale is fixed and the grid scrolls rather than fitting the day to the viewport. A whole NFL
+Sunday squeezed into 1280px puts a two-hour match at 115px, which holds neither crest.
+
+### No new preference
+
+The band toggle is page-local state. It is the only thing on the guide that can be switched off, it
+is switched off from the guide, and a preference for it would have meant a `settingsEntries`
+registration, a `setupView` row, two more keys across twelve files, and four test fixtures that
+assert the whole `UserPreferences` object with `toEqual`. None of that buys anything a checkbox on
+the page does not.
+
+### Strings
+
+Eight keys across all twelve locales: the header button and a new `guide` namespace.
+
+`guide.at` is the separator between two teams, and the English `@` is a US convention rather than a
+universal one. It was checked against each language's own sports coverage rather than guessed:
+German, French, Italian and European Portuguese print a hyphen, Spanish `vs.`, the four CJK locales
+and Filipino `vs`, and Brazilian Portuguese a lowercase `x`. `main.guideButton` takes each language's
+actual TV-listings word — 番組表, 편성표, 节目表 — rather than a generic "guide", because that is what
+the screen is.
+
+The band label is assembled from the parts that are present rather than written inline with
+separators between them. The first render produced `· 3:50 PM–4:00 PM ·` from two empty pieces, which
+is what an inline separator does the moment a string is missing.
+
+### Coverage
+
+**66 unit tests** across the model and the geometry, and **20 component tests** across the header
+button and the grid.
+
+Every one that matters was confirmed failing against a mutation rather than trusted: flattening the
+leverage curve to raw concurrency (5 fail), removing the live-bar floor, removing the band's minimum
+width, putting `olybb` back to its wrong basketball length, making the guide slate respect the
+display preferences again, unpinning the bar content, and recolouring finals instead of dimming them.
+Each broke a different test, which is what says they are measuring different things.
+
+The band test pins the **distance** between the weighted peak and the raw-count peak rather than only
+the answer, because a test that cannot tell those two apart is not measuring the feature.
+
+Two things the first version of the grid spec got wrong, both worth recording. It measured a grid
+with no stylesheet loaded — the guide's layout is entirely CSS, so every box reported zero and four
+assertions failed for a reason that had nothing to do with the code; `cypress/support/component.ts`
+loads `guide.scss` now. And the two pinning tests mounted a single bar at 1280px, where nothing
+overflows and `cy.scrollTo` refuses to scroll; they run at 400px, where the bar is genuinely wider
+than its scroller.
+
+The page was also driven headlessly against the real build with a stubbed background: 9 bars, 3
+league groups, two crests on every bar, every bar 22px, **one distinct fill colour across all of
+them**, no label overflow, fonts loaded and a clean console.
+
+529 extension unit tests, 556 component tests, 462 core, 147 powerscore, 112 ui and 78 end-to-end
+pass, across `lint`, `test`, `test:e2e`, all three builds and all three zips. `guide.html` ships in
+all three browser zips and the guide source in the sources zip.
 
 ## The font warnings go quiet, and DM Sans stops shipping four copies of one file — 2026-09-11
 
